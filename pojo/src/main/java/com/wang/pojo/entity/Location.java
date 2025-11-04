@@ -52,4 +52,11 @@ public class Location implements Serializable {
     @Length(max= 255,message="编码长度不能超过255")
     private String remark;
 
+    /**
+     *图片路径
+     */
+    @Size(max= 255,message="编码长度不能超过255")
+    @ApiModelProperty("图片路径")
+    @Length(max= 255,message="编码长度不能超过255")
+    private String url;
 }
