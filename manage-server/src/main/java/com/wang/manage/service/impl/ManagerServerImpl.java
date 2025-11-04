@@ -8,6 +8,7 @@ import com.wang.common.interceptor.LoginInterceptor;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
+import com.wang.common.untils.Argon2idUtil;
 import com.wang.common.untils.CommonUtil;
 import com.wang.common.untils.JWTUtil;
 import com.wang.manage.mapper.ManagerMapper;
@@ -35,6 +36,7 @@ public class ManagerServerImpl implements ManagerServer {
     @Autowired
     private ManagerMapper managerMapper;
 
+
     /**
      * 添加管理员
      *
@@ -51,12 +53,15 @@ public class ManagerServerImpl implements ManagerServer {
         LoginUser loginUser = LoginInterceptor.threadLocal.get();//通过拦截器获取当前登录用户信息
         one.setCreateManager(loginUser.getId());
         one.setUpdateManager(loginUser.getId());
-        //$1$(表示md5加密的) + 8位随机数
+       /* //$1$(表示md5加密的) + 8位随机数
         one.setSecret("$1$" + CommonUtil.getRandomString(8));//添加一个随机的盐
         //数据库保存密码=md5（密码 + 盐）
-        String s = Md5Crypt.md5Crypt(one.getPassword().getBytes(), one.getSecret());//通过这种方法的加盐方式更好
-        one.setPassword(s);
+        String s = Md5Crypt.md5Crypt(one.getPassword().getBytes(), one.getSecret());//通过这种方法的加盐方式更好*/
 
+
+        //md5加盐的加密方式已经过时了，现在使用argon2进行加密
+        String s = Argon2idUtil.hash(one.getPassword());
+        one.setPassword(s);
 
         //唯一性校验   这里数据库有唯一性约束，所以不写代码
 
@@ -94,13 +99,14 @@ public class ManagerServerImpl implements ManagerServer {
         }
 
         //验证密码
-        String encryptedPassword = Md5Crypt.md5Crypt(password.getBytes(), manager.getSecret());
+        boolean ok = Argon2idUtil.verify(manager.getPassword(), password);
 
+//        String encryptedPassword = Md5Crypt.md5Crypt(password.getBytes(), manager.getSecret());
         //上面这行代码会将密码进行加盐处理后加密，下面的则是将代码加密后拼接盐（这个盐并没有和密码进行加密处理），效果是不同的
 //        String en = DigestUtils.md5DigestAsHex(password.getBytes());
 //        en = en + manager.getSecret();
 
-        if (!encryptedPassword.equals(manager.getPassword())) {
+        if (!ok) {
             log.warn("密码错误：账号={}", account);
             return Result.buildResult(BizCodeEnum.USER_ACCOUNT_ERROR);
         }
