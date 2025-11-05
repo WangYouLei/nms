@@ -11,23 +11,35 @@ import com.wang.common.result.Result;
 import com.wang.common.untils.Argon2idUtil;
 import com.wang.common.untils.CommonUtil;
 import com.wang.common.untils.JWTUtil;
+import com.wang.manage.config.MinioConfig;
+import com.wang.manage.config.MinioInfo;
 import com.wang.manage.mapper.ManagerMapper;
 import com.wang.manage.service.ManagerServer;
 import com.wang.pojo.dto.ManagerDTO;
 
 import com.wang.pojo.entity.Manager;
 import com.wang.pojo.vo.ManagerVO;
+import io.minio.MinioClient;
+import io.minio.ObjectWriteResponse;
+import io.minio.PutObjectArgs;
+import io.minio.errors.*;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.Md5Crypt;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 
 @Slf4j
@@ -36,6 +48,11 @@ public class ManagerServerImpl implements ManagerServer {
     @Autowired
     private ManagerMapper managerMapper;
 
+    @Autowired
+    private MinioInfo minioInfo;
+
+    @Autowired
+    private MinioClient minioClient;
 
     /**
      * 添加管理员
@@ -281,5 +298,36 @@ public class ManagerServerImpl implements ManagerServer {
             log.error("多条件查询管理员异常: " + e.getMessage());
             return Result.error("查询失败，请稍后重试");
         }
+    }
+
+    /**
+     * 头像上传
+     *
+     * @param file 文件
+     * @return 上传结果
+     */
+    @Override
+    public Result fileUpload(MultipartFile file) {
+        //重命名名称   命名规则：manager/avatar/UUID生成随机字符串+文件后缀
+        String newFileName = "manager/avatar/"
+                + UUID.randomUUID().toString()
+                + file.getOriginalFilename()
+                .substring(file.getOriginalFilename().lastIndexOf("."));
+
+        try {
+            ObjectWriteResponse objectWriteResponse = minioClient.putObject(PutObjectArgs.builder()
+                    .bucket(minioInfo.getBucketName())
+                    .object(newFileName)
+                    .stream(file.getInputStream(), file.getSize(), -1)
+                    .build());
+
+            if(objectWriteResponse != null){
+                String url = minioInfo.getEndpoint() + "/" + minioInfo.getBucketName() + "/" +newFileName;
+                return Result.success(url);
+            }
+        } catch (Exception e) {
+            log.error("上传文件异常: " + e.getMessage());
+        }
+        return Result.buildResult(BizCodeEnum.FILE_UPLOAD_FAIL);
     }
 }

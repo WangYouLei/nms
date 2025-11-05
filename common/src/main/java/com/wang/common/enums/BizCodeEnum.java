@@ -31,17 +31,21 @@ public enum BizCodeEnum {
      */
     SYSTEM_ERROR(10003, "系统内部错误"),
     /**
+     * 文件上传失败
+     */
+    FILE_UPLOAD_FAIL(10004, "文件上传失败"),
+    /**
      * 资源不存在
      */
-    RESOURCE_NOT_FOUND(10004, "请求的资源不存在"),
+    RESOURCE_NOT_FOUND(10005, "请求的资源不存在"),
     /**
      * 权限不足
      */
-    PERMISSION_DENIED(10005, "权限不足"),
+    PERMISSION_DENIED(10006, "权限不足"),
     /**
      * 数据重复
      */
-    DATA_DUPLICATE(10006, "数据已存在"),
+    DATA_DUPLICATE(10007, "数据已存在"),
 
     // =================== 用户相关状态码 ===================
     /**

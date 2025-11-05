@@ -4,6 +4,7 @@ import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.ManagerDTO;
 import com.wang.pojo.vo.ManagerVO;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface ManagerServer {
     /**
@@ -49,4 +50,11 @@ public interface ManagerServer {
      * @return 查询结果（最多返回一个管理员信息）
      */
     Result queryManagers(String name, String account);
+
+    /**
+     * 头像上传
+     * @param file
+     * @return
+     */
+    Result fileUpload(MultipartFile file);
 }
