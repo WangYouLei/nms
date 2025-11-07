@@ -2,7 +2,6 @@ package com.wang.pojo.dto;
 
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-import org.hibernate.validator.constraints.Length;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -16,10 +15,7 @@ import java.time.LocalDateTime;
 */
 @Data
 public class ManagerDTO implements Serializable {
-    /**
-    * 管理人ID
-    */
-    private Integer id;
+
 
     /**
     * 管理人名称
@@ -33,10 +29,5 @@ public class ManagerDTO implements Serializable {
     * 密码
     */
     private String password;
-    /**
-    * 头像URL
-    */
-    private String avatar;
-
 
 }

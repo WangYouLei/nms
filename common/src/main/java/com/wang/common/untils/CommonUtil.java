@@ -22,7 +22,8 @@ public class CommonUtil {
             writer.write(objectMapper.writeValueAsString(object));
             response.flushBuffer();
         }catch (Exception e){
-            log.warn("响应json失败");
+            /*log.warn("响应json失败");*/
+            System.out.println("响应json失败");
         }
     }
     /**

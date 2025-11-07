@@ -229,7 +229,7 @@ public class ManagerServerImpl implements ManagerServer {
      * @return 修改结果
      */
     @Override
-    public Result updateManager(ManagerDTO manager) {
+    public Result updateManager(Manager manager) {
         log.info("修改管理员信息：ID={}, 姓名={}", manager.getId(), manager.getName());
 
         //检查管理员是否存在
@@ -248,10 +248,8 @@ public class ManagerServerImpl implements ManagerServer {
         }
 
         //执行更新操作
-        Manager manager1 = new Manager();
-        BeanUtils.copyProperties(manager, manager1);
-        manager1.setUpdateTime(LocalDateTime.now());
-        int result = managerMapper.updateById(manager1);
+        manager.setUpdateTime(LocalDateTime.now());
+        int result = managerMapper.updateById(manager);
         if (result == 1) {
             //查询更新后的管理员信息
             Manager updatedManager = managerMapper.selectById(manager.getId());

@@ -1,7 +1,7 @@
 package com.wang.common.enums;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+
+import lombok.*;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -129,6 +129,15 @@ public enum BizCodeEnum {
      */
     LEVEL_NOT_FOUND(80001, "等级不存在");
 
+    //TODO 手写的get方法
+    public int getCode() {
+        return code;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
     /**
      * 状态码
      */
@@ -147,6 +156,7 @@ public enum BizCodeEnum {
 
     /**
      * 根据状态码获取对应的枚举
+     *
      * @param code 状态码
      * @return 对应的枚举，如果不存在则返回null
      */
@@ -161,6 +171,7 @@ public enum BizCodeEnum {
 
     /**
      * 安全地根据状态码获取对应的枚举
+     *
      * @param code 状态码
      * @return Optional包装的枚举
      */
@@ -170,6 +181,7 @@ public enum BizCodeEnum {
 
     /**
      * 判断是否为成功状态
+     *
      * @return 是否成功
      */
     public boolean isSuccess() {
@@ -178,6 +190,7 @@ public enum BizCodeEnum {
 
     /**
      * 判断是否为失败状态
+     *
      * @return 是否失败
      */
     public boolean isFailure() {

@@ -1,18 +1,14 @@
 package com.wang.manage;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-@SpringBootApplication(scanBasePackages = {
-        "com.wang.manage",
-        "com.wang.common"
-})
-@EntityScan("com.wang.novelmanagementsystem.pojo")
-@EnableJpaRepositories("com.wang.manage.repository")
+@SpringBootApplication(scanBasePackages = "com.wang")
 @EnableConfigurationProperties
+@MapperScan("com.wang.manage.mapper")
 public class ManageServerApplication {
 
     public static void main(String[] args) {

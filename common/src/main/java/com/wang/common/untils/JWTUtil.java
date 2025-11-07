@@ -5,17 +5,20 @@ import com.wang.common.model.LoginUser;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Date;
+
+import static javax.crypto.Cipher.SECRET_KEY;
 
 
 @Slf4j
 public class JWTUtil {
     /**
-     * JWT密钥      企业级开发中，秘钥不能泄露，且长度不能低于128位
+     * JWT密钥      HS256 算法要求密钥长度至少为 256 位（32 字节）
      */
-    private static final String JWT_SECRET = "wang"; //这里就先简单设置一下
+    private static final String JWT_SECRET = "wangwangwangwangwangwangwangwangwangwangwangwang"; // 至少32个字符
 
     /**
      * JWT 有效时间   通常是设置7天
@@ -34,6 +37,7 @@ public class JWTUtil {
 
     /**
      * 生成token
+     *
      * @param loginUser
      * @return
      */
@@ -49,30 +53,33 @@ public class JWTUtil {
                     //设置过期时间
                     .setIssuedAt(new Date())//设置当前时间
                     .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRED))//设置过期时间
-                    .signWith(SignatureAlgorithm.HS256, JWT_SECRET)//设置加密算法和密钥
+                    .signWith(Keys.hmacShaKeyFor(JWT_SECRET.getBytes()), SignatureAlgorithm.HS256)//设置加密算法和密钥
                     .compact();
             return JWT_PREFIX + compact;
-        }catch (Exception e){
-            log.info("token无法生成");
+        } catch (Exception e) {
+            log.info("token无法生成:{}", e);
             return null;
         }
     }
 
+
     /**
      * 校验token
+     *
      * @param token
      * @return
      */
     public static Claims checkJWT(String token) {
         try {
-
-            final Claims claims = Jwts.parser().setSigningKey(JWT_SECRET)
-                    .parseClaimsJws(token.replace(JWT_PREFIX, "")).getBody();
-
-            return claims;
-
+            return Jwts.parser()
+                    .verifyWith(Keys.hmacShaKeyFor(JWT_SECRET.getBytes()))
+                    .build()
+                    .parseSignedClaims(token.replace(JWT_PREFIX, ""))
+                    .getPayload();
         } catch (Exception e) {
+            log.warn("JWT验证失败: ", e);
             return null;
         }
     }
+
 }

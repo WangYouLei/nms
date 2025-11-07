@@ -18,7 +18,11 @@ import org.springframework.web.servlet.ModelAndView;
  */
 @Slf4j
 public class LoginInterceptor implements HandlerInterceptor {
-    public static  ThreadLocal<LoginUser> threadLocal = new ThreadLocal<>();
+    public static ThreadLocal<LoginUser> threadLocal = new ThreadLocal<>();
+
+    public LoginInterceptor() {
+    }
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         try {
@@ -44,7 +48,7 @@ public class LoginInterceptor implements HandlerInterceptor {
                 LoginUser loginUser = LoginUser.builder()
                         .id(id)
                         .name(name)
-                        .account( account)
+                        .account(account)
                         .avatar(avatar)
                         .build();
 
@@ -61,7 +65,8 @@ public class LoginInterceptor implements HandlerInterceptor {
             }
 
         } catch (Exception e) {
-            log.error("拦截器错误:{}",e);
+            /*log.error("拦截器错误:{}", e);*/
+            System.out.println("拦截器错误:{}"+e);
         }
 
 
@@ -78,5 +83,26 @@ public class LoginInterceptor implements HandlerInterceptor {
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
         HandlerInterceptor.super.postHandle(request, response, handler, modelAndView);
+    }
+
+    public boolean equals(final Object o) {
+        if (o == this) return true;
+        if (!(o instanceof LoginInterceptor)) return false;
+        final LoginInterceptor other = (LoginInterceptor) o;
+        if (!other.canEqual((Object) this)) return false;
+        return true;
+    }
+
+    protected boolean canEqual(final Object other) {
+        return other instanceof LoginInterceptor;
+    }
+
+    public int hashCode() {
+        int result = 1;
+        return result;
+    }
+
+    public String toString() {
+        return "LoginInterceptor()";
     }
 }

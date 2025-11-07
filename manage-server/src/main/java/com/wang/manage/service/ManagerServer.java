@@ -3,6 +3,7 @@ package com.wang.manage.service;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.ManagerDTO;
+import com.wang.pojo.entity.Manager;
 import com.wang.pojo.vo.ManagerVO;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,7 +42,7 @@ public interface ManagerServer {
      * @param manager 管理员信息
      * @return 修改结果
      */
-    Result updateManager(ManagerDTO manager);
+    Result updateManager(Manager manager);
     
     /**
      * 根据名称和账号进行多条件查询

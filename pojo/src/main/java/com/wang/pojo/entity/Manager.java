@@ -8,6 +8,10 @@ import java.io.Serializable;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import org.hibernate.validator.constraints.Length;
@@ -17,6 +21,7 @@ import org.hibernate.validator.constraints.Length;
 * @TableName manager
 */
 @Data
+@TableName("manager")
 public class Manager implements Serializable {
 
     /**
@@ -24,6 +29,7 @@ public class Manager implements Serializable {
     */
     @NotNull(message="[管理人ID]不能为空")
     @ApiModelProperty("管理人ID")
+    @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
     /**
     * 管理人名称
@@ -86,6 +92,5 @@ public class Manager implements Serializable {
     */
     @ApiModelProperty("修改本账号的管理者")
     private Integer updateManager;
-
 
 }

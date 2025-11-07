@@ -25,7 +25,7 @@ public class Argon2idUtil {
      * @return
      */
     public static String hash(String password){
-        return INSTANCE.hash(ITERATIONS, MEMORY, PARALLELISM, password);//使用argon2id加密
+        return INSTANCE.hash(ITERATIONS, MEMORY, PARALLELISM, password.toCharArray());//使用argon2id加密
     }
 
 

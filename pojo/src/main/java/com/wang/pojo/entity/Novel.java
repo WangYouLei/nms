@@ -7,6 +7,9 @@ import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 
 import java.time.LocalDateTime;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import org.hibernate.validator.constraints.Length;
@@ -23,6 +26,7 @@ public class Novel implements Serializable {
     */
     @NotNull(message="[主键ID]不能为空")
     @ApiModelProperty("主键ID")
+    @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
     /**
     * 小说名称

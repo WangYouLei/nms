@@ -8,8 +8,6 @@ import lombok.NoArgsConstructor;
 
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class Result {
     private Integer code; //编码：1成功，0和其它数字为失败
     private String msg; //错误信息
@@ -54,4 +52,36 @@ public class Result {
         return Result.buildCodeAndMsg(codeEnum.getCode(),codeEnum.getMessage());
     }
 
+    public Integer getCode() {
+        return code;
+    }
+
+    public void setCode(Integer code) {
+        this.code = code;
+    }
+
+    public Object getData() {
+        return data;
+    }
+
+    public void setData(Object data) {
+        this.data = data;
+    }
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public void setMsg(String msg) {
+        this.msg = msg;
+    }
+
+    public Result() {
+    }
+
+    public Result(Integer code, String msg, Object data) {
+        this.code = code;
+        this.msg = msg;
+        this.data = data;
+    }
 }

@@ -4,6 +4,7 @@ import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.manage.service.ManagerServer;
 import com.wang.pojo.dto.ManagerDTO;
+import com.wang.pojo.entity.Manager;
 import com.wang.pojo.vo.ManagerVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -71,13 +72,14 @@ public class ManagerController {
 
     @PutMapping("update")
     @ApiOperation("修改管理员信息")
-    public Result updateManager(@RequestBody ManagerDTO  manager){
+    public Result updateManager(@RequestBody Manager manager){
         log.info("修改管理员信息请求：ID={}", manager.getId());
         return managerServer.updateManager(manager);
     }
     
 
     @GetMapping("/query")
+    @ApiOperation("多条件查询管理员")
     public Result queryManagers(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String account) {

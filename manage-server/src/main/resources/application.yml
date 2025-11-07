@@ -2,7 +2,7 @@ spring:
   datasource:
     username: root
     password: 123456
-    url: jdbc:mysql://localhost:3306/nms?useUnicode=true&characterEncoding=utf8mb4&useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/nms?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&charset=utf8mb4
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   application:
@@ -22,6 +22,8 @@ minio:
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true  # 开启驼峰命名转换
+  mapper-locations: classpath:/mapper/*.xml
 
 #设置日志级别，ERROR/WARN/INFO/DEBUG,默认是INFO以上才显示
 logging:
