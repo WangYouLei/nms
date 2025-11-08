@@ -1,6 +1,5 @@
 package com.wang.pojo.vo;
 
-import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -13,6 +12,10 @@ import java.time.LocalDateTime;
  */
 @Data
 public class ManagerVO implements Serializable {
+    /**
+     * ID
+     */
+    private Integer id;
 
     /**
      * 管理人名称
@@ -45,59 +48,4 @@ public class ManagerVO implements Serializable {
      */
     private Integer updateManager;
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getAccount() {
-        return account;
-    }
-
-    public void setAccount(String account) {
-        this.account = account;
-    }
-
-    public String getAvatar() {
-        return avatar;
-    }
-
-    public void setAvatar(String avatar) {
-        this.avatar = avatar;
-    }
-
-    public LocalDateTime getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(LocalDateTime createTime) {
-        this.createTime = createTime;
-    }
-
-    public LocalDateTime getUpdateTime() {
-        return updateTime;
-    }
-
-    public void setUpdateTime(LocalDateTime updateTime) {
-        this.updateTime = updateTime;
-    }
-
-    public Integer getCreateManager() {
-        return createManager;
-    }
-
-    public void setCreateManager(Integer createManager) {
-        this.createManager = createManager;
-    }
-
-    public Integer getUpdateManager() {
-        return updateManager;
-    }
-
-    public void setUpdateManager(Integer updateManager) {
-        this.updateManager = updateManager;
-    }
 }

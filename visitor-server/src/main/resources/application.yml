@@ -11,4 +11,4 @@ spring:
 
 
 server:
-  port: 5201
+  port: 5210

@@ -9,6 +9,9 @@ import java.util.List;
 /**
  * 分页结果工具类
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class PageResult<T> {
     
     /**
@@ -36,61 +39,7 @@ public class PageResult<T> {
      */
     private List<T> list;
     
-    // 手写 @Data 注解功能
-    
-    // Getter 方法
-    public int getPageNum() {
-        return pageNum;
-    }
-    
-    public int getPageSize() {
-        return pageSize;
-    }
-    
-    public long getTotal() {
-        return total;
-    }
-    
-    public int getPages() {
-        return pages;
-    }
-    
-    public List<T> getList() {
-        return list;
-    }
-    
-    // Setter 方法
-    public void setPageNum(int pageNum) {
-        this.pageNum = pageNum;
-    }
-    
-    public void setPageSize(int pageSize) {
-        this.pageSize = pageSize;
-    }
-    
-    public void setTotal(long total) {
-        this.total = total;
-    }
-    
-    public void setPages(int pages) {
-        this.pages = pages;
-    }
-    
-    public void setList(List<T> list) {
-        this.list = list;
-    }
-    
-    // toString 方法
-    @Override
-    public String toString() {
-        return "PageResult{" +
-                "pageNum=" + pageNum +
-                ", pageSize=" + pageSize +
-                ", total=" + total +
-                ", pages=" + pages +
-                ", list=" + list +
-                '}';
-    }
+
     
     // equals 和 hashCode 方法
     @Override
@@ -116,19 +65,7 @@ public class PageResult<T> {
         result = 31 * result + (list != null ? list.hashCode() : 0);
         return result;
     }
-    
-    // 手写 @NoArgsConstructor 注解功能 - 无参构造函数
-    public PageResult() {
-    }
-    
-    // 手写 @AllArgsConstructor 注解功能 - 全参构造函数
-    public PageResult(int pageNum, int pageSize, long total, int pages, List<T> list) {
-        this.pageNum = pageNum;
-        this.pageSize = pageSize;
-        this.total = total;
-        this.pages = pages;
-        this.list = list;
-    }
+
     
     /**
      * 构建分页结果

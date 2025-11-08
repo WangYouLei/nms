@@ -13,8 +13,8 @@ public class interceptorConfig implements WebMvcConfigurer {
     public void addInterceptors(org.springframework.web.servlet.config.annotation.InterceptorRegistry registry) {
         log.info("开始添加拦截器");
         registry.addInterceptor(new LoginInterceptor())
-                .addPathPatterns("/**")
-                .excludePathPatterns("/wang/manager/login", "/wang/manager/logout");//登录和登出接口不拦截
+                .addPathPatterns("/wang/manager/*")
+                .excludePathPatterns("/wang/manager/login", "/wang/manager/logout","");//登录和登出接口不拦截
     }
 
 }

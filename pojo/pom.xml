@@ -40,9 +40,10 @@
             <artifactId>hibernate-validator</artifactId>
         </dependency>
 
+        <!-- MyBatis依赖 -->
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-annotation</artifactId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
         </dependency>
 
     </dependencies>

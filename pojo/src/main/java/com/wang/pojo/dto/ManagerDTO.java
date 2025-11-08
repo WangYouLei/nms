@@ -16,6 +16,10 @@ import java.time.LocalDateTime;
 @Data
 public class ManagerDTO implements Serializable {
 
+    /**
+     * 管理员id
+     */
+    private Integer id;
 
     /**
     * 管理人名称
@@ -29,5 +33,9 @@ public class ManagerDTO implements Serializable {
     * 密码
     */
     private String password;
+    /**
+    * 头像
+    */
+    private String avatar;
 
 }

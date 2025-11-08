@@ -9,9 +9,9 @@ import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.common.untils.Argon2idUtil;
-import com.wang.common.untils.CommonUtil;
+
 import com.wang.common.untils.JWTUtil;
-import com.wang.manage.config.MinioConfig;
+
 import com.wang.manage.config.MinioInfo;
 import com.wang.manage.mapper.ManagerMapper;
 import com.wang.manage.service.ManagerServer;
@@ -22,24 +22,23 @@ import com.wang.pojo.vo.ManagerVO;
 import io.minio.MinioClient;
 import io.minio.ObjectWriteResponse;
 import io.minio.PutObjectArgs;
-import io.minio.errors.*;
+
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.Md5Crypt;
+
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -206,61 +205,60 @@ public class ManagerServerImpl implements ManagerServer {
         Page<Manager> result = managerMapper.selectPage(page, null);
 
         //构建分页结果
+        // 修改分页查询部分
         PageResult<ManagerVO> pageResult = PageResult.build(
-                (int) result.getCurrent(),
-                (int) result.getSize(),
+                (int)result.getCurrent(),
+                (int)result.getSize(),
                 result.getTotal(),
-                //使用stream流将数据转换成VO
                 result.getRecords().stream().map(item -> {
                     ManagerVO vo = new ManagerVO();
                     BeanUtils.copyProperties(item, vo);
                     return vo;
-                }).toList()
+                }).collect(Collectors.toList())
         );
+
 
         log.info("分页查询管理员列表成功，总记录数：{}", result.getTotal());
         return Result.success(pageResult);
     }
 
     /**
-     * 修改管理员信息
+     * 修改管理员信息(不可以修改其他管理员的密码)
      *
-     * @param manager 管理员信息
+     * @param managerDTO 管理员信息
      * @return 修改结果
      */
     @Override
-    public Result updateManager(Manager manager) {
-        log.info("修改管理员信息：ID={}, 姓名={}", manager.getId(), manager.getName());
+    public Result updateManager(ManagerDTO managerDTO) {
+        log.info("修改管理员信息：ID={}, 姓名={}", managerDTO.getId(), managerDTO.getName());
 
         //检查管理员是否存在
-        Manager existingManager = managerMapper.selectById(manager.getId());
+        Manager existingManager = managerMapper.selectById(managerDTO.getId());
         if (existingManager == null) {
-            log.warn("管理员不存在：ID={}", manager.getId());
+            log.warn("管理员不存在：ID={}", managerDTO.getId());
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
 
-        //如果密码不为空，则进行MD5加密
-        if (manager.getPassword() != null && !manager.getPassword().isEmpty()) {
-            manager.setPassword(DigestUtils.md5DigestAsHex(manager.getPassword().getBytes()));
-        } else {
-            //如果密码为空，则保留原密码
-            manager.setPassword(existingManager.getPassword());
-        }
 
         //执行更新操作
-        manager.setUpdateTime(LocalDateTime.now());
-        int result = managerMapper.updateById(manager);
+        BeanUtils.copyProperties(managerDTO, existingManager);//将DTO中的数据复制到实体对象中
+        existingManager.setUpdateTime(LocalDateTime.now());
+        int result = managerMapper.updateById(existingManager);
         if (result == 1) {
-            //查询更新后的管理员信息
-            Manager updatedManager = managerMapper.selectById(manager.getId());
-            log.info("修改管理员信息成功：ID={}", manager.getId());
+            log.info("修改管理员信息成功：ID={}", existingManager.getId());
             return Result.success("修改成功");
         } else {
-            log.error("修改管理员信息失败：ID={}", manager.getId());
+            log.error("修改管理员信息失败：ID={}", existingManager.getId());
             return Result.error("修改失败");
         }
     }
 
+    /**
+     * 根据名称和账号进行多条件查询
+     * @param name 管理员名称（支持模糊查询）
+     * @param account 管理员账号
+     * @return
+     */
     @Override
     public Result queryManagers(String name, String account) {
         try {
@@ -305,7 +303,7 @@ public class ManagerServerImpl implements ManagerServer {
      * @return 上传结果
      */
     @Override
-    public Result fileUpload(MultipartFile file) {
+    public String fileUpload(MultipartFile file) {
         //重命名名称   命名规则：manager/avatar/UUID生成随机字符串+文件后缀
         String newFileName = "manager/avatar/"
                 + UUID.randomUUID().toString()
@@ -321,11 +319,11 @@ public class ManagerServerImpl implements ManagerServer {
 
             if(objectWriteResponse != null){
                 String url = minioInfo.getEndpoint() + "/" + minioInfo.getBucketName() + "/" +newFileName;
-                return Result.success(url);
+                return url;
             }
         } catch (Exception e) {
             log.error("上传文件异常: " + e.getMessage());
         }
-        return Result.buildResult(BizCodeEnum.FILE_UPLOAD_FAIL);
+        return null;
     }
 }

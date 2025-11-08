@@ -43,7 +43,7 @@ public class ManagerController {
 
     @PostMapping ("upload")
     @ApiOperation("头像上传")
-    public Result upload(
+    public String upload(
             @ApiParam(value = "上传文件", required = true)
             @RequestPart("file") MultipartFile file
     ){
@@ -71,8 +71,8 @@ public class ManagerController {
     
 
     @PutMapping("update")
-    @ApiOperation("修改管理员信息")
-    public Result updateManager(@RequestBody Manager manager){
+    @ApiOperation("修改管理员信息（密码不提供修改）")
+    public Result updateManager(@RequestBody ManagerDTO manager){
         log.info("修改管理员信息请求：ID={}", manager.getId());
         return managerServer.updateManager(manager);
     }

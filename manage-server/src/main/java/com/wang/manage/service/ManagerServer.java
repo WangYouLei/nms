@@ -42,7 +42,7 @@ public interface ManagerServer {
      * @param manager 管理员信息
      * @return 修改结果
      */
-    Result updateManager(Manager manager);
+    Result updateManager(ManagerDTO manager);
     
     /**
      * 根据名称和账号进行多条件查询
@@ -57,5 +57,5 @@ public interface ManagerServer {
      * @param file
      * @return
      */
-    Result fileUpload(MultipartFile file);
+    String fileUpload(MultipartFile file);
 }
