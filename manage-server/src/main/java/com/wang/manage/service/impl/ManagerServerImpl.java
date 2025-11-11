@@ -9,41 +9,34 @@ import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.common.untils.Argon2idUtil;
-
 import com.wang.common.untils.JWTUtil;
-
 import com.wang.manage.config.MinioInfo;
 import com.wang.manage.mapper.ManagerMapper;
-import com.wang.manage.service.ManagerServer;
+import com.wang.manage.service.ManagerService;
 import com.wang.pojo.dto.ManagerDTO;
-
 import com.wang.pojo.entity.Manager;
 import com.wang.pojo.vo.ManagerVO;
 import io.minio.MinioClient;
 import io.minio.ObjectWriteResponse;
 import io.minio.PutObjectArgs;
-
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.multipart.MultipartFile;
-
-
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 
 @Slf4j
 @Service
-public class ManagerServerImpl implements ManagerServer {
+public class ManagerServerImpl implements ManagerService {
     @Autowired
     private ManagerMapper managerMapper;
 
@@ -60,8 +53,7 @@ public class ManagerServerImpl implements ManagerServer {
      */
     @Override
     public Result addManager(ManagerDTO manager) {
-        //处理数据  密码进行md5加密
-        //TODO 头像保存功能还没写
+        //处理数据  密码进行argon2加密
         Manager one = new Manager();
         BeanUtils.copyProperties(manager, one);
         one.setCreateTime(LocalDateTime.now());
@@ -82,12 +74,16 @@ public class ManagerServerImpl implements ManagerServer {
         //唯一性校验   这里数据库有唯一性约束，所以不写代码
 
         //执行插入操作
-        int result = managerMapper.insert(one);
-        if (result == 1) {
-            ManagerVO vo = new ManagerVO();
-            BeanUtils.copyProperties(one, vo);
-            return Result.success(vo);
-        } else {
+        try {
+            int result = managerMapper.insert(one);
+            if (result == 1) {
+                ManagerVO vo = new ManagerVO();
+                BeanUtils.copyProperties(one, vo);
+                return Result.success(vo);
+            } else {
+                return Result.buildResult(BizCodeEnum.FAIL);
+            }
+        } catch (Exception e) {//当用户名和用户账号相同时，会抛异常，这里捕获
             return Result.buildResult(BizCodeEnum.USER_EXIST);
         }
     }
@@ -277,19 +273,21 @@ public class ManagerServerImpl implements ManagerServer {
                 queryWrapper.eq(Manager::getAccount, account);
             }
 
-            // 设置查询限制，最多返回一个结果
-            queryWrapper.last("LIMIT 1");
 
             // 执行查询
-            Manager manager = managerMapper.selectOne(queryWrapper);
+            List<Manager> managerList = managerMapper.selectList(queryWrapper);
 
-            if (manager == null) {
+            if (managerList == null || managerList.size() == 0) {
                 log.info("未找到符合条件的管理员");
                 return Result.error("未找到符合条件的管理员");
             }
-            ManagerVO managerVO = new ManagerVO();
-            BeanUtils.copyProperties(manager, managerVO);
-            return Result.success(managerVO);
+            List<ManagerVO> managerVOList = managerList.stream().map(item -> {
+                ManagerVO vo = new ManagerVO();
+                BeanUtils.copyProperties(item, vo);
+                return vo;
+            }).collect(Collectors.toList());
+
+            return Result.success(managerVOList);
         } catch (Exception e) {
             log.error("多条件查询管理员异常: " + e.getMessage());
             return Result.error("查询失败，请稍后重试");

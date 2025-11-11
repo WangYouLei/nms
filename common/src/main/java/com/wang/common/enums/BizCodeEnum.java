@@ -55,7 +55,7 @@ public enum BizCodeEnum {
     /**
      * 用户已存在
      */
-    USER_EXIST(20002, "用户已存在"),
+    USER_EXIST(20002, "用户名称或账号已存在"),
     /**
      * 账号或密码错误
      */

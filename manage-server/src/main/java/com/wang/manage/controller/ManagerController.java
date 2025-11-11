@@ -1,11 +1,8 @@
 package com.wang.manage.controller;
 
-import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
-import com.wang.manage.service.ManagerServer;
+import com.wang.manage.service.ManagerService;
 import com.wang.pojo.dto.ManagerDTO;
-import com.wang.pojo.entity.Manager;
-import com.wang.pojo.vo.ManagerVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -14,15 +11,13 @@ import org.springframework.web.bind.annotation.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-
 @Slf4j
 @RestController
 @Api(tags = "管理员管理")
 @RequestMapping("wang/manager")
 public class ManagerController {
     @Autowired
-    private ManagerServer managerServer;
+    private ManagerService managerServer;
 
 
     @PostMapping("login")

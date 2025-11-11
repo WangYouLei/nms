@@ -1,13 +1,10 @@
 package com.wang.manage.service;
 
-import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.ManagerDTO;
-import com.wang.pojo.entity.Manager;
-import com.wang.pojo.vo.ManagerVO;
 import org.springframework.web.multipart.MultipartFile;
 
-public interface ManagerServer {
+public interface ManagerService {
     /**
      * 添加管理员
      * @param managerDTO
