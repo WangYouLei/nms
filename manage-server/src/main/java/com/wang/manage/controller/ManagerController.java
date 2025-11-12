@@ -36,15 +36,7 @@ public class ManagerController {
         return managerServer.addManager(manager);
     }
 
-    @PostMapping ("upload")
-    @ApiOperation("头像上传")
-    public String upload(
-            @ApiParam(value = "上传文件", required = true)
-            @RequestPart("file") MultipartFile file
-    ){
-        log.info("头像上传");
-       return managerServer.fileUpload(file);
-    }
+
 
 
     @DeleteMapping("delete/{id}")

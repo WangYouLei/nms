@@ -49,10 +49,5 @@ public interface ManagerService {
      */
     Result queryManagers(String name, String account);
 
-    /**
-     * 头像上传
-     * @param file
-     * @return
-     */
-    String fileUpload(MultipartFile file);
+
 }

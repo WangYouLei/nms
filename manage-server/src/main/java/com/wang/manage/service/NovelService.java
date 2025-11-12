@@ -1,7 +1,7 @@
 package com.wang.manage.service;
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.NovelDTO;
-import com.wang.pojo.entity.Novel;
+
 
 /**
  * 小说服务接口
@@ -42,8 +42,8 @@ public interface NovelService {
     
     /**
      * 修改小说信息
-     * @param novel 小说信息
+     * @param novelDTO 小说信息
      * @return 操作结果
      */
-    Result updateNovel(Novel novel);
+    Result updateNovel(NovelDTO novelDTO);
 }

@@ -19,7 +19,7 @@ import javax.validation.Valid;
 @Slf4j
 @RestController
 @Api(tags = "小说管理")
-@RequestMapping("/novel")
+@RequestMapping("wang/novel")
 @Validated
 public class NovelController {
 
@@ -75,7 +75,7 @@ public class NovelController {
      * @param pageSize 每页数量，默认为10
      * @return 分页查询结果
      */
-    @GetMapping("search")
+    @GetMapping()
     @ApiOperation("模糊查询小说")
     public Result searchNovels(
             @RequestParam(required = false) String name,
@@ -89,13 +89,13 @@ public class NovelController {
     
     /**
      * 修改小说信息
-     * @param novel 小说信息
+     * @param novelDTO 小说信息
      * @return 操作结果
      */
     @PutMapping("update")
     @ApiOperation("修改小说")
-    public Result updateNovel(@Valid @RequestBody Novel novel) {
-        log.info("接收修改小说请求：ID={}, 名称={}", novel.getId(), novel.getName());
-        return novelService.updateNovel(novel);
+    public Result updateNovel(@RequestBody NovelDTO novelDTO) {
+        log.info("接收修改小说请求：ID={}, 名称={}", novelDTO.getId(), novelDTO.getName());
+        return novelService.updateNovel(novelDTO);
     }
 }

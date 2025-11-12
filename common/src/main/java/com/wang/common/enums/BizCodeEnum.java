@@ -129,14 +129,6 @@ public enum BizCodeEnum {
      */
     LEVEL_NOT_FOUND(80001, "等级不存在");
 
-    //TODO 手写的get方法
-    public int getCode() {
-        return code;
-    }
-
-    public String getMessage() {
-        return message;
-    }
 
     /**
      * 状态码

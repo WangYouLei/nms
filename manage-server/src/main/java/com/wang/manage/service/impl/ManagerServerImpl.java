@@ -10,27 +10,20 @@ import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.common.untils.Argon2idUtil;
 import com.wang.common.untils.JWTUtil;
-import com.wang.manage.config.MinioInfo;
 import com.wang.manage.mapper.ManagerMapper;
 import com.wang.manage.service.ManagerService;
 import com.wang.pojo.dto.ManagerDTO;
 import com.wang.pojo.entity.Manager;
 import com.wang.pojo.vo.ManagerVO;
-import io.minio.MinioClient;
-import io.minio.ObjectWriteResponse;
-import io.minio.PutObjectArgs;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -40,11 +33,6 @@ public class ManagerServerImpl implements ManagerService {
     @Autowired
     private ManagerMapper managerMapper;
 
-    @Autowired
-    private MinioInfo minioInfo;
-
-    @Autowired
-    private MinioClient minioClient;
 
     /**
      * 添加管理员
@@ -294,34 +282,4 @@ public class ManagerServerImpl implements ManagerService {
         }
     }
 
-    /**
-     * 头像上传
-     *
-     * @param file 文件
-     * @return 上传结果
-     */
-    @Override
-    public String fileUpload(MultipartFile file) {
-        //重命名名称   命名规则：manager/avatar/UUID生成随机字符串+文件后缀
-        String newFileName = "manager/avatar/"
-                + UUID.randomUUID().toString()
-                + file.getOriginalFilename()
-                .substring(file.getOriginalFilename().lastIndexOf("."));
-
-        try {
-            ObjectWriteResponse objectWriteResponse = minioClient.putObject(PutObjectArgs.builder()
-                    .bucket(minioInfo.getBucketName())
-                    .object(newFileName)
-                    .stream(file.getInputStream(), file.getSize(), -1)
-                    .build());
-
-            if(objectWriteResponse != null){
-                String url = minioInfo.getEndpoint() + "/" + minioInfo.getBucketName() + "/" +newFileName;
-                return url;
-            }
-        } catch (Exception e) {
-            log.error("上传文件异常: " + e.getMessage());
-        }
-        return null;
-    }
 }
