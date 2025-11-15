@@ -20,8 +20,12 @@ public enum FileUploadTypeEnum {
     /**
      * 小说章节
      */
-    NOVEL_CHAPTER(2, "小说章节");
+    NOVEL_CHAPTER(2, "小说章节"),
 
+    /**
+     * 小说角色图片
+     */
+    NOVEL_CHARACTER(3, "小说角色图片");
 
     /**
      * 状态码

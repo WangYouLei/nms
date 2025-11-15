@@ -44,7 +44,7 @@ public class NovelCharacter implements Serializable {
     * 角色等级（关联等级表）
     */
     @ApiModelProperty("角色等级（关联等级表）")
-    private Integer levelId;
+    private String stage;
     /**
     * 备注
     */
@@ -59,4 +59,11 @@ public class NovelCharacter implements Serializable {
     @ApiModelProperty("小说ID（关联小说表）")
     private Integer novelId;
 
+    /**
+     * 角色图片地址
+     */
+    @Size(max= 255,message="编码长度不能超过255")
+    @ApiModelProperty("角色图片地址")
+    @Length(max= 255,message="编码长度不能超过255")
+    private String url;
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.wang.manage.mapper.AbilityLevelMapper">
+
+
+    <insert id="insertBatch">
+        insert into ability_level (ability, novel_id, remark)
+        values
+        <foreach collection="list" item="it" separator=",">
+            (#{it.ability}, #{it.abilityLe}, #{it.remark})
+        </foreach>
+    </insert>
+</mapper>

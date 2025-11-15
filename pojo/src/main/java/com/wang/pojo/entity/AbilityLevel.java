@@ -39,7 +39,7 @@ public class AbilityLevel implements Serializable {
     */
     @NotNull(message="[小说ID（关联小说表）]不能为空")
     @ApiModelProperty("小说ID（关联小说表）")
-    private Integer novelId;
+    private String  abilityLevel;
     /**
     * 备注
     */

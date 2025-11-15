@@ -44,7 +44,7 @@ public class CharacterAbility implements Serializable {
     * 能力级别ID（关联能力等级表）
     */
     @ApiModelProperty("能力级别ID（关联能力等级表）")
-    private Integer abilityLevelId;
+    private String abilityLevel;
     /**
     * 备注
     */
