@@ -10,4 +10,5 @@
              (#{it.characterId},#{it.ability}, #{it.abilityLevel}, #{it.remark})
         </foreach>
     </insert>
+
 </mapper>

@@ -4,6 +4,10 @@ import lombok.Data;
 
 @Data
 public class CharacterAbilityDTO {
+    /**
+     * 主键ID
+     */
+    private Integer id;
 
     /**
      * 能力名称

@@ -23,7 +23,7 @@ public class CharacterAbilityController {
     @Autowired
     private CharacterAbilityService characterAbilityService;
 
-    //TODO 批量插入技能等级（技能等级表）
+
     @PostMapping("addAL")
     @ApiOperation("添加技能等级")
     public Result addLevel(List<AbilityLevelDTO> list){
@@ -31,7 +31,6 @@ public class CharacterAbilityController {
         return characterAbilityService.addLevel(list);
     }
 
-    //TODO 批量插入角色技能（技能表）
     @PostMapping("addA")
     @ApiOperation("批量插入角色技能")
     public Result addAbility(List<CharacterAbilityDTO>  list,Integer CharacterId){

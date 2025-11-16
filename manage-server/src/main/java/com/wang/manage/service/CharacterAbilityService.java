@@ -3,7 +3,7 @@ package com.wang.manage.service;
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.AbilityLevelDTO;
 import com.wang.pojo.dto.CharacterAbilityDTO;
-import com.wang.pojo.vo.CharacterALVO;
+import com.wang.pojo.vo.CharacterAbilityVO;
 
 import java.util.List;
 
@@ -30,5 +30,11 @@ public interface CharacterAbilityService {
      * 获取角色能力和对应的等级列表
      * @return
      */
-    List<CharacterALVO> getAbilityList(Integer id);
+    List<CharacterAbilityVO> getAbilityList(Integer id);
+
+    /**
+     * 修改角色能力
+     * @return
+     */
+    void updateAbility(List<CharacterAbilityDTO> characterAbilityList);
 }

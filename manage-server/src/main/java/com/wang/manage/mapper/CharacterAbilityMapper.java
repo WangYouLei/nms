@@ -13,4 +13,10 @@ public interface CharacterAbilityMapper extends BaseMapper<CharacterAbility> {
      * @param characterAbilityList 角色技能关联列表
      */
     void insertBatch(List<CharacterAbility> characterAbilityList);
+
+    /**
+     * 批量更新角色技能关联
+     * @param characterAbilities 角色技能关联列表
+     */
+    void updateBatch(List<CharacterAbility> characterAbilities);
 }
