@@ -1,13 +1,12 @@
 package com.wang.pojo.entity;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -58,7 +57,6 @@ public class Manager implements Serializable {
     /**
     * 头像URL
     */
-    @NotBlank(message="[头像URL]不能为空")
     @Size(max= 255,message="编码长度不能超过255")
     @ApiModelProperty("头像URL")
     @Length(max= 255,message="编码长度不能超过255")
@@ -75,13 +73,6 @@ public class Manager implements Serializable {
     @NotNull(message="[修改时间]不能为空")
     @ApiModelProperty("修改时间")
     private LocalDateTime updateTime;
-    /**
-    * 盐
-    */
-    @Size(max= 12,message="编码长度不能超过12")
-    @ApiModelProperty("盐")
-    @Length(max= 12,message="编码长度不能超过12")
-    private String secret;
     /**
     * 创建本账号的管理者
     */

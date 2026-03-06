@@ -16,8 +16,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping;
 
+import java.time.LocalDateTime;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -30,8 +30,6 @@ public class NovelServiceImpl implements NovelService {
 
     @Autowired
     private NovelMapper novelMapper;
-    @Autowired
-    private BeanNameUrlHandlerMapping beanNameHandlerMapping;
 
     /**
      * 新增小说

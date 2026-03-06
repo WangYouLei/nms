@@ -1,9 +1,7 @@
 package com.wang.common.result;
 
 import com.wang.common.enums.BizCodeEnum;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 
 

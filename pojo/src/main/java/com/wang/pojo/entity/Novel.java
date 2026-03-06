@@ -1,8 +1,8 @@
 package com.wang.pojo.entity;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
 
@@ -53,9 +53,7 @@ public class Novel implements Serializable {
     /**
     * 小说简介
     */
-    @Size(max= -1,message="编码长度不能超过-1")
     @ApiModelProperty("小说简介")
-    @Length(max= -1,message="编码长度不能超过-1")
     private String introduction;
     /**
     * 作者ID（关联管理人表）

@@ -1,8 +1,8 @@
 package com.wang.pojo.entity;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
 
@@ -10,13 +10,17 @@ import java.time.LocalDateTime;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 
 /**
 * 访问者表
 * @TableName visitor
 */
+@Data
+@TableName("visitor")
 public class Visitor implements Serializable {
 
     /**
@@ -26,6 +30,7 @@ public class Visitor implements Serializable {
     @ApiModelProperty("主键ID")
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
+
     /**
     * 访问者名称
     */
@@ -34,6 +39,7 @@ public class Visitor implements Serializable {
     @ApiModelProperty("访问者名称")
     @Length(max= 20,message="编码长度不能超过20")
     private String name;
+
     /**
     * 头像地址（URL）
     */
@@ -41,6 +47,7 @@ public class Visitor implements Serializable {
     @ApiModelProperty("头像地址（URL）")
     @Length(max= 255,message="编码长度不能超过255")
     private String avatar;
+
     /**
     * 账号（手机号）
     */
@@ -49,6 +56,7 @@ public class Visitor implements Serializable {
     @ApiModelProperty("账号（手机号）")
     @Length(max= 11,message="编码长度不能超过11")
     private String account;
+
     /**
     * 密码
     */
@@ -57,24 +65,26 @@ public class Visitor implements Serializable {
     @ApiModelProperty("密码")
     @Length(max= 100,message="编码长度不能超过100")
     private String password;
+
     /**
     * VIP级别：0-普通,1-VIP1,2-VIP2,3-VIP3,4-金主
     */
-    @NotNull(message="[VIP级别：0-普通,1-VIP1,2-VIP2,3-VIP3,4-金主]不能为空")
+    @NotNull(message="[VIP级别]不能为空")
     @ApiModelProperty("VIP级别：0-普通,1-VIP1,2-VIP2,3-VIP3,4-金主")
     private Integer vipLevel;
+
     /**
     * 创建时间
     */
     @NotNull(message="[创建时间]不能为空")
     @ApiModelProperty("创建时间")
     private LocalDateTime createTime;
+
     /**
     * 修改时间
     */
     @NotNull(message="[修改时间]不能为空")
     @ApiModelProperty("修改时间")
     private LocalDateTime updateTime;
-
 
 }

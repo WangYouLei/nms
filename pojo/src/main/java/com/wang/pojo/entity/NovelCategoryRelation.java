@@ -1,19 +1,21 @@
 package com.wang.pojo.entity;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 /**
-* 小说与三级分类关联表
+* 小说分类关联表
 * @TableName novel_category_relation
 */
 @Data
+@TableName("novel_category_relation")
 public class NovelCategoryRelation implements Serializable {
 
     /**
@@ -26,14 +28,14 @@ public class NovelCategoryRelation implements Serializable {
     /**
     * 小说ID（关联小说表）
     */
-    @NotNull(message="[小说ID（关联小说表）]不能为空")
-    @ApiModelProperty("小说ID（关联小说表）")
+    @NotNull(message="[小说ID]不能为空")
+    @ApiModelProperty("小说ID")
     private Integer novelId;
     /**
-    * 三级分类ID（关联三级分类表）
+    * 分类ID（关联分类表）
     */
-    @NotNull(message="[三级分类ID（关联三级分类表）]不能为空")
-    @ApiModelProperty("三级分类ID（关联三级分类表）")
-    private Integer level3Id;
+    @NotNull(message="[分类ID]不能为空")
+    @ApiModelProperty("分类ID")
+    private Integer categoryId;
 
 }

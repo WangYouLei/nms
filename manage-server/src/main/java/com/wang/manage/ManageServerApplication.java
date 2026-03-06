@@ -1,15 +1,15 @@
 package com.wang.manage;
 
-import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 
-@SpringBootApplication(scanBasePackages = "com.wang")
-@EnableConfigurationProperties
-/*@MapperScan("com.wang.manage.mapper")*/
-@EnableTransactionManagement//开启事务
+
+@SpringBootApplication(scanBasePackages = {
+        "com.wang.manage",
+        "com.wang.common"
+})
+@EntityScan("com.wang.pojo")
 public class ManageServerApplication {
 
     public static void main(String[] args) {

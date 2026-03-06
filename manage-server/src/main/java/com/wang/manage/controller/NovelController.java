@@ -11,7 +11,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import lombok.extern.slf4j.Slf4j;
 
-import javax.validation.Valid;
 
 /**
  * 小说管理控制器
@@ -75,7 +74,7 @@ public class NovelController {
      * @param pageSize 每页数量，默认为10
      * @return 分页查询结果
      */
-    @GetMapping()
+    @GetMapping("search")
     @ApiOperation("模糊查询小说")
     public Result searchNovels(
             @RequestParam(required = false) String name,
