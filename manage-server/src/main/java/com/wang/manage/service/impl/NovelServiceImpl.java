@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
@@ -28,8 +27,13 @@ import java.util.Objects;
 @Slf4j
 public class NovelServiceImpl implements NovelService {
 
+
+    private final NovelMapper novelMapper;
+
     @Autowired
-    private NovelMapper novelMapper;
+    public NovelServiceImpl(NovelMapper novelMapper) {
+        this.novelMapper = novelMapper;
+    }
 
     /**
      * 新增小说
@@ -49,6 +53,8 @@ public class NovelServiceImpl implements NovelService {
         BeanUtils.copyProperties(novelDTO, novel);
         // 设置作者ID为当前登录用户的ID
         novel.setAuthorId(loginUser.getId());
+        // 设置作者名称为当前登录用户的名称（冗余字段）
+        novel.setAuthorName(loginUser.getName());
 
         // 设置创建时间和修改时间
         novel.setCreateTime(LocalDateTime.now());

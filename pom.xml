@@ -34,6 +34,18 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- 内部模块依赖 -->
+            <dependency>
+                <groupId>com.wang</groupId>
+                <artifactId>common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.wang</groupId>
+                <artifactId>pojo</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- Lombok依赖，提供@Slf4j等注解 -->
             <dependency>
                 <groupId>org.projectlombok</groupId>
@@ -48,7 +60,6 @@
                 <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>3.5.7</version>
             </dependency>
-
 
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -73,15 +84,6 @@
                 <version>0.12.5</version>
                 <scope>runtime</scope>
             </dependency>
-
-
-            <!--不用这个了，md5已经过时了-->
-            <!--&lt;!&ndash;Md5Crypt在这里依赖中&ndash;&gt;
-            <dependency>
-                <groupId>commons-codec</groupId>
-                <artifactId>commons-codec</artifactId>
-                <version>1.15</version>
-            </dependency>-->
 
             <!--minio-->
             <dependency>
@@ -119,8 +121,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-    
-
 
     <build>
         <plugins>

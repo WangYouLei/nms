@@ -4,6 +4,20 @@ spring:
     password: 123456
     url: jdbc:mysql://localhost:3306/nms?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&charset=utf8mb4
     driver-class-name: com.mysql.cj.jdbc.Driver
+  # Redis配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      # password: 123456  # 如果有密码，取消注释
+      database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
 
   application:
     name: manager-server

@@ -7,8 +7,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 
-import java.util.Date;
 import java.util.Date;
 
 @Slf4j
@@ -16,12 +16,15 @@ public class JWTUtil {
     /**
      * JWT密钥      HS256 算法要求密钥长度至少为 256 位（32 字节）
      */
-    private static final String JWT_SECRET = "wangwangwangwangwangwangwangwangwangwangwangwang"; // 至少32个字符
+    // 至少32个字符
+
+    private static final  String JWT_SECRET = "wangwangwangwangwangwangwangwangwangwangwangwang";
 
     /**
      * JWT 有效时间   通常是设置7天
      */
-    private static final long JWT_EXPIRED = 1000 * 60 * 60 * 24 * 7;  // 7天
+    // 7天
+    private static final long JWT_EXPIRED = 1000L * 60 * 60 * 24 * 7;
 
     /**
      * 前缀   这个不是token里的，只是为了方便识别项目加到生成好的token前，不是必须的（解密时要去掉）
@@ -34,10 +37,16 @@ public class JWTUtil {
     private static final String JWT_SUBJECT = "nms";
 
     /**
+     * 私有构造方法,工具类不能实例化
+     */
+    private JWTUtil(){
+        throw new UnsupportedOperationException("Utility class cannot be instantiated");
+    }
+    /**
      * 生成token
      *
      * @param loginUser
-     * @return
+     * @return string
      */
     public static String geneJsonWebToken(LoginUser loginUser) {
         try {
@@ -48,10 +57,12 @@ public class JWTUtil {
                     .claim("name", loginUser.getName())
                     .claim("avatar", loginUser.getAvatar())
                     .claim("account", loginUser.getAccount())
+                    //设置当前时间
+                    .setIssuedAt(new Date())
                     //设置过期时间
-                    .setIssuedAt(new Date())//设置当前时间
-                    .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRED))//设置过期时间
-                    .signWith(Keys.hmacShaKeyFor(JWT_SECRET.getBytes()), SignatureAlgorithm.HS256)//设置加密算法和密钥
+                    .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRED))
+                    //设置加密算法和密钥
+                    .signWith(Keys.hmacShaKeyFor(JWT_SECRET.getBytes()), SignatureAlgorithm.HS256)
                     .compact();
             return JWT_PREFIX + compact;
         } catch (Exception e) {

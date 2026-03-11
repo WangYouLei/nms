@@ -9,13 +9,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-@RequestMapping("/wang/common")
+@RequestMapping("/manager/common")
 @RestController
 @Slf4j
 @Api(tags = "通用接口")
 public class CommonController {
+
+    private final CommonService commonService;
     @Autowired
-    private CommonService commonService;
+    public CommonController(CommonService commonService) {
+        this.commonService = commonService;
+    }
 
 
 

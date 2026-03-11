@@ -72,6 +72,6 @@ public class PageResult<T> {
      */
     public static <T> PageResult<T> build(int pageNum, int pageSize, long total, List<T> list) {
         int pages = (int) (total % pageSize == 0 ? total / pageSize : total / pageSize + 1);
-        return new PageResult<T>(pageNum, pageSize, total, pages, list);
+        return new PageResult<>(pageNum, pageSize, total, pages, list);
     }
 }

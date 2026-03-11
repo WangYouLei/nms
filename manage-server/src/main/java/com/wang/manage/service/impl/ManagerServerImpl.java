@@ -18,7 +18,6 @@ import com.wang.pojo.vo.ManagerVO;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,9 +29,11 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class ManagerServerImpl implements ManagerService {
-    @Autowired
-    private ManagerMapper managerMapper;
+    private final ManagerMapper managerMapper;
 
+    public ManagerServerImpl(ManagerMapper managerMapper) {
+        this.managerMapper = managerMapper;
+    }
 
     /**
      * 添加管理员
@@ -46,7 +47,8 @@ public class ManagerServerImpl implements ManagerService {
         BeanUtils.copyProperties(manager, one);
         one.setCreateTime(LocalDateTime.now());
         one.setUpdateTime(LocalDateTime.now());
-        LoginUser loginUser = LoginInterceptor.threadLocal.get();//通过拦截器获取当前登录用户信息
+        //通过拦截器获取当前登录用户信息
+        LoginUser loginUser = LoginInterceptor.threadLocal.get();
         one.setCreateManager(loginUser.getId());
         one.setUpdateManager(loginUser.getId());
        /* //$1$(表示md5加密的) + 8位随机数
@@ -101,10 +103,7 @@ public class ManagerServerImpl implements ManagerService {
         //验证密码
         boolean ok = Argon2idUtil.verify(manager.getPassword(), password);
 
-//        String encryptedPassword = Md5Crypt.md5Crypt(password.getBytes(), manager.getSecret());
-        //上面这行代码会将密码进行加盐处理后加密，下面的则是将代码加密后拼接盐（这个盐并没有和密码进行加密处理），效果是不同的
-//        String en = DigestUtils.md5DigestAsHex(password.getBytes());
-//        en = en + manager.getSecret();
+
 
         if (!ok) {
             log.warn("密码错误：账号={}", account);
@@ -265,7 +264,7 @@ public class ManagerServerImpl implements ManagerService {
             // 执行查询
             List<Manager> managerList = managerMapper.selectList(queryWrapper);
 
-            if (managerList == null || managerList.size() == 0) {
+            if (managerList == null || managerList.isEmpty()) {
                 log.info("未找到符合条件的管理员");
                 return Result.error("未找到符合条件的管理员");
             }

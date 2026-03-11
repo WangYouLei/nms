@@ -13,19 +13,20 @@ public enum FileUploadTypeEnum {
     ADMIN_AVATAR(0, "管理员头像上传"),
 
     /**
+     * 用户头像上传
+     */
+    USER_AVATAR(1, "用户头像上传"),
+
+    /**
      * 小说封面
      */
-    NOVEL_COVER(1, "小说封面"),
+    NOVEL_COVER(2, "小说封面"),
 
     /**
      * 小说章节
      */
-    NOVEL_CHAPTER(2, "小说章节"),
+    NOVEL_CHAPTER(3, "小说章节");
 
-    /**
-     * 小说角色图片
-     */
-    NOVEL_CHARACTER(3, "小说角色图片");
 
     /**
      * 状态码

@@ -7,7 +7,6 @@ import io.minio.MinioClient;
 import io.minio.ObjectWriteResponse;
 import io.minio.PutObjectArgs;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,11 +17,13 @@ import java.util.UUID;
 public class CommonServiceImpl implements CommonService {
 
 
-    @Autowired
-    private MinioInfo minioInfo;
+    private final MinioInfo minioInfo;
+    private final MinioClient minioClient;
 
-    @Autowired
-    private MinioClient minioClient;
+    public CommonServiceImpl(MinioInfo minioInfo, MinioClient minioClient) {
+        this.minioInfo = minioInfo;
+        this.minioClient = minioClient;
+    }
 
     /**
      * 文件上传
@@ -47,8 +48,7 @@ public class CommonServiceImpl implements CommonService {
                     .build());
 
             if(objectWriteResponse != null){
-                String url = minioInfo.getEndpoint() + "/" + minioInfo.getBucketName() + "/" +newFileName;
-                return url;
+                return minioInfo.getEndpoint() + "/" + minioInfo.getBucketName() + "/" +newFileName;
             }
         } catch (Exception e) {
             log.error("上传文件异常: " + e.getMessage());

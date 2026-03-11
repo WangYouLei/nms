@@ -7,8 +7,12 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class MinioConfig {
-    @Autowired
+
     private MinioInfo minioInfo;
+
+    public MinioConfig(MinioInfo minioInfo) {
+        this.minioInfo = minioInfo;
+    }
 
     @Bean
     public MinioClient minioClient() {

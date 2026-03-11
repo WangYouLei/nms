@@ -26,7 +26,7 @@ public class LoginUser {
      */
     private String avatar;
     /**
-     * 邮箱
+     * 账号
      */
     private String account;
 

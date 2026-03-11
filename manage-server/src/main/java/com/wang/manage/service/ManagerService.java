@@ -2,7 +2,6 @@ package com.wang.manage.service;
 
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.ManagerDTO;
-import org.springframework.web.multipart.MultipartFile;
 
 public interface ManagerService {
     /**

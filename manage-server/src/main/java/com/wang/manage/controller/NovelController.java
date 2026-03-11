@@ -6,7 +6,6 @@ import com.wang.pojo.dto.NovelDTO;
 import com.wang.pojo.entity.Novel;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import lombok.extern.slf4j.Slf4j;
@@ -18,12 +17,16 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
 @Api(tags = "小说管理")
-@RequestMapping("wang/novel")
+@RequestMapping("/manager/novel")
 @Validated
 public class NovelController {
 
-    @Autowired
-    private NovelService novelService;
+    private final NovelService novelService;
+
+    public NovelController(NovelService novelService) {
+        this.novelService = novelService;
+    }
+
 
     /**
      * 新增小说

@@ -20,8 +20,12 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 public class VisitorController {
 
-    @Autowired
-    private VisitorService visitorService;
+    private final VisitorService visitorService;
+
+
+    public VisitorController(VisitorService visitorService) {
+        this.visitorService = visitorService;
+    }
 
     /**
      * 访客注册

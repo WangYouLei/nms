@@ -14,10 +14,15 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 @RestController
 @Api(tags = "管理员管理")
-@RequestMapping("wang/manager")
+@RequestMapping("/manager")
 public class ManagerController {
+
+    private final ManagerService managerServer;
+
     @Autowired
-    private ManagerService managerServer;
+    public ManagerController(ManagerService managerServer) {
+        this.managerServer = managerServer;
+    }
 
 
     @PostMapping("login")
@@ -28,7 +33,7 @@ public class ManagerController {
     }
 
 
-    //这个不是注册功能，而是要管理员登入后才有添加功能
+
     @PostMapping("addManager")
     @ApiOperation("添加管理员")
     public Result addManager(@RequestBody ManagerDTO  manager){

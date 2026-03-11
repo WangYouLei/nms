@@ -21,6 +21,7 @@ public class Result {
         Result result = new Result();
         result.data = object;
         result.code = 1;
+        result.msg= "success";
         return result;
     }
 

@@ -20,6 +20,12 @@ public class Argon2idUtil {
     private static final Argon2 INSTANCE = Argon2Factory.create(TYPE);
 
     /**
+     * 工具类禁止实例化
+     */
+    private Argon2idUtil(){
+        throw new UnsupportedOperationException("Utility class cannot be instantiated");
+    }
+    /**
      * 加密   Argon2 会自动生成随机盐值
      * @param password
      * @return

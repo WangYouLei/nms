@@ -62,12 +62,34 @@ public class Novel implements Serializable {
     @ApiModelProperty("作者ID（关联管理人表）")
     private Integer authorId;
     /**
+    * 作者名称（冗余字段）
+    */
+    @Size(max= 20,message="编码长度不能超过20")
+    @ApiModelProperty("作者名称（冗余字段）")
+    @Length(max= 20,message="编码长度不能超过20")
+    private String authorName;
+    /**
     * 图片路径
     */
     @Size(max= 255,message="编码长度不能超过255")
     @ApiModelProperty("图片路径")
     @Length(max= 255,message="编码长度不能超过255")
     private String url;
+    /**
+    * 小说章节
+    */
+    @ApiModelProperty("小说章节")
+    private Integer chapterCount;
+    /**
+     * 是否完结（false未完结，true已完结）
+     */
+    @ApiModelProperty("是否完结（false未完结，true已完结）")
+    private Boolean isFinished;
+    /**
+     * 是否热门小说（false不是，true是）
+     */
+    @ApiModelProperty("是否热门小说（false不是，true是）")
+    private Boolean isHot;
     /**
     * 创建时间
     */

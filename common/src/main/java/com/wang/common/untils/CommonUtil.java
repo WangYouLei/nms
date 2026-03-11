@@ -10,6 +10,13 @@ import java.util.UUID;
 
 @Slf4j
 public class CommonUtil {
+
+    /**
+     * 工具类禁止实例化
+     */
+    private CommonUtil() {
+        throw new UnsupportedOperationException("Utility class cannot be instantiated");
+    }
     /**
      * 发送json数据给前端
      * @param response
