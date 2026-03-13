@@ -99,5 +99,4 @@ public class NovelController {
         log.info("接收修改小说请求：ID={}, 名称={}", novelDTO.getId(), novelDTO.getName());
         return novelService.updateNovel(novelDTO);
     }
-
 }

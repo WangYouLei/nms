@@ -1,6 +1,5 @@
 package com.wang.manage.service;
 
-import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.NovelChapterDTO;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,13 +33,11 @@ public interface NovelChapterService {
     Result updateChapter(NovelChapterDTO chapterDTO);
 
     /**
-     * 分页查询章节列表
+     * 查询小说的所有章节列表
      * @param novelId 小说ID
-     * @param pageNum 页码
-     * @param pageSize 每页数量
-     * @return 分页结果
+     * @return 章节列表
      */
-    Result getChapterList(Integer novelId, Integer pageNum, Integer pageSize);
+    Result getChapterList(Integer novelId);
 
     /**
      * 获取章节详情
@@ -48,4 +45,20 @@ public interface NovelChapterService {
      * @return 章节详情
      */
     Result getChapterDetail(Integer id);
+
+    /**
+     * 保存章节内容（直接保存内容字符串到MinIO）
+     * @param novelId 小说ID
+     * @param title 章节标题
+     * @param content 章节内容
+     * @return 操作结果
+     */
+    Result saveChapterContent(Integer novelId, String title, String content);
+
+    /**
+     * 获取章节内容（从MinIO读取）
+     * @param id 章节ID
+     * @return 章节内容
+     */
+    Result getChapterContent(Integer id);
 }

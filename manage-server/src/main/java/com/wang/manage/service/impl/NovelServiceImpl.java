@@ -45,7 +45,7 @@ public class NovelServiceImpl implements NovelService {
     public Result addNovel(NovelDTO novelDTO) {
 
         // 获取当前登录用户信息
-        LoginUser loginUser = LoginInterceptor.threadLocal.get();
+        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
 
         log.info("新增小说：名称={}, 作者ID={}", novelDTO.getName(), loginUser.getId());
 
@@ -90,7 +90,7 @@ public class NovelServiceImpl implements NovelService {
     public Result deleteNovel(Integer id) {
 
         // 获取当前登录用户信息
-        LoginUser loginUser = LoginInterceptor.threadLocal.get();
+        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
 
         // 检查小说是否存在
         Novel novel = novelMapper.selectById(id);
@@ -126,7 +126,7 @@ public class NovelServiceImpl implements NovelService {
     public Result getNovelList(Integer pageNum, Integer pageSize) {
 
         // 获取当前登录用户信息
-        LoginUser loginUser = LoginInterceptor.threadLocal.get();
+        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
 
         // 参数校验
         if (pageNum == null || pageNum < 1) {
@@ -175,7 +175,7 @@ public class NovelServiceImpl implements NovelService {
     public Result searchNovels(String name, String subName, Integer pageNum, Integer pageSize) {
 
         // 获取当前登录用户信息
-        LoginUser loginUser = LoginInterceptor.threadLocal.get();
+        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
 
         // 参数校验
         if (pageNum == null || pageNum < 1) {
@@ -233,7 +233,7 @@ public class NovelServiceImpl implements NovelService {
     public Result updateNovel(NovelDTO novelDTO) {
 
         // 获取当前登录用户信息
-        LoginUser loginUser = LoginInterceptor.threadLocal.get();
+        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
         log.info("修改小说：ID={}, 名称={}, 作者ID={}", novelDTO.getId(), novelDTO.getName(), loginUser.getId());
 
         // 检查小说是否存在

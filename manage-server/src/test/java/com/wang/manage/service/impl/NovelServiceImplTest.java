@@ -54,7 +54,7 @@ class NovelServiceImplTest {
                 .build();
 
         // 设置 ThreadLocal
-        LoginInterceptor.threadLocal.set(loginUser);
+        LoginInterceptor.THREAD_LOCAL.set(loginUser);
 
         // 准备测试数据
         novelDTO = new NovelDTO();
@@ -79,7 +79,7 @@ class NovelServiceImplTest {
     @AfterEach
     void tearDown() {
         // 清理 ThreadLocal
-        LoginInterceptor.threadLocal.remove();
+        LoginInterceptor.THREAD_LOCAL.remove();
     }
 
     @Test

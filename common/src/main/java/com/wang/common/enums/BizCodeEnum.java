@@ -89,6 +89,18 @@ public enum BizCodeEnum {
      * 小说分类已存在
      */
     NOVEL_CATEGORY_EXIST(30004, "小说分类已存在"),
+    /**
+     * 小说章节不存在
+     */
+    NOVEL_CHAPTER_NOT_FOUND(30005, "小说章节不存在"),
+    /**
+     * 章节标题已存在
+     */
+    NOVEL_CHAPTER_TITLE_EXIST(30006, "小说章节标题已存在"),
+    /**
+     * 保存章节记录失败
+     */
+    NOVEL_CHAPTER_SAVE_FAIL(30007, "保存章节记录失败"),
 
     // =================== 访客相关状态码 ===================
     /**

@@ -48,7 +48,7 @@ public class ManagerServerImpl implements ManagerService {
         one.setCreateTime(LocalDateTime.now());
         one.setUpdateTime(LocalDateTime.now());
         //通过拦截器获取当前登录用户信息
-        LoginUser loginUser = LoginInterceptor.threadLocal.get();
+        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
         one.setCreateManager(loginUser.getId());
         one.setUpdateManager(loginUser.getId());
        /* //$1$(表示md5加密的) + 8位随机数
@@ -224,7 +224,8 @@ public class ManagerServerImpl implements ManagerService {
 
 
         //执行更新操作
-        BeanUtils.copyProperties(managerDTO, existingManager);//将DTO中的数据复制到实体对象中
+        //将DTO中的数据复制到实体对象中
+        BeanUtils.copyProperties(managerDTO, existingManager);
         existingManager.setUpdateTime(LocalDateTime.now());
         int result = managerMapper.updateById(existingManager);
         if (result == 1) {
@@ -240,7 +241,7 @@ public class ManagerServerImpl implements ManagerService {
      * 根据名称和账号进行多条件查询
      * @param name 管理员名称（支持模糊查询）
      * @param account 管理员账号
-     * @return
+     * @return 查询结果
      */
     @Override
     public Result queryManagers(String name, String account) {

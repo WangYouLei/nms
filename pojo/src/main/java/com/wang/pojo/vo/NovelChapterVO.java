@@ -25,6 +25,9 @@ public class NovelChapterVO {
     @ApiModelProperty("章节内容URL")
     private String contentUrl;
 
+    @ApiModelProperty("章节内容")
+    private String content;
+
     @ApiModelProperty("章节顺序")
     private Integer chapterOrder;
 

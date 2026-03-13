@@ -68,20 +68,15 @@ public class NovelChapterController {
     }
 
     /**
-     * 分页查询章节列表
+     * 查询小说的所有章节列表
      * @param novelId 小说ID
-     * @param pageNum 页码
-     * @param pageSize 每页数量
      * @return 章节列表
      */
     @GetMapping("list")
     @ApiOperation("查询章节列表")
-    public Result getChapterList(
-            @RequestParam Integer novelId,
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "20") Integer pageSize) {
-        log.info("接收查询章节列表请求：小说ID={}, 页码={}, 每页数量={}", novelId, pageNum, pageSize);
-        return novelChapterService.getChapterList(novelId, pageNum, pageSize);
+    public Result getChapterList(@RequestParam Integer novelId) {
+        log.info("接收查询章节列表请求：小说ID={}", novelId);
+        return novelChapterService.getChapterList(novelId);
     }
 
     /**
@@ -94,5 +89,34 @@ public class NovelChapterController {
     public Result getChapterDetail(@PathVariable Integer id) {
         log.info("接收获取章节详情请求：章节ID={}", id);
         return novelChapterService.getChapterDetail(id);
+    }
+
+    /**
+     * 保存章节内容（直接保存内容字符串）
+     * @param novelId 小说ID
+     * @param title 章节标题
+     * @param content 章节内容
+     * @return 操作结果
+     */
+    @PostMapping("save")
+    @ApiOperation("保存章节内容")
+    public Result saveChapterContent(
+            @RequestParam Integer novelId,
+            @RequestParam String title,
+            @RequestParam String content) {
+        log.info("接收保存章节内容请求：小说ID={}, 章节标题={}", novelId, title);
+        return novelChapterService.saveChapterContent(novelId, title, content);
+    }
+
+    /**
+     * 获取章节内容（包含文件内容）
+     * @param id 章节ID
+     * @return 章节内容
+     */
+    @GetMapping("content/{id}")
+    @ApiOperation("获取章节内容")
+    public Result getChapterContent(@PathVariable Integer id) {
+        log.info("接收获取章节内容请求：章节ID={}", id);
+        return novelChapterService.getChapterContent(id);
     }
 }

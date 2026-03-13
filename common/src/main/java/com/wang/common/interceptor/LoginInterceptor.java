@@ -18,10 +18,8 @@ import org.springframework.web.servlet.ModelAndView;
  */
 @Slf4j
 public class LoginInterceptor implements HandlerInterceptor {
-    public static ThreadLocal<LoginUser> threadLocal = new ThreadLocal<>();
+    public static final ThreadLocal<LoginUser> THREAD_LOCAL = new ThreadLocal<>();
 
-    public LoginInterceptor() {
-    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -52,21 +50,16 @@ public class LoginInterceptor implements HandlerInterceptor {
                         .avatar(avatar)
                         .build();
 
-//                loginUser.setId(id);
-//                loginUser.setName(name);
-//                loginUser.setHeaderImg(headImg);
-//                loginUser.setMail(mail);
 
                 //用户信息传递,使用ThreadLocal   后面要获取时，直接从threadLocal.get()获取就行
-                threadLocal.set(loginUser);
+                THREAD_LOCAL.set(loginUser);
 
                 return true;
 
             }
 
         } catch (Exception e) {
-            /*log.error("拦截器错误:{}", e);*/
-            System.out.println("拦截器错误:{}"+e);
+            log.error("登录拦截失败：{}", e.getMessage());
         }
 
 
@@ -77,32 +70,23 @@ public class LoginInterceptor implements HandlerInterceptor {
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-        HandlerInterceptor.super.afterCompletion(request, response, handler, ex);
+        //线程变量销毁,防止outOfMemory
+        THREAD_LOCAL.remove();
     }
 
+    /**
+     * postHandle 在 Controller 方法执行后、视图渲染前调用
+     * 登录拦截器只需要在请求前验证 token(preHandle) 和请求后清理资源 (afterCompletion)
+     * 中间阶段不需要任何操作
+     * @param request
+     * @param response
+     * @param handler
+     * @param modelAndView
+     * @throws Exception
+     */
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
         HandlerInterceptor.super.postHandle(request, response, handler, modelAndView);
     }
 
-    public boolean equals(final Object o) {
-        if (o == this) return true;
-        if (!(o instanceof LoginInterceptor)) return false;
-        final LoginInterceptor other = (LoginInterceptor) o;
-        if (!other.canEqual((Object) this)) return false;
-        return true;
-    }
-
-    protected boolean canEqual(final Object other) {
-        return other instanceof LoginInterceptor;
-    }
-
-    public int hashCode() {
-        int result = 1;
-        return result;
-    }
-
-    public String toString() {
-        return "LoginInterceptor()";
-    }
 }
