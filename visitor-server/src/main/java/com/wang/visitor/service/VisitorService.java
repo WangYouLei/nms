@@ -2,6 +2,7 @@ package com.wang.visitor.service;
 
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.VisitorDTO;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 访客服务接口
@@ -32,10 +33,12 @@ public interface VisitorService {
 
     /**
      * 修改访客信息
-     * @param visitorDTO 访客信息
+     * @param visitorId 访客ID
+     * @param name  姓名
+     * @param file 头像
      * @return 操作结果
      */
-    Result updateVisitor(VisitorDTO visitorDTO);
+    Result updateVisitor(Integer visitorId,String name, MultipartFile file);
 
     /**
      * 修改密码

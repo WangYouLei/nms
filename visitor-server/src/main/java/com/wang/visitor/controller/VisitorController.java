@@ -5,10 +5,12 @@ import com.wang.pojo.dto.VisitorDTO;
 import com.wang.visitor.service.VisitorService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 访客控制器
@@ -58,13 +60,22 @@ public class VisitorController {
     }
 
     /**
-     * 修改访客信息
+     * 修改访客信息     @RequestBody和@RequestPart不能同时使用
      */
     @PutMapping("/update")
     @ApiOperation("修改访客信息")
-    public Result updateVisitor(@RequestBody VisitorDTO visitorDTO) {
-        log.info("修改访客信息请求：ID={}", visitorDTO.getId());
-        return visitorService.updateVisitor(visitorDTO);
+    public Result updateVisitor(
+            @ApiParam(value = "访客id")
+            @RequestParam
+            Integer visitorId,
+            @ApiParam(value = "访客姓名")
+            @RequestParam
+            String name,
+            @ApiParam(value = "上传头像")
+            @RequestPart("file")
+            MultipartFile file) {
+        log.info("修改访客信息请求：ID={},name={}", visitorId,name);
+        return visitorService.updateVisitor(visitorId,name,file);
     }
 
     /**

@@ -21,6 +21,11 @@ spring:
           max-idle: 8
           min-idle: 0
 
+minio:
+  endpoint: http://127.0.0.1:9000
+  accessKey: minioadmin
+  secretKey: minioadmin
+  bucketName: nms-visitor
 
   application:
     name: visitor-service

@@ -10,12 +10,15 @@ import com.wang.pojo.dto.VisitorDTO;
 import com.wang.pojo.entity.Visitor;
 import com.wang.pojo.vo.VisitorVO;
 import com.wang.visitor.mapper.VisitorMapper;
+import com.wang.visitor.service.AvatarAsyncService;
 import com.wang.visitor.service.VisitorService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 访客服务实现类
@@ -25,9 +28,11 @@ import java.time.LocalDateTime;
 public class VisitorServiceImpl implements VisitorService {
 
     private final VisitorMapper visitorMapper;
+    private final AvatarAsyncService avatarAsyncService;
 
-    public VisitorServiceImpl(VisitorMapper visitorMapper) {
+    public VisitorServiceImpl(VisitorMapper visitorMapper, AvatarAsyncService avatarAsyncService) {
         this.visitorMapper = visitorMapper;
+        this.avatarAsyncService = avatarAsyncService;
     }
 
     /**
@@ -105,26 +110,33 @@ public class VisitorServiceImpl implements VisitorService {
     }
 
     @Override
-    public Result updateVisitor(VisitorDTO visitorDTO) {
-        log.info("修改访客信息：ID={}", visitorDTO.getId());
+    public Result updateVisitor(Integer visitorId, String name, MultipartFile file) {
+        log.info("修改访客信息：ID={}", visitorId);
 
-        Visitor visitor = visitorMapper.selectById(visitorDTO.getId());
+        // 1. 校验访客是否存在
+        Visitor visitor = visitorMapper.selectById(visitorId);
         if (visitor == null) {
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
 
-        // 只更新名称和头像
-        visitor.setName(visitorDTO.getName());
-        if (visitorDTO.getAvatar() != null) {
-            visitor.setAvatar(visitorDTO.getAvatar());
-        }
+        // 2. 准备更新数据
+        visitor.setName(name);
         visitor.setUpdateTime(LocalDateTime.now());
 
-        int result = visitorMapper.updateById(visitor);
-        if (result > 0) {
-            return Result.success(convertToVO(visitor));
+        // 3. 并行执行：访客信息同步保存 + 头像异步上传
+        // 启动异步上传任务（如果需要上传头像）
+        if (file != null && !file.isEmpty()) {
+            // 调用@Async标注的异步方法，Spring会在独立线程池中执行
+            avatarAsyncService.uploadAvatarAsync(file,visitor.getId());
         }
-        return Result.error("修改失败");
+
+        // 同步保存访客基本信息
+        int result = visitorMapper.updateById(visitor);
+        if (result <= 0) {
+            return Result.error("访客信息保存失败");
+        }
+
+        return Result.success(convertToVO(visitor));
     }
 
     @Override

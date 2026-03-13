@@ -3,7 +3,6 @@ package com.wang.manage.controller;
 import com.wang.common.result.Result;
 import com.wang.manage.service.NovelService;
 import com.wang.pojo.dto.NovelDTO;
-import com.wang.pojo.entity.Novel;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.validation.annotation.Validated;
@@ -100,4 +99,5 @@ public class NovelController {
         log.info("接收修改小说请求：ID={}, 名称={}", novelDTO.getId(), novelDTO.getName());
         return novelService.updateNovel(novelDTO);
     }
+
 }
