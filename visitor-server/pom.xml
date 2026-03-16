@@ -28,6 +28,13 @@
             <artifactId>pojo</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- 依赖novel-server模块 -->
+        <dependency>
+            <groupId>com.wang</groupId>
+            <artifactId>novel-server</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         
         <!-- Spring Boot Web依赖 -->
         <dependency>

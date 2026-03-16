@@ -3,7 +3,7 @@ package com.wang.visitor.service.impl;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.wang.common.enums.FileUploadTypeEnum;
 import com.wang.pojo.entity.Visitor;
-import com.wang.visitor.config.MinioInfo;
+import com.wang.novel.config.MinioInfo;
 import com.wang.visitor.mapper.VisitorMapper;
 import com.wang.visitor.service.AvatarAsyncService;
 import com.wang.visitor.service.CommonService;

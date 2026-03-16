@@ -1,7 +1,7 @@
 package com.wang.visitor.service.impl;
 
 import com.wang.common.enums.FileUploadTypeEnum;
-import com.wang.visitor.config.MinioInfo;
+import com.wang.novel.config.MinioInfo;
 import com.wang.visitor.service.CommonService;
 import io.minio.MinioClient;
 import io.minio.ObjectWriteResponse;

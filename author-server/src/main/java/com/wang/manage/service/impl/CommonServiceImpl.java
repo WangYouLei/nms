@@ -1,7 +1,7 @@
 package com.wang.manage.service.impl;
 
 import com.wang.common.enums.FileUploadTypeEnum;
-import com.wang.manage.config.MinioInfo;
+import com.wang.novel.config.MinioInfo;
 import com.wang.manage.service.CommonService;
 import io.minio.MinioClient;
 import io.minio.ObjectWriteResponse;
