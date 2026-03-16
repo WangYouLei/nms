@@ -1,11 +1,10 @@
 package com.wang.pojo.entity;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.io.Serializable;
-
 import java.time.LocalDateTime;
 
 import com.baomidou.mybatisplus.annotation.IdType;
@@ -16,72 +15,58 @@ import lombok.Data;
 import org.hibernate.validator.constraints.Length;
 
 /**
-* 管理人信息表
-* @TableName manager
-*/
+ * 管理员表
+ * @TableName manager
+ */
 @Data
 @TableName("manager")
 public class Manager implements Serializable {
 
     /**
-    * 管理人ID
-    */
-    @NotNull(message="[管理人ID]不能为空")
-    @ApiModelProperty("管理人ID")
+     * 主键ID
+     */
+    @NotNull(message = "[主键ID]不能为空")
+    @ApiModelProperty("主键ID")
     @TableId(value = "id", type = IdType.AUTO)
-    private Integer id;
+    private Long id;
+
     /**
-    * 管理人名称
-    */
-    @NotBlank(message="[管理人名称]不能为空")
-    @Size(max= 20,message="编码长度不能超过20")
-    @ApiModelProperty("管理人名称")
-    @Length(max= 20,message="编码长度不能超过20")
+     * 昵称
+     */
+    @Size(max = 64, message = "昵称长度不能超过64")
+    @ApiModelProperty("昵称")
+    @Length(max = 64, message = "昵称长度不能超过64")
     private String name;
+
     /**
-    * 账号(手机号)
-    */
-    @NotBlank(message="[账号(手机号)]不能为空")
-    @Size(max= 11,message="编码长度不能超过11")
-    @ApiModelProperty("账号(手机号)")
-    @Length(max= 11,message="编码长度不能超过11")
+     * 账号
+     */
+    @NotBlank(message = "[账号]不能为空")
+    @Size(max = 64, message = "账号长度不能超过64")
+    @ApiModelProperty("账号")
+    @Length(max = 64, message = "账号长度不能超过64")
     private String account;
+
     /**
-    * 密码
-    */
-    @NotBlank(message="[密码]不能为空")
-    @Size(max= 100,message="编码长度不能超过100")
+     * 密码
+     */
+    @NotBlank(message = "[密码]不能为空")
+    @Size(max = 128, message = "密码长度不能超过128")
     @ApiModelProperty("密码")
-    @Length(max= 100,message="编码长度不能超过100")
+    @Length(max = 128, message = "密码长度不能超过128")
     private String password;
+
     /**
-    * 头像URL
-    */
-    @Size(max= 255,message="编码长度不能超过255")
-    @ApiModelProperty("头像URL")
-    @Length(max= 255,message="编码长度不能超过255")
-    private String avatar;
+     * 创建者ID
+     */
+    @NotNull(message = "[创建者ID]不能为空")
+    @ApiModelProperty("创建者ID")
+    private Long createId;
+
     /**
-    * 创建时间
-    */
-    @NotNull(message="[创建时间]不能为空")
+     * 创建时间
+     */
     @ApiModelProperty("创建时间")
     private LocalDateTime createTime;
-    /**
-    * 修改时间
-    */
-    @NotNull(message="[修改时间]不能为空")
-    @ApiModelProperty("修改时间")
-    private LocalDateTime updateTime;
-    /**
-    * 创建本账号的管理者
-    */
-    @ApiModelProperty("创建本账号的管理者")
-    private Integer createManager;
-    /**
-    * 修改本账号的管理者
-    */
-    @ApiModelProperty("修改本账号的管理者")
-    private Integer updateManager;
 
 }

@@ -1,0 +1,33 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: common-server
+  
+  # 邮件配置
+  mail:
+    host: smtp.qq.com                    # QQ邮箱SMTP服务器
+    port: 587                            # 端口
+    username: 2531215075@qq.com          # 发送方邮箱
+    password: ${QQ_SMTP/IMAP}            # SMTP授权码
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+  
+  # Redis配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 3000ms
+
+# 日志配置
+logging:
+  level:
+    com.wang: debug

@@ -1,35 +1,39 @@
 package com.wang.pojo.dto;
 
 import lombok.Data;
+
 import java.io.Serializable;
 
 /**
-* 管理人信息DTO
-* @TableName manager
-*/
+ * 管理员DTO
+ * @TableName manager
+ */
 @Data
 public class ManagerDTO implements Serializable {
 
     /**
-     * 管理员id
+     * 主键ID
      */
-    private Integer id;
+    private Long id;
 
     /**
-    * 管理人名称
-    */
+     * 昵称
+     */
     private String name;
+
     /**
-    * 账号(手机号)
-    */
+     * 账号
+     */
     private String account;
+
     /**
-    * 密码
-    */
+     * 密码
+     */
     private String password;
+
     /**
-    * 头像
-    */
-    private String avatar;
+     * 创建者ID
+     */
+    private Long createId;
 
 }

@@ -20,8 +20,11 @@
     <modules>
         <module>common</module>
         <module>pojo</module>
-        <module>manage-server</module>
+        <module>author-server</module>
         <module>visitor-server</module>
+        <module>common-server</module>
+        <module>novel-server</module>
+        <module>manager-server</module>
     </modules>
     
     <properties>
@@ -118,6 +121,11 @@
                 <groupId>org.hibernate.validator</groupId>
                 <artifactId>hibernate-validator</artifactId>
                 <version>6.2.0.Final</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-all</artifactId>
+                <version>5.8.24</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

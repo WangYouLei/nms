@@ -6,46 +6,35 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 管理人信息DTO
- *
+ * 管理员VO
  * @TableName manager
  */
 @Data
 public class ManagerVO implements Serializable {
-    /**
-     * ID
-     */
-    private Integer id;
 
     /**
-     * 管理人名称
+     * 主键ID
+     */
+    private Long id;
+
+    /**
+     * 昵称
      */
     private String name;
+
     /**
-     * 账号(手机号)
+     * 账号
      */
     private String account;
+
     /**
-     * 头像URL
+     * 创建者ID
      */
-    private String avatar;
+    private Long createId;
+
     /**
      * 创建时间
      */
     private LocalDateTime createTime;
-    /**
-     * 修改时间
-     */
-    private LocalDateTime updateTime;
-
-    /**
-     * 创建本账号的管理者
-     */
-    private Integer createManager;
-
-    /**
-     * 修改本账号的管理者
-     */
-    private Integer updateManager;
 
 }
