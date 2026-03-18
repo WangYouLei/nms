@@ -40,7 +40,7 @@ public class JWTUtil {
      * 私有构造方法,工具类不能实例化
      */
     private JWTUtil(){
-        throw new UnsupportedOperationException("Utility class cannot be instantiated");
+        throw new UnsupportedOperationException("工具类不能被实例化");
     }
     /**
      * 生成token

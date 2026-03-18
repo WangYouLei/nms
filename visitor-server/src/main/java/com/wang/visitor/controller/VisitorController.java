@@ -2,6 +2,7 @@ package com.wang.visitor.controller;
 
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.VisitorDTO;
+import com.wang.pojo.dto.VisitorRegisterDTO;
 import com.wang.visitor.service.VisitorService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -30,11 +31,21 @@ public class VisitorController {
     }
 
     /**
-     * 访客注册
+     * 访客注册（带验证码）
      */
     @PostMapping("/register")
-    @ApiOperation("访客注册")
-    public Result register(@RequestBody VisitorDTO visitorDTO) {
+    @ApiOperation("访客注册（带验证码）")
+    public Result register(@RequestBody VisitorRegisterDTO registerDTO) {
+        log.info("访客注册请求：账号={}", registerDTO.getAccount());
+        return visitorService.register(registerDTO);
+    }
+
+    /**
+     * 访客注册（无验证码，保留兼容）
+     */
+    @PostMapping("/register/simple")
+    @ApiOperation("访客注册（无验证码，保留兼容）")
+    public Result registerSimple(@RequestBody VisitorDTO visitorDTO) {
         log.info("访客注册请求：账号={}", visitorDTO.getAccount());
         return visitorService.register(visitorDTO);
     }
@@ -60,7 +71,7 @@ public class VisitorController {
     }
 
     /**
-     * 修改访客信息     @RequestBody和@RequestPart不能同时使用
+     * 修改访客信息
      */
     @PutMapping("/update")
     @ApiOperation("修改访客信息")
@@ -70,13 +81,11 @@ public class VisitorController {
             Integer visitorId,
             @ApiParam(value = "访客姓名")
             @RequestParam
-            String name,
-            @ApiParam(value = "上传头像")
-            @RequestPart("file")
-            MultipartFile file) {
-        log.info("修改访客信息请求：ID={},name={}", visitorId,name);
-        return visitorService.updateVisitor(visitorId,name,file);
+            String name) {
+        log.info("修改访客信息请求：ID={},name={}", visitorId, name);
+        return visitorService.updateVisitor(visitorId, name);
     }
+
 
     /**
      * 修改密码

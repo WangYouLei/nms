@@ -6,19 +6,19 @@ import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.untils.Argon2idUtil;
 import com.wang.common.untils.JWTUtil;
+import com.wang.commonserver.service.CaptchaService;
+import com.wang.commonserver.service.EmailService;
 import com.wang.pojo.dto.VisitorDTO;
+import com.wang.pojo.dto.VisitorRegisterDTO;
 import com.wang.pojo.entity.Visitor;
 import com.wang.pojo.vo.VisitorVO;
 import com.wang.visitor.mapper.VisitorMapper;
-import com.wang.visitor.service.AvatarAsyncService;
 import com.wang.visitor.service.VisitorService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * 访客服务实现类
@@ -28,11 +28,13 @@ import java.util.concurrent.CompletableFuture;
 public class VisitorServiceImpl implements VisitorService {
 
     private final VisitorMapper visitorMapper;
-    private final AvatarAsyncService avatarAsyncService;
+    private final CaptchaService captchaService;
+    private final EmailService emailService;
 
-    public VisitorServiceImpl(VisitorMapper visitorMapper, AvatarAsyncService avatarAsyncService) {
+    public VisitorServiceImpl(VisitorMapper visitorMapper, CaptchaService captchaService, EmailService emailService) {
         this.visitorMapper = visitorMapper;
-        this.avatarAsyncService = avatarAsyncService;
+        this.captchaService = captchaService;
+        this.emailService = emailService;
     }
 
     /**
@@ -40,6 +42,55 @@ public class VisitorServiceImpl implements VisitorService {
      */
     private static final String[] VIP_LEVEL_NAMES = {"普通用户", "VIP1", "VIP2", "VIP3", "金主"};
 
+    /**
+     * 访客注册（带验证码）
+     */
+    @Override
+    public Result register(VisitorRegisterDTO registerDTO) {
+        log.info("访客注册：账号={}", registerDTO.getAccount());
+
+        // 1. 验证图形验证码
+        boolean captchaValid = captchaService.verify(registerDTO.getCaptchaToken(), registerDTO.getCaptchaCode());
+        if (!captchaValid) {
+            log.warn("图形验证码验证失败：token={}", registerDTO.getCaptchaToken());
+            return Result.error("图形验证码错误或已过期");
+        }
+
+        // 2. 验证邮箱验证码
+        Result emailResult = emailService.verifyCode(registerDTO.getEmail(), registerDTO.getEmailCode());
+        if (!"验证成功".equals(emailResult.getMsg())) {
+            log.warn("邮箱验证码验证失败：email={}", registerDTO.getEmail());
+            return Result.error("邮箱验证码错误或已过期");
+        }
+
+        // 3. 检查账号是否已存在
+        LambdaQueryWrapper<Visitor> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Visitor::getAccount, registerDTO.getAccount());
+        if (visitorMapper.selectCount(queryWrapper) > 0) {
+            return Result.error("该账号已存在");
+        }
+
+        // 4. 处理数据
+        Visitor visitor = new Visitor();
+        visitor.setName(registerDTO.getName());
+        visitor.setAccount(registerDTO.getAccount());
+        visitor.setEmail(registerDTO.getEmail());
+        visitor.setPassword(Argon2idUtil.hash(registerDTO.getPassword()));
+        visitor.setVipLevel(0);
+        visitor.setCreateTime(LocalDateTime.now());
+        visitor.setUpdateTime(LocalDateTime.now());
+
+        int result = visitorMapper.insert(visitor);
+        if (result > 0) {
+            log.info("访客注册成功：ID={}", visitor.getId());
+            return Result.success(convertToVO(visitor));
+        }
+        return Result.error("注册失败");
+    }
+
+    /**
+     * 访客注册（无验证码，保留兼容）
+     */
     @Override
     public Result register(VisitorDTO visitorDTO) {
         log.info("访客注册：账号={}", visitorDTO.getAccount());
@@ -110,7 +161,7 @@ public class VisitorServiceImpl implements VisitorService {
     }
 
     @Override
-    public Result updateVisitor(Integer visitorId, String name, MultipartFile file) {
+    public Result updateVisitor(Integer visitorId, String name) {
         log.info("修改访客信息：ID={}", visitorId);
 
         // 1. 校验访客是否存在
@@ -119,18 +170,10 @@ public class VisitorServiceImpl implements VisitorService {
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
 
-        // 2. 准备更新数据
+        // 2. 更新访客信息
         visitor.setName(name);
         visitor.setUpdateTime(LocalDateTime.now());
 
-        // 3. 并行执行：访客信息同步保存 + 头像异步上传
-        // 启动异步上传任务（如果需要上传头像）
-        if (file != null && !file.isEmpty()) {
-            // 调用@Async标注的异步方法，Spring会在独立线程池中执行
-            avatarAsyncService.uploadAvatarAsync(file,visitor.getId());
-        }
-
-        // 同步保存访客基本信息
         int result = visitorMapper.updateById(visitor);
         if (result <= 0) {
             return Result.error("访客信息保存失败");
@@ -138,6 +181,7 @@ public class VisitorServiceImpl implements VisitorService {
 
         return Result.success(convertToVO(visitor));
     }
+
 
     @Override
     public Result updatePassword(Integer visitorId, String oldPassword, String newPassword) {

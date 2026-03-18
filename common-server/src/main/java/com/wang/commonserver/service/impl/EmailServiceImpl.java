@@ -25,7 +25,7 @@ public class EmailServiceImpl implements EmailService {
     /**
      * 验证码过期时间（分钟）
      */
-    private static final long CODE_EXPIRE_MINUTES = 5;
+    private static final long CODE_EXPIRE_MINUTES = 10;
     
     /**
      * Redis中验证码的key前缀
@@ -71,8 +71,8 @@ public class EmailServiceImpl implements EmailService {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(email);
-            message.setSubject("【小说管理系统】邮箱验证码");
-            message.setText("您的验证码是：" + code + "\n\n验证码有效期5分钟，请尽快使用。\n\n如非本人操作，请忽略此邮件。");
+            message.setSubject("【nms】邮箱验证码");
+            message.setText("您的验证码是：" + code + "\n\n验证码有效期10分钟，请尽快使用。\n\n如非本人操作，请忽略此邮件。");
             mailSender.send(message);
             log.info("验证码发送成功：email={}", email);
         } catch (Exception e) {

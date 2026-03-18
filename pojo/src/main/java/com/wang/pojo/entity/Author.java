@@ -56,6 +56,13 @@ public class Author implements Serializable {
     @Length(max= 100,message="编码长度不能超过100")
     private String password;
     /**
+    * 邮箱
+    */
+    @Size(max= 50,message="编码长度不能超过50")
+    @ApiModelProperty("邮箱")
+    @Length(max= 50,message="编码长度不能超过50")
+    private String email;
+    /**
     * 作者头像地址
     */
     @Size(max= 255,message="编码长度不能超过255")
@@ -69,11 +76,11 @@ public class Author implements Serializable {
     @ApiModelProperty("等级：1-执笔者，2-织梦师，3-造界者，4-渡舟人，5-燃灯者")
     private Integer rank;
     /**
-    * 是否删除：0-否，1-是
+    * 是否删除：false-否，true-是
     */
-    @ApiModelProperty("是否删除：0-否，1-是")
+    @ApiModelProperty("是否删除：false-否，true-是")
     @TableLogic
-    private Integer isDel;
+    private Boolean isDel;
     /**
     * 创建时间
     */

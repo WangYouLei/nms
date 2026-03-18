@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wang.manage.mapper.AuthorMapper">
+
+    <!-- 动态更新作者信息，只更新非 null 且非空的字段 -->
+    <update id="update" parameterType="com.wang.pojo.entity.Author">
+        UPDATE author
+        <set>
+            <!-- String类型：判断非null且非空字符串 -->
+            <if test="name != null and name != ''">
+                name = #{name},
+            </if>
+            <if test="account != null and account != ''">
+                account = #{account},
+            </if>
+            <if test="password != null and password != ''">
+                password = #{password},
+            </if>
+            <if test="email != null and email != ''">
+                email = #{email},
+            </if>
+            <if test="avatar != null and avatar != ''">
+                avatar = #{avatar},
+            </if>
+            <!-- Integer类型：rank为等级字段，0是无效值，需大于0才更新 -->
+            <if test="rank != null and rank > 0">
+                rank = #{rank},
+            </if>
+            <!-- Boolean类型：isDel需要明确设置才更新 -->
+            <if test="isDel != null">
+                is_del = #{isDel},
+            </if>
+            <!-- 时间类型：非null即可 -->
+            <if test="updateTime != null">
+                update_time = #{updateTime},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+</mapper>

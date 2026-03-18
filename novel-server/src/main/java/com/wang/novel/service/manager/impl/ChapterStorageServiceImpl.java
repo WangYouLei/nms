@@ -1,6 +1,6 @@
 package com.wang.novel.service.manager.impl;
 
-import com.wang.novel.config.MinioInfo;
+import com.wang.commonserver.config.MinioInfo;
 import com.wang.novel.service.manager.ChapterStorageService;
 import io.minio.*;
 import lombok.extern.slf4j.Slf4j;

@@ -26,7 +26,9 @@ public class VisitorDTO {
     @ApiModelProperty("账号（手机号）")
     private String account;
 
-
     @ApiModelProperty("密码")
     private String password;
+
+    @ApiModelProperty("邮箱")
+    private String email;
 }

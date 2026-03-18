@@ -23,7 +23,7 @@ public class Argon2idUtil {
      * 工具类禁止实例化
      */
     private Argon2idUtil(){
-        throw new UnsupportedOperationException("Utility class cannot be instantiated");
+        throw new UnsupportedOperationException("工具类不能被实例化");
     }
     /**
      * 加密   Argon2 会自动生成随机盐值

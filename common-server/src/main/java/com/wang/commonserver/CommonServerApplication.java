@@ -3,7 +3,10 @@ package com.wang.commonserver;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {
+        "com.wang.commonserver",
+        "com.wang.common"
+})
 public class CommonServerApplication {
     
     public static void main(String[] args) {

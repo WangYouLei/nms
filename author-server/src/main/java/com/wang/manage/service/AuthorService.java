@@ -2,14 +2,18 @@ package com.wang.manage.service;
 
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.AuthorDTO;
-import org.springframework.web.multipart.MultipartFile;
+import com.wang.pojo.dto.AuthorRegisterDTO;
+import com.wang.pojo.dto.PasswordUpdateEmailDTO;
+
 
 public interface AuthorService {
     /**
-     * 添加作者
-     * @param authorDTO
+     * 作者注册（带验证码）
+     * @param registerDTO 注册信息（包含验证码）
+     * @return 注册结果
      */
-    Result addAuthor(AuthorDTO authorDTO);
+    Result register(AuthorRegisterDTO registerDTO);
+
     
     /**
      * 作者登录
@@ -19,8 +23,8 @@ public interface AuthorService {
      */
     Result login(String account, String password);
     
-/**
-     * 删除作者
+    /**
+     * 逻辑删除作者
      * @param id 作者ID
      * @return 删除结果
      */
@@ -32,20 +36,21 @@ public interface AuthorService {
      * @return 修改结果
      */
     Result updateAuthor(AuthorDTO author);
-    
-    /**
-     * 更新作者头像
-     * @param authorId 作者ID
-     * @param file 头像文件
-     * @return 更新结果
-     */
-    Result updateAvatar(Integer authorId, MultipartFile file);
+
 
     /**
      * 修改作者密码
      * @param id 作者ID
+     * @param oldPassword  旧密码
      * @param newPassword 新密码
      * @return 修改结果
      */
-    Result updatePassword(Integer id, String newPassword);
+    Result updatePassword(Integer id, String oldPassword,String newPassword);
+
+    /**
+     * 修改作者密码（通过邮箱）
+     * @param dto 修改密码信息
+     * @return
+     */
+    Result updatePasswordByEmail(PasswordUpdateEmailDTO dto);
 }

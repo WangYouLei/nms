@@ -10,7 +10,7 @@ public enum FileUploadTypeEnum {
     /**
      * 管理员头像上传
      */
-    ADMIN_AVATAR(0, "管理员头像上传"),
+    AUTHOR_AVATAR(0, "管理员头像上传"),
 
     /**
      * 用户头像上传

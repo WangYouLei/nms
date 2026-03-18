@@ -12,12 +12,8 @@
     <artifactId>novel-server</artifactId>
     <packaging>jar</packaging>
 
-    <name>Novel-server</name>
+    <name>novel-server</name>
     <description>小说核心服务模块 - 包含小说、章节、分类的核心业务逻辑</description>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
 
     <dependencies>
         <!-- 依赖common模块 -->
@@ -34,22 +30,11 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Spring Boot Web -->
+        <!-- 依赖common-server模块（使用MinIO配置） -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
-        <!-- Spring Data Redis -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-
-        <!-- MyBatis Plus -->
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <groupId>com.wang</groupId>
+            <artifactId>common-server</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- MySQL驱动 -->
@@ -57,18 +42,6 @@
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
-        </dependency>
-
-        <!-- MinIO客户端 -->
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-        </dependency>
-
-        <!-- Swagger Annotations -->
-        <dependency>
-            <groupId>io.swagger</groupId>
-            <artifactId>swagger-annotations</artifactId>
         </dependency>
 
         <!-- 测试依赖 -->

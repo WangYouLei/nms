@@ -26,6 +26,10 @@ public class AuthorVO implements Serializable {
      */
     private String account;
     /**
+     * 邮箱
+     */
+    private String email;
+    /**
      * 作者头像地址
      */
     private String avatar;
@@ -34,9 +38,9 @@ public class AuthorVO implements Serializable {
      */
     private Integer rank;
     /**
-     * 是否删除：0-否，1-是
+     * 是否删除：false-否，true-是
      */
-    private Integer isDel;
+    private Boolean isDel;
     /**
      * 创建时间
      */

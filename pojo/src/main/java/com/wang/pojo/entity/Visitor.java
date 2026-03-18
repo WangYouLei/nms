@@ -67,6 +67,14 @@ public class Visitor implements Serializable {
     private String password;
 
     /**
+    * 邮箱
+    */
+    @Size(max= 50,message="编码长度不能超过50")
+    @ApiModelProperty("邮箱")
+    @Length(max= 50,message="编码长度不能超过50")
+    private String email;
+
+    /**
     * VIP级别：0-普通,1-VIP1,2-VIP2,3-VIP3,4-金主
     */
     @NotNull(message="[VIP级别]不能为空")

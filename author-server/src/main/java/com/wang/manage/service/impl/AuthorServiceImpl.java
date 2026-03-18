@@ -2,74 +2,95 @@ package com.wang.manage.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.wang.common.enums.BizCodeEnum;
-import com.wang.common.enums.FileUploadTypeEnum;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.untils.Argon2idUtil;
 import com.wang.common.untils.JWTUtil;
+import com.wang.commonserver.service.CaptchaService;
+import com.wang.commonserver.service.EmailService;
 import com.wang.manage.mapper.AuthorMapper;
-import com.wang.manage.service.CommonService;
 import com.wang.manage.service.AuthorService;
 import com.wang.pojo.dto.AuthorDTO;
+import com.wang.pojo.dto.AuthorRegisterDTO;
+import com.wang.pojo.dto.PasswordUpdateEmailDTO;
 import com.wang.pojo.entity.Author;
 import com.wang.pojo.vo.AuthorVO;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 
-
+/**
+ * 作者服务实现类
+ */
 @Slf4j
 @Service
 public class AuthorServiceImpl implements AuthorService {
-    private final AuthorMapper authorMapper;
-    private final CommonService commonService;
 
-    public AuthorServiceImpl(AuthorMapper authorMapper, CommonService commonService) {
+    private final EmailService emailService;
+    private final CaptchaService captchaService;
+    private final AuthorMapper authorMapper;
+
+    public AuthorServiceImpl(AuthorMapper authorMapper, EmailService emailService, CaptchaService captchaService) {
         this.authorMapper = authorMapper;
-        this.commonService = commonService;
+        this.emailService = emailService;
+        this.captchaService = captchaService;
     }
 
     /**
-     * 添加作者
+     * 作者注册（带验证码）
      *
-     * @param authorDTO 作者信息
+     * @param registerDTO 注册信息
      */
     @Override
-    public Result addAuthor(AuthorDTO authorDTO) {
-        //处理数据  密码进行argon2加密
-        Author author = new Author();
-        BeanUtils.copyProperties(authorDTO, author);
-        author.setCreateTime(LocalDateTime.now());
-        author.setUpdateTime(LocalDateTime.now());
-        // 设置默认等级为1（执笔者）
-        if (author.getRank() == null) {
-            author.setRank(1);
+    public Result register(AuthorRegisterDTO registerDTO) {
+        log.info("作者注册：账号={}", registerDTO.getAccount());
+
+        // 1. 验证图形验证码
+        boolean captchaValid = captchaService.verify(registerDTO.getCaptchaToken(), registerDTO.getCaptchaCode());
+        if (!captchaValid) {
+            log.warn("图形验证码验证失败：token={},captchaCode={}", registerDTO.getCaptchaToken(),registerDTO.getCaptchaCode());
+            return Result.error("图形验证码错误或已过期");
         }
 
-        //argon2加密
-        String hashedPassword = Argon2idUtil.hash(author.getPassword());
-        author.setPassword(hashedPassword);
+        // 2. 验证邮箱验证码
+        Result emailResult = emailService.verifyCode(registerDTO.getEmail(), registerDTO.getEmailCode());
+        if (!"success".equals(emailResult.getMsg())) {
+            log.warn("邮箱验证码验证失败：email={}", registerDTO.getEmail());
+            return Result.error("邮箱验证码错误或已过期");
+        }
 
-        //执行插入操作
+        // 3. 处理数据
+        Author author = new Author();
+        author.setName(registerDTO.getName());
+        author.setAccount(registerDTO.getAccount());
+        author.setEmail(registerDTO.getEmail());
+        author.setPassword(Argon2idUtil.hash(registerDTO.getPassword()));
+        author.setRank(1); // 默认等级为执笔者
+        author.setCreateTime(LocalDateTime.now());
+        author.setUpdateTime(LocalDateTime.now());
+
+        // 4. 执行插入操作
         try {
             int result = authorMapper.insert(author);
             if (result == 1) {
+                log.info("作者注册成功：ID={}", author.getId());
                 AuthorVO vo = new AuthorVO();
                 BeanUtils.copyProperties(author, vo);
                 return Result.success(vo);
             } else {
                 return Result.buildResult(BizCodeEnum.FAIL);
             }
-        } catch (Exception e) {//当用户名和用户账号相同时，会抛异常，这里捕获
+        } catch (Exception e) {
+            //当用户名、用户账号、邮箱相同时，会抛异常，这里捕获
+            log.error("作者注册失败：{}", e.getMessage());
             return Result.buildResult(BizCodeEnum.USER_EXIST);
         }
     }
+
 
     /**
      * 作者登录
@@ -95,8 +116,6 @@ public class AuthorServiceImpl implements AuthorService {
 
         //验证密码
         boolean ok = Argon2idUtil.verify(author.getPassword(), password);
-
-
 
         if (!ok) {
             log.warn("密码错误：账号={}", account);
@@ -129,7 +148,6 @@ public class AuthorServiceImpl implements AuthorService {
 
     /**
      * 删除作者（逻辑删除）
-     * 由于使用了@TableLogic注解，MyBatis-Plus会自动将DELETE转为UPDATE
      *
      * @param id 作者ID
      * @return 删除结果
@@ -145,7 +163,8 @@ public class AuthorServiceImpl implements AuthorService {
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
 
-        //执行逻辑删除操作（MyBatis-Plus会自动转为UPDATE is_del=1）
+        //执行逻辑删除操作
+        author.setIsDel(true);
         int result = authorMapper.deleteById(id);
         if (result == 1) {
             log.info("删除作者成功：ID={}, 姓名={}", id, author.getName());
@@ -164,105 +183,64 @@ public class AuthorServiceImpl implements AuthorService {
      */
     @Override
     public Result updateAuthor(AuthorDTO authorDTO) {
-        log.info("修改作者信息：ID={}, 姓名={}", authorDTO.getId(), authorDTO.getName());
+        log.info("修改作者信息：ID={}", authorDTO.getId());
 
-        //检查作者是否存在
+        // 检查作者是否存在
         Author existingAuthor = authorMapper.selectById(authorDTO.getId());
         if (existingAuthor == null) {
             log.warn("作者不存在：ID={}", authorDTO.getId());
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
 
-        //执行更新操作
-        //将DTO中的数据复制到实体对象中
-        BeanUtils.copyProperties(authorDTO, existingAuthor);
-        existingAuthor.setUpdateTime(LocalDateTime.now());
-        int result = authorMapper.updateById(existingAuthor);
+        // 构建更新对象，只设置需要更新的字段（动态 SQL 会忽略 null 字段）
+        Author author = new Author();
+        author.setId(authorDTO.getId());
+        author.setName(authorDTO.getName());
+        author.setAccount(authorDTO.getAccount());
+        author.setEmail(authorDTO.getEmail());
+        author.setAvatar(authorDTO.getAvatar());
+        author.setRank(authorDTO.getRank());
+        author.setUpdateTime(LocalDateTime.now());
+        // 密码不在此处修改，应使用 updatePassword 方法
+
+        int result = authorMapper.update(author);
         if (result == 1) {
-            log.info("修改作者信息成功：ID={}", existingAuthor.getId());
+            log.info("修改作者信息成功：ID={}", author.getId());
             return Result.success("修改成功");
         } else {
-            log.error("修改作者信息失败：ID={}", existingAuthor.getId());
+            log.error("修改作者信息失败：ID={}", author.getId());
             return Result.error("修改失败");
         }
     }
 
-    /**
-     * 更新作者头像
-     * 上传新头像后删除旧头像
-     *
-     * @param authorId 作者ID
-     * @param file      头像文件
-     * @return 更新结果
-     */
-    @Override
-    public Result updateAvatar(Integer authorId, MultipartFile file) {
-        log.info("更新作者头像：ID={}", authorId);
-
-        // 1. 检查作者是否存在
-        Author author = authorMapper.selectById(authorId);
-        if (author == null) {
-            log.warn("作者不存在：ID={}", authorId);
-            return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
-        }
-
-        // 保存旧头像URL，用于删除
-        String oldAvatarUrl = author.getAvatar();
-
-        try {
-            // 2. 上传新头像
-            String newAvatarUrl = commonService.fileUpload(file, FileUploadTypeEnum.ADMIN_AVATAR.getCode());
-            if (newAvatarUrl == null) {
-                log.error("上传头像失败：ID={}", authorId);
-                return Result.error("上传头像失败");
-            }
-
-            // 3. 更新数据库
-            author.setAvatar(newAvatarUrl);
-            author.setUpdateTime(LocalDateTime.now());
-            int result = authorMapper.updateById(author);
-
-            if (result == 1) {
-                log.info("头像更新成功：ID={}, 新头像URL={}", authorId, newAvatarUrl);
-
-                // 4. 删除旧头像（数据库更新成功后）
-                if (StringUtils.hasText(oldAvatarUrl)) {
-                    boolean deleted = commonService.deleteFile(oldAvatarUrl);
-                    if (deleted) {
-                        log.info("旧头像删除成功：{}", oldAvatarUrl);
-                    }
-                }
-
-                return Result.success(newAvatarUrl);
-            } else {
-                log.error("头像更新失败：ID={}", authorId);
-                return Result.error("头像更新失败");
-            }
-        } catch (Exception e) {
-            log.error("更新头像异常：ID={}, 错误={}", authorId, e.getMessage(), e);
-            return Result.error("更新头像失败：" + e.getMessage());
-        }
-    }
 
     /**
      * 修改作者密码
      *
      * @param id 作者ID
+     * @param oldPassword 旧密码
      * @param newPassword 新密码
      * @return 修改结果
      */
     @Override
-    public Result updatePassword(Integer id, String newPassword) {
+    public Result updatePassword(Integer id, String oldPassword, String newPassword) {
         log.info("修改作者密码：ID={}", id);
 
-        //检查作者是否存在
+        // 1. 检查作者是否存在
         Author author = authorMapper.selectById(id);
         if (author == null) {
             log.warn("作者不存在：ID={}", id);
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
 
-        //加密新密码
+        // 2. 验证旧密码是否正确
+        boolean isOldPasswordValid = Argon2idUtil.verify(author.getPassword(), oldPassword);
+        if (!isOldPasswordValid) {
+            log.warn("旧密码验证失败：ID={}", id);
+            return Result.error("旧密码错误");
+        }
+
+        // 3. 加密新密码并更新
         String hashedPassword = Argon2idUtil.hash(newPassword);
         author.setPassword(hashedPassword);
         author.setUpdateTime(LocalDateTime.now());
@@ -277,4 +255,25 @@ public class AuthorServiceImpl implements AuthorService {
         }
     }
 
+    @Override
+    public Result updatePasswordByEmail(PasswordUpdateEmailDTO passwordUpdateEmailDTO) {
+        Result result = emailService.verifyCode(passwordUpdateEmailDTO.getEmail(), passwordUpdateEmailDTO.getCode());
+        if(!"验证成功".equals(result.getData())){
+            return result;
+        }
+        Author author = new Author();
+        author.setId(passwordUpdateEmailDTO.getId());
+        author.setPassword(Argon2idUtil.hash(passwordUpdateEmailDTO.getNewPassword()));
+        author.setUpdateTime(LocalDateTime.now());
+
+        int number = authorMapper.updateById(author);
+
+        if(number != 1){
+            log.info("作者密码修改失败，id={}",passwordUpdateEmailDTO.getId());
+            return Result.error("密码修改失败");
+        }else{
+            log.info("修改作者密码成功：ID={}", passwordUpdateEmailDTO.getId());
+            return Result.success("作者密码修改成功");
+        }
+    }
 }

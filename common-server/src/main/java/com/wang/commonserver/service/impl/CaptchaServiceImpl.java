@@ -43,7 +43,7 @@ public class CaptchaServiceImpl implements CaptchaService {
     /**
      * 验证码过期时间（分钟）
      */
-    private static final long EXPIRE_MINUTES = 5;
+    private static final long EXPIRE_MINUTES = 10;
 
     /**
      * Redis 中验证码的 key 前缀
@@ -68,10 +68,12 @@ public class CaptchaServiceImpl implements CaptchaService {
         // 2. 获取验证码文本
         String code = captcha.getCode();
 
+        log.info("图形验证码：code={}",code);
+
         // 3. 生成唯一 token（用于前端识别本次验证）
         String token = IdUtil.fastSimpleUUID();
 
-        // 4. 存储到 Redis，设置 5 分钟过期
+        // 4. 存储到 Redis，设置 10 分钟过期
         String key = CODE_KEY_PREFIX + token;
         redisTemplate.opsForValue().set(
                 key,

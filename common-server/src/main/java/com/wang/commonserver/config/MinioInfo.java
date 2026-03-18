@@ -1,4 +1,4 @@
-package com.wang.novel.config;
+package com.wang.commonserver.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

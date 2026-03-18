@@ -2,6 +2,7 @@ package com.wang.visitor.service;
 
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.VisitorDTO;
+import com.wang.pojo.dto.VisitorRegisterDTO;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -10,7 +11,14 @@ import org.springframework.web.multipart.MultipartFile;
 public interface VisitorService {
 
     /**
-     * 访客注册
+     * 访客注册（带验证码）
+     * @param registerDTO 注册信息（包含验证码）
+     * @return 操作结果
+     */
+    Result register(VisitorRegisterDTO registerDTO);
+
+    /**
+     * 访客注册（无验证码，保留兼容）
      * @param visitorDTO 访客信息
      * @return 操作结果
      */
@@ -35,10 +43,10 @@ public interface VisitorService {
      * 修改访客信息
      * @param visitorId 访客ID
      * @param name  姓名
-     * @param file 头像
      * @return 操作结果
      */
-    Result updateVisitor(Integer visitorId,String name, MultipartFile file);
+    Result updateVisitor(Integer visitorId, String name);
+
 
     /**
      * 修改密码

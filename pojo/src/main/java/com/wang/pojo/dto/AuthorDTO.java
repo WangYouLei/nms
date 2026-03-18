@@ -28,16 +28,21 @@ public class AuthorDTO implements Serializable {
     */
     private String password;
     /**
+    * 邮箱
+    */
+    private String email;
+    /**
     * 头像
     */
     private String avatar;
     /**
     * 等级：1-执笔者，2-织梦师，3-造界者，4-渡舟人，5-燃灯者
     */
-    private Integer rank;
+    //设置默认值：1
+    private Integer rank = 1;
     /**
-    * 是否删除：0-否，1-是
+    * 是否删除：false-否，true-是
     */
-    private Integer isDel;
+    private Boolean isDel;
 
 }

@@ -23,7 +23,7 @@ public class CommonUtil {
      * 工具类禁止实例化
      */
     private CommonUtil() {
-        throw new UnsupportedOperationException("Utility class cannot be instantiated");
+        throw new UnsupportedOperationException("工具类不能被实例化");
     }
 
     /**

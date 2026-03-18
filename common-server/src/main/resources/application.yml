@@ -5,6 +5,13 @@ spring:
   application:
     name: common-server
   
+  # 数据库配置
+  datasource:
+    username: root
+    password: 123456
+    url: jdbc:mysql://localhost:3306/nms?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&charset=utf8mb4
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
   # 邮件配置
   mail:
     host: smtp.qq.com                    # QQ邮箱SMTP服务器
@@ -27,7 +34,21 @@ spring:
       database: 0
       timeout: 3000ms
 
+# MyBatis-Plus 配置
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+  mapper-locations: classpath:/mapper/*.xml
+
 # 日志配置
 logging:
   level:
     com.wang: debug
+
+# minio 配置
+minio:
+  endpoint: http://127.0.0.1:9000
+  accessKey: minioadmin
+  secretKey: minioadmin
+  bucketName: nms

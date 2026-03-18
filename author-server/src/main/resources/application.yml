@@ -22,17 +22,32 @@ spring:
   application:
     name: author-server
 
+  # 邮件配置      todo 项目变成微服务构架后，要删除这个配置（common-Server模块中有）
+  mail:
+    host: smtp.qq.com
+    port: 587
+    username: 2531215075@qq.com
+    password: ${QQ_SMTP/IMAP}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
 server:
   port: 5200
 
-
+# MinIO 配置   todo 项目变成微服务构架后，要删除这个配置（common-Server模块中有）
 minio:
   endpoint: http://127.0.0.1:9000
   accessKey: minioadmin
   secretKey: minioadmin
-  bucketName: nms-manage
+  bucketName: nms
 
-#配置plus答应sql日志
+
+#配置plus打印sql日志
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

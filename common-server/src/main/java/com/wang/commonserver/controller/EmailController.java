@@ -27,11 +27,12 @@ public class EmailController {
         log.info("发送验证码请求：email={}", email);
         return emailService.sendCode(email);
     }
-    
+
     @PostMapping("/verifyCode")
     @ApiOperation("验证邮箱验证码")
     public Result verifyCode(@RequestParam String email, @RequestParam String code) {
-        log.info("验证验证码请求：email={}", email);
+        log.info("验证验证码请求：email={}, code={}", email, code);
         return emailService.verifyCode(email, code);
     }
+
 }

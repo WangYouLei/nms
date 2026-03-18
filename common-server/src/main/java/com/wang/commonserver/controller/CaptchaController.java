@@ -1,5 +1,6 @@
 package com.wang.commonserver.controller;
 
+import com.wang.common.result.Result;
 import com.wang.commonserver.service.CaptchaService;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +23,13 @@ public class CaptchaController {
      * @return Map 验证码信息
      */
     @RequestMapping("/generate")
-    public Map<String, Object> generateCaptcha() {
-        return captchaService.generateCaptcha();
+    public Result generateCaptcha() {
+        Map<String, Object> map = captchaService.generateCaptcha();
+        if (map != null) {
+            return Result.success(map);
+        }else{
+            return Result.error("验证码生成失败");
+        }
     }
 
     /**

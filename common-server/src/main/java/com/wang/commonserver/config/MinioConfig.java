@@ -1,4 +1,4 @@
-package com.wang.novel.config;
+package com.wang.commonserver.config;
 
 import io.minio.MinioClient;
 import org.springframework.context.annotation.Bean;

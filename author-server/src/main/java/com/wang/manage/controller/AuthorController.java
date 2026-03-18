@@ -3,13 +3,14 @@ package com.wang.manage.controller;
 import com.wang.common.result.Result;
 import com.wang.manage.service.AuthorService;
 import com.wang.pojo.dto.AuthorDTO;
+import com.wang.pojo.dto.AuthorRegisterDTO;
+import com.wang.pojo.dto.PasswordUpdateEmailDTO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @RestController
@@ -33,15 +34,12 @@ public class AuthorController {
     }
 
 
-
-    @PostMapping("addAuthor")
-    @ApiOperation("添加作者")
-    public Result addAuthor(@RequestBody AuthorDTO author){
-        log.info("添加作者");
-        return authorService.addAuthor(author);
+    @PostMapping("register")
+    @ApiOperation("作者注册（带验证码）")
+    public Result register(@RequestBody AuthorRegisterDTO registerDTO){
+        log.info("作者注册请求：账号={}", registerDTO.getAccount());
+        return authorService.register(registerDTO);
     }
-
-
 
 
     @DeleteMapping("delete/{id}")
@@ -51,7 +49,6 @@ public class AuthorController {
         return authorService.deleteAuthor(id);
     }
 
-    
 
     @PutMapping("update")
     @ApiOperation("修改作者信息（密码这里不提供修改）")
@@ -61,25 +58,20 @@ public class AuthorController {
     }
 
 
-    @PostMapping("/avatar/{id}")
-    @ApiOperation("更新作者头像")
-    public Result updateAvatar(
-            @PathVariable Integer id,
-            @RequestPart("file") MultipartFile file) {
-        log.info("更新作者头像请求：ID={}", id);
-        return authorService.updateAvatar(id, file);
-    }
-
-    //TODO 如果用户忘记密码，添加邮箱验证码修改密码功能
     @PostMapping("/updatePassword")
     @ApiOperation("修改作者密码")
     public Result updatePassword(
             @ApiParam("作者ID") @RequestParam Integer id,
+            @ApiParam("旧密码") @RequestParam String oldPassword,
             @ApiParam("新密码") @RequestParam String newPassword) {
         log.info("修改作者密码请求：ID={}", id);
-        return authorService.updatePassword(id, newPassword);
+        return authorService.updatePassword(id, oldPassword,newPassword);
     }
 
-
-
+    @PostMapping("/updatePasswordByEmail")
+    @ApiOperation("通过邮箱短信验证码修改密码")
+    public Result updatePasswordByEmail(@RequestBody @ApiParam("密码修改邮箱类") PasswordUpdateEmailDTO dto) {
+        log.info("通过邮箱短信验证码修改密码请求：ID={}", dto.getId());
+        return authorService.updatePasswordByEmail(dto);
+    }
 }

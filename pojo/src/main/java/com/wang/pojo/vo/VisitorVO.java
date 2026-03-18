@@ -26,6 +26,9 @@ public class VisitorVO {
     @ApiModelProperty("账号")
     private String account;
 
+    @ApiModelProperty("邮箱")
+    private String email;
+
     @ApiModelProperty("VIP级别：0-普通,1-VIP1,2-VIP2,3-VIP3,4-金主")
     private Integer vipLevel;
 
