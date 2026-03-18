@@ -1,4 +1,4 @@
-package com.wang.novel.service.manager.impl;
+package com.wang.novel.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -8,7 +8,7 @@ import com.wang.common.result.Result;
 import com.wang.novel.mapper.NovelCategoryMapper;
 import com.wang.novel.mapper.NovelCategoryRelationMapper;
 import com.wang.novel.mapper.NovelMapper;
-import com.wang.novel.service.manager.NovelCategoryService;
+import com.wang.novel.service.NovelCategoryService;
 import com.wang.pojo.dto.NovelCategoryDTO;
 import com.wang.pojo.dto.NovelCategoryRelationDTO;
 import com.wang.pojo.entity.NovelCategory;
@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 /**
  * 小说分类服务实现类
+ * 提供 author、manager、visitor 三个端口共用的分类功能
  */
 @Slf4j
 @Service
@@ -33,17 +34,59 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     private final NovelCategoryRelationMapper relationMapper;
     private final NovelMapper novelMapper;
 
-    public NovelCategoryServiceImpl(NovelCategoryMapper categoryMapper, 
-                                    NovelCategoryRelationMapper relationMapper,
-                                    NovelMapper novelMapper) {
+    public NovelCategoryServiceImpl(NovelCategoryMapper categoryMapper,
+                                     NovelCategoryRelationMapper relationMapper,
+                                     NovelMapper novelMapper) {
         this.categoryMapper = categoryMapper;
         this.relationMapper = relationMapper;
         this.novelMapper = novelMapper;
     }
 
+    // ==================== Common - 公共方法 ====================
+
+    @Override
+    public Result getAllCategories() {
+        log.info("[Common] 获取所有分类");
+        List<NovelCategory> list = categoryMapper.selectList(null);
+        List<NovelCategoryVO> voList = list.stream().map(this::convertToVO).collect(Collectors.toList());
+        return Result.success(voList);
+    }
+
+    @Override
+    public Result getCategoriesByChannel(Integer category) {
+        log.info("[Common] 根据频道获取分类：category={}", category);
+        LambdaQueryWrapper<NovelCategory> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(NovelCategory::getCategory, category);
+        List<NovelCategory> list = categoryMapper.selectList(queryWrapper);
+        List<NovelCategoryVO> voList = list.stream().map(this::convertToVO).collect(Collectors.toList());
+        return Result.success(voList);
+    }
+
+    @Override
+    public Result getHotCategories() {
+        log.info("[Common] 获取热门分类");
+        LambdaQueryWrapper<NovelCategory> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(NovelCategory::getIsHot, 1);
+        List<NovelCategory> list = categoryMapper.selectList(queryWrapper);
+        List<NovelCategoryVO> voList = list.stream().map(this::convertToVO).collect(Collectors.toList());
+        return Result.success(voList);
+    }
+
+    @Override
+    public Result getCategoryById(Integer id) {
+        log.info("[Common] 根据ID查询分类：id={}", id);
+        NovelCategory entity = categoryMapper.selectById(id);
+        if (entity == null) {
+            return Result.buildResult(BizCodeEnum.NOVEL_CATEGORY_NOT_FOUND);
+        }
+        return Result.success(convertToVO(entity));
+    }
+
+    // ==================== Manager - 管理端方法 ====================
+
     @Override
     public Result addCategory(NovelCategoryDTO dto) {
-        log.info("添加分类：type={}, category={}", dto.getType(), dto.getCategory());
+        log.info("[Manager] 添加分类：type={}, category={}", dto.getType(), dto.getCategory());
 
         // 检查分类是否已存在（同一type和category组合）
         LambdaQueryWrapper<NovelCategory> queryWrapper = new LambdaQueryWrapper<>();
@@ -62,7 +105,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
 
     @Override
     public Result updateCategory(NovelCategoryDTO dto) {
-        log.info("修改分类：ID={}", dto.getId());
+        log.info("[Manager] 修改分类：ID={}", dto.getId());
 
         NovelCategory entity = categoryMapper.selectById(dto.getId());
         if (entity == null) {
@@ -88,7 +131,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     @Override
     @Transactional
     public Result deleteCategory(Integer id) {
-        log.info("删除分类：ID={}", id);
+        log.info("[Manager] 删除分类：ID={}", id);
 
         NovelCategory entity = categoryMapper.selectById(id);
         if (entity == null) {
@@ -107,44 +150,12 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     }
 
     @Override
-    public Result getCategoryById(Integer id) {
-        NovelCategory entity = categoryMapper.selectById(id);
-        if (entity == null) {
-            return Result.buildResult(BizCodeEnum.NOVEL_CATEGORY_NOT_FOUND);
-        }
-        return Result.success(convertToVO(entity));
-    }
-
-    @Override
-    public Result getAllCategories() {
-        List<NovelCategory> list = categoryMapper.selectList(null);
-        List<NovelCategoryVO> voList = list.stream().map(this::convertToVO).collect(Collectors.toList());
-        return Result.success(voList);
-    }
-
-    @Override
-    public Result getCategoriesByCategory(Integer category) {
-        LambdaQueryWrapper<NovelCategory> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(NovelCategory::getCategory, category);
-        List<NovelCategory> list = categoryMapper.selectList(queryWrapper);
-        List<NovelCategoryVO> voList = list.stream().map(this::convertToVO).collect(Collectors.toList());
-        return Result.success(voList);
-    }
-
-    @Override
-    public Result getHotCategories() {
-        LambdaQueryWrapper<NovelCategory> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(NovelCategory::getIsHot, 1);
-        List<NovelCategory> list = categoryMapper.selectList(queryWrapper);
-        List<NovelCategoryVO> voList = list.stream().map(this::convertToVO).collect(Collectors.toList());
-        return Result.success(voList);
-    }
-
-    @Override
     public Result getCategoryList(Integer pageNum, Integer pageSize, String type, Integer category) {
+        log.info("[Manager] 分页查询分类：页码={}, 每页数量={}", pageNum, pageSize);
+        
         Page<NovelCategory> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<NovelCategory> queryWrapper = new LambdaQueryWrapper<>();
-        
+
         if (type != null && !type.isEmpty()) {
             queryWrapper.like(NovelCategory::getType, type);
         }
@@ -165,7 +176,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     @Override
     @Transactional
     public Result setNovelCategory(NovelCategoryRelationDTO dto) {
-        log.info("设置小说分类：小说ID={}, 分类ID={}", dto.getNovelId(), dto.getCategoryId());
+        log.info("[Manager] 设置小说分类：小说ID={}, 分类ID={}", dto.getNovelId(), dto.getCategoryId());
 
         // 检查小说是否存在
         if (novelMapper.selectById(dto.getNovelId()) == null) {
@@ -192,7 +203,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
 
     @Override
     public Result getNovelCategory(Integer novelId) {
-        log.info("获取小说分类：小说ID={}", novelId);
+        log.info("[Manager] 获取小说分类：小说ID={}", novelId);
 
         LambdaQueryWrapper<NovelCategoryRelation> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(NovelCategoryRelation::getNovelId, novelId);
@@ -209,6 +220,8 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
 
         return Result.success(convertToVO(category));
     }
+
+    // ==================== 私有方法 ====================
 
     /**
      * 转换为VO

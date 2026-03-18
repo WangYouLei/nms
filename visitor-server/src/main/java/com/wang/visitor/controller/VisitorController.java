@@ -1,6 +1,8 @@
 package com.wang.visitor.controller;
 
 import com.wang.common.result.Result;
+import com.wang.pojo.dto.PasswordUpdateEmailDTO;
+import com.wang.pojo.dto.VisitorDeleteDTO;
 import com.wang.pojo.dto.VisitorDTO;
 import com.wang.pojo.dto.VisitorRegisterDTO;
 import com.wang.visitor.service.VisitorService;
@@ -9,50 +11,22 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-/**
- * 访客控制器
- */
 @Slf4j
 @RestController
-@RequestMapping("/visitor")
 @Api(tags = "访客管理")
-@Validated
+@RequestMapping("/visitor")
 public class VisitorController {
 
     private final VisitorService visitorService;
 
-
+    @Autowired
     public VisitorController(VisitorService visitorService) {
         this.visitorService = visitorService;
     }
 
-    /**
-     * 访客注册（带验证码）
-     */
-    @PostMapping("/register")
-    @ApiOperation("访客注册（带验证码）")
-    public Result register(@RequestBody VisitorRegisterDTO registerDTO) {
-        log.info("访客注册请求：账号={}", registerDTO.getAccount());
-        return visitorService.register(registerDTO);
-    }
 
-    /**
-     * 访客注册（无验证码，保留兼容）
-     */
-    @PostMapping("/register/simple")
-    @ApiOperation("访客注册（无验证码，保留兼容）")
-    public Result registerSimple(@RequestBody VisitorDTO visitorDTO) {
-        log.info("访客注册请求：账号={}", visitorDTO.getAccount());
-        return visitorService.register(visitorDTO);
-    }
-
-    /**
-     * 访客登录
-     */
     @PostMapping("/login")
     @ApiOperation("访客登录")
     public Result login(@RequestParam String account, @RequestParam String password) {
@@ -60,9 +34,21 @@ public class VisitorController {
         return visitorService.login(account, password);
     }
 
-    /**
-     * 获取访客信息
-     */
+    @PostMapping("logout")
+    @ApiOperation("用户退出登入")
+    public Result logout(Integer id){
+        log.info("用户退出登入,id= {}", id);
+        return Result.success();
+    }
+
+    @PostMapping("/register")
+    @ApiOperation("访客注册（带验证码）")
+    public Result register(@RequestBody VisitorRegisterDTO registerDTO) {
+        log.info("访客注册请求：账号={}", registerDTO.getAccount());
+        return visitorService.register(registerDTO);
+    }
+
+
     @GetMapping("/info/{visitorId}")
     @ApiOperation("获取访客信息")
     public Result getVisitorInfo(@PathVariable Integer visitorId) {
@@ -70,33 +56,36 @@ public class VisitorController {
         return visitorService.getVisitorInfo(visitorId);
     }
 
-    /**
-     * 修改访客信息
-     */
+
     @PutMapping("/update")
-    @ApiOperation("修改访客信息")
-    public Result updateVisitor(
-            @ApiParam(value = "访客id")
-            @RequestParam
-            Integer visitorId,
-            @ApiParam(value = "访客姓名")
-            @RequestParam
-            String name) {
-        log.info("修改访客信息请求：ID={},name={}", visitorId, name);
-        return visitorService.updateVisitor(visitorId, name);
+    @ApiOperation("修改访客信息（不包括密码）")
+    public Result updateVisitor(@RequestBody VisitorDTO visitor) {
+        log.info("修改访客信息请求：ID={}", visitor.getId());
+        return visitorService.updateVisitor(visitor);
     }
 
 
-    /**
-     * 修改密码
-     */
-    @PutMapping("/password")
+    @PostMapping("/password")
     @ApiOperation("修改密码")
     public Result updatePassword(
-            @RequestParam Integer visitorId,
-            @RequestParam String oldPassword,
-            @RequestParam String newPassword) {
-        log.info("修改密码请求：访客ID={}", visitorId);
+            @ApiParam("访客ID") @RequestParam Integer visitorId,
+            @ApiParam("旧密码") @RequestParam String oldPassword,
+            @ApiParam("新密码") @RequestParam String newPassword) {
+        log.info("修改访客密码请求：ID={}", visitorId);
         return visitorService.updatePassword(visitorId, oldPassword, newPassword);
+    }
+
+    @PostMapping("/updatePasswordByEmail")
+    @ApiOperation("通过邮箱短信验证码修改密码")
+    public Result updatePasswordByEmail(@RequestBody @ApiParam("密码修改邮箱类") PasswordUpdateEmailDTO dto) {
+        log.info("通过邮箱短信验证码修改密码请求：ID={}", dto.getId());
+        return visitorService.updatePasswordByEmail(dto);
+    }
+
+    @DeleteMapping("/delete")
+    @ApiOperation("删除访客账号（通过邮箱验证码验证）")
+    public Result deleteVisitor(@RequestBody @ApiParam("访客删除DTO") VisitorDeleteDTO dto) {
+        log.info("删除访客账号请求：ID={}", dto.getId());
+        return visitorService.deleteVisitor(dto);
     }
 }

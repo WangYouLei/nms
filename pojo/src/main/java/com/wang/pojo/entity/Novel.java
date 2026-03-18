@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import org.hibernate.validator.constraints.Length;
@@ -91,8 +92,14 @@ public class Novel implements Serializable {
     @ApiModelProperty("是否热门小说（false不是，true是）")
     private Boolean isHot;
     /**
-    * 创建时间
-    */
+     * 是否删除（0未删除，1已删除）
+     */
+    @ApiModelProperty("是否删除（0未删除，1已删除）")
+    @TableLogic
+    private Boolean ifDel;
+    /**
+     * 创建时间
+     */
     @NotNull(message="[创建时间]不能为空")
     @ApiModelProperty("创建时间")
     private LocalDateTime createTime;

@@ -21,6 +21,24 @@ public interface FileService {
      */
     Result uploadFile(MultipartFile file, Integer code,Integer novelId,String oldFileUrl);
 
+
+    /**
+     * 获取文件内容为字符串
+     * @param fileUrl 文件完整URL
+     * @return 文件内容字符串
+     */
+    String getFileContent(String fileUrl);
+
+    /**
+     * 重命名文件
+     * @param oldFileUrl 旧文件URL
+     * @param code 文件类型编码
+     * @param novelId 小说ID
+     * @param newFileName 新文件名（不含扩展名）
+     * @return 新文件URL
+     */
+    Result renameFile(String oldFileUrl, Integer code, Integer novelId, String newFileName);
+
     /**
      * 删除文件
      * @param fileUrl 文件完整URL
@@ -35,5 +53,18 @@ public interface FileService {
      */
     void downloadFile(String fileUrl, HttpServletResponse response);
 
+    /**
+     * 从URL中提取对象名称
+     * @param url 文件URL
+     * @return 对象名称
+     */
+    String extractObjectName(String url);
+
+    /**
+     * 构建完整的访问URL
+     * @param objectName 存储路径
+     * @return 完整URL
+     */
+    String buildFileUrl(String objectName);
 
 }

@@ -58,3 +58,9 @@ mybatis-plus:
 logging:
   level:
     root: info
+
+# 默认小说封面地址、默认作者头像地址、默认用户头像地址
+default:
+  authorAvatarUrl: https://nms.oss-cn-beijing.aliyuncs.com/avatar/default.png
+  visitorAvatarUrl:  https://nms.oss-cn-beijing.aliyuncs.com/cover/default.png
+  novelCoverUrl: https://nms.oss-cn-beijing.aliyuncs.com/cover/default.png

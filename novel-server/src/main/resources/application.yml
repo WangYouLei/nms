@@ -24,7 +24,7 @@ spring:
     name: novle-server
 
 server:
-  port: 5200
+  port: 5240
 
 
 minio:

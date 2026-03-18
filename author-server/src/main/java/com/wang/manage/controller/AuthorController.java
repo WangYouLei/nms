@@ -33,6 +33,20 @@ public class AuthorController {
         return authorService.login(account, password);
     }
 
+    @PostMapping("logout")
+    @ApiOperation("作者退出登入")
+    public Result logout(Integer id){
+        log.info("作者退出登入,id= {}", id);
+        return Result.success();
+    }
+
+    @GetMapping("info/{id}")
+    @ApiOperation("获取作者信息")
+    public Result getAuthorInfo(@PathVariable Integer id){
+        log.info("获取作者信息请求：ID={}", id);
+        return authorService.getAuthorInfo(id);
+    }
+
 
     @PostMapping("register")
     @ApiOperation("作者注册（带验证码）")
@@ -74,4 +88,5 @@ public class AuthorController {
         log.info("通过邮箱短信验证码修改密码请求：ID={}", dto.getId());
         return authorService.updatePasswordByEmail(dto);
     }
+
 }

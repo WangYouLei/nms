@@ -14,6 +14,7 @@ public class Result {
     public static  Result success() {
         Result result = new Result();
         result.code = 1;
+        result.msg = "success";
         return result;
     }
 

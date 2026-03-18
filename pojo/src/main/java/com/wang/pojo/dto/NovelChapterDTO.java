@@ -29,11 +29,6 @@ public class NovelChapterDTO implements Serializable {
     @ApiModelProperty("章节标题")
     private String title;
 
-    /**
-     * 章节内容
-     */
-    @ApiModelProperty("章节内容")
-    private String content;
 
     /**
      * 章节顺序

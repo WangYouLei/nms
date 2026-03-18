@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.wang.novel.mapper.VisitorNovelMapper">
+<mapper namespace="com.wang.novel.mapper.NovelMapper">
 
     <!-- 分页查询热门小说（支持分类筛选） -->
     <select id="selectHotNovelsByPage" resultType="com.wang.pojo.entity.Novel">
@@ -8,6 +8,7 @@
         FROM novel n
         LEFT JOIN novel_category_relation ncr ON n.id= ncr.novel_id
         WHERE n.is_hot = 1
+        AND n.if_del = 0
         <if test="categoryId != null">
             AND ncr.category_id= #{categoryId}
         </if>
@@ -21,6 +22,7 @@
         FROM novel n
         LEFT JOIN novel_category_relation ncr ON n.id = ncr.novel_id
         WHERE n.is_hot = 1
+        AND n.if_del = 0
         <if test="categoryId != null">
             AND ncr.category_id = #{categoryId}
         </if>
@@ -34,24 +36,27 @@
                (SELECT COUNT(*) FROM location l WHERE l.novel_id = n.id) as location_count
         FROM novel n
         WHERE n.id = #{novelId}
+        AND n.if_del = 0
     </select>
 
     <!-- 根据分类 ID 分页查询小说 -->
     <select id="selectNovelsByCategoryId" resultType="com.wang.pojo.entity.Novel">
         SELECT n.*
         FROM novel n
-                 INNER JOIN novel_category_relation ncr ON n.id = ncr.novel_id
+        INNER JOIN novel_category_relation ncr ON n.id = ncr.novel_id
         WHERE ncr.category_id = #{categoryId}
+        AND n.if_del = 0
         ORDER BY n.update_time DESC
-            LIMIT #{offset}, #{pageSize}
+        LIMIT #{offset}, #{pageSize}
     </select>
 
     <!-- 统计分类下小说总数 -->
     <select id="countNovelsByCategoryId" resultType="java.lang.Integer">
         SELECT COUNT(*)
         FROM novel n
-                 INNER JOIN novel_category_relation ncr ON n.id= ncr.novel_id
+        INNER JOIN novel_category_relation ncr ON n.id= ncr.novel_id
         WHERE ncr.category_id = #{categoryId}
+        AND n.if_del = 0
     </select>
 
 </mapper>

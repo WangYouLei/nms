@@ -1,11 +1,9 @@
 spring:
-  # 配置数据库
   datasource:
     username: root
     password: 123456
-    url: jdbc:mysql://localhost:3306/nms?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/nms?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&charset=utf8mb4
     driver-class-name: com.mysql.cj.jdbc.Driver
-
   # Redis配置
   data:
     redis:
@@ -22,9 +20,9 @@ spring:
           min-idle: 0
 
   application:
-    name: visitor-service
+    name: visitor-server
 
-  # 邮件配置  todo 项目变成微服务构架后，要删除这个配置（common-Server模块中有）
+  # 邮件配置      todo 项目变成微服务构架后，要删除这个配置（common-Server模块中有）
   mail:
     host: smtp.qq.com
     port: 587
@@ -47,3 +45,22 @@ minio:
   accessKey: minioadmin
   secretKey: minioadmin
   bucketName: nms
+
+
+#配置plus打印sql日志
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true  # 开启驼峰命名转换
+  mapper-locations: classpath:/mapper/*.xml
+
+#设置日志级别，ERROR/WARN/INFO/DEBUG,默认是INFO以上才显示
+logging:
+  level:
+    root: info
+
+# 默认小说封面地址、默认作者头像地址、默认用户头像地址
+default:
+  authorAvatarUrl: https://nms.oss-cn-beijing.aliyuncs.com/avatar/default.png
+  visitorAvatarUrl:  https://nms.oss-cn-beijing.aliyuncs.com/cover/default.png
+  novelCoverUrl: https://nms.oss-cn-beijing.aliyuncs.com/cover/default.png

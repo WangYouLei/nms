@@ -23,14 +23,7 @@ public class AuthorDTO implements Serializable {
     * 账号(手机号)
     */
     private String account;
-    /**
-    * 密码
-    */
-    private String password;
-    /**
-    * 邮箱
-    */
-    private String email;
+
     /**
     * 头像
     */

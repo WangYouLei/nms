@@ -28,9 +28,7 @@ public class RedisConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(factory);
 
-        // 使用Jackson2JsonRedisSerializer序列化value
-        Jackson2JsonRedisSerializer<Object> jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer<>(Object.class);
-        
+        // 配置ObjectMapper
         ObjectMapper objectMapper = new ObjectMapper();
         // 指定要序列化的域，field, get和set，以及修饰符范围
         objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
@@ -39,12 +37,14 @@ public class RedisConfig {
                 ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
         // 支持Java 8时间类型
         objectMapper.registerModule(new JavaTimeModule());
-        
-        jackson2JsonRedisSerializer.setObjectMapper(objectMapper);
+
+        // 使用Jackson2JsonRedisSerializer序列化value
+        Jackson2JsonRedisSerializer<Object> jackson2JsonRedisSerializer = 
+                new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
 
         // 使用StringRedisSerializer序列化key
         StringRedisSerializer stringRedisSerializer = new StringRedisSerializer();
-        
+
         // key采用String的序列化方式
         template.setKeySerializer(stringRedisSerializer);
         // hash的key也采用String的序列化方式
@@ -53,7 +53,7 @@ public class RedisConfig {
         template.setValueSerializer(jackson2JsonRedisSerializer);
         // hash的value序列化方式采用jackson
         template.setHashValueSerializer(jackson2JsonRedisSerializer);
-        
+
         template.afterPropertiesSet();
         return template;
     }

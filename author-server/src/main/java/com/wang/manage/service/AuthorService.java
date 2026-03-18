@@ -24,6 +24,13 @@ public interface AuthorService {
     Result login(String account, String password);
     
     /**
+     * 获取作者信息
+     * @param id 作者ID
+     * @return 作者信息
+     */
+    Result getAuthorInfo(Integer id);
+    
+    /**
      * 逻辑删除作者
      * @param id 作者ID
      * @return 删除结果

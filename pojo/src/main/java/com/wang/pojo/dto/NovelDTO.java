@@ -10,7 +10,6 @@ public class NovelDTO implements Serializable {
     /**
      * 主键ID
      */
-
     private Integer id;
     /**
      * 小说名称
@@ -20,7 +19,6 @@ public class NovelDTO implements Serializable {
     /**
      * 小说副名称
      */
-
     private String subName;
 
     /**
@@ -39,12 +37,17 @@ public class NovelDTO implements Serializable {
     private String authorName;
 
     /**
+     * 作者ID（关联管理人表）
+     */
+    private Integer authorId;
+
+    /**
      * 图片路径
      */
     private String url;
 
     /**
-     * 小说章节
+     * 小说章节数
      */
     private Integer chapterCount;
 
@@ -52,8 +55,4 @@ public class NovelDTO implements Serializable {
      * 是否完结（false未完结，true已完结）
      */
     private Boolean isFinished;
-    /**
-     * 是否热门小说（false不是，true是）
-     */
-    private Boolean isHot;
 }

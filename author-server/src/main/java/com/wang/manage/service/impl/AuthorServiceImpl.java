@@ -1,6 +1,7 @@
 package com.wang.manage.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
@@ -33,11 +34,13 @@ public class AuthorServiceImpl implements AuthorService {
     private final EmailService emailService;
     private final CaptchaService captchaService;
     private final AuthorMapper authorMapper;
+    private final DefaultUrlConfig  defaultUrlConfig;
 
-    public AuthorServiceImpl(AuthorMapper authorMapper, EmailService emailService, CaptchaService captchaService) {
+    public AuthorServiceImpl(AuthorMapper authorMapper, EmailService emailService, CaptchaService captchaService, DefaultUrlConfig defaultUrlConfig) {
         this.authorMapper = authorMapper;
         this.emailService = emailService;
         this.captchaService = captchaService;
+        this.defaultUrlConfig = defaultUrlConfig;
     }
 
     /**
@@ -69,7 +72,10 @@ public class AuthorServiceImpl implements AuthorService {
         author.setAccount(registerDTO.getAccount());
         author.setEmail(registerDTO.getEmail());
         author.setPassword(Argon2idUtil.hash(registerDTO.getPassword()));
-        author.setRank(1); // 默认等级为执笔者
+        // 默认等级为执笔者
+        author.setRank(1);
+        // 默认头像
+        author.setAvatar(defaultUrlConfig.getAuthorAvatarUrl());
         author.setCreateTime(LocalDateTime.now());
         author.setUpdateTime(LocalDateTime.now());
 
@@ -109,7 +115,7 @@ public class AuthorServiceImpl implements AuthorService {
         Author author = authorMapper.selectOne(queryWrapper);
 
         //判断作者是否存在
-        if (author == null) {
+        if (author == null  || author.getIsDel()) {
             log.warn("作者不存在：账号={}", account);
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
@@ -131,9 +137,28 @@ public class AuthorServiceImpl implements AuthorService {
                 .account(author.getAccount())
                 .build();
         String token = JWTUtil.geneJsonWebToken(loginUser);
+        return Result.success(token);
+    }
+
+    /**
+     * 获取作者信息
+     *
+     * @param id 作者ID
+     * @return 作者信息
+     */
+    @Override
+    public Result getAuthorInfo(Integer id) {
+        log.info("获取作者信息：ID={}", id);
+
+        Author author = authorMapper.selectById(id);
+        if (author == null || author.getIsDel()) {
+            log.warn("作者不存在：ID={}", id);
+            return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
+        }
+
         AuthorVO vo = new AuthorVO();
         BeanUtils.copyProperties(author, vo);
-        return Result.success(token);
+        return Result.success(vo);
     }
 
     /**
@@ -186,29 +211,28 @@ public class AuthorServiceImpl implements AuthorService {
         log.info("修改作者信息：ID={}", authorDTO.getId());
 
         // 检查作者是否存在
-        Author existingAuthor = authorMapper.selectById(authorDTO.getId());
-        if (existingAuthor == null) {
+        Author author = authorMapper.selectById(authorDTO.getId());
+        if (author == null || author.getIsDel()) {
             log.warn("作者不存在：ID={}", authorDTO.getId());
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
 
-        // 构建更新对象，只设置需要更新的字段（动态 SQL 会忽略 null 字段）
-        Author author = new Author();
-        author.setId(authorDTO.getId());
-        author.setName(authorDTO.getName());
-        author.setAccount(authorDTO.getAccount());
-        author.setEmail(authorDTO.getEmail());
-        author.setAvatar(authorDTO.getAvatar());
-        author.setRank(authorDTO.getRank());
-        author.setUpdateTime(LocalDateTime.now());
-        // 密码不在此处修改，应使用 updatePassword 方法
+        // 构建更新对象，只设置需要更新的字段（
+        Author newAuthor = new Author();
+        newAuthor.setId(authorDTO.getId());
+        newAuthor.setName(authorDTO.getName());
+        newAuthor.setAccount(authorDTO.getAccount());
+        newAuthor.setAvatar(authorDTO.getAvatar());
+        newAuthor.setRank(authorDTO.getRank());
+        newAuthor.setUpdateTime(LocalDateTime.now());
 
-        int result = authorMapper.update(author);
+
+        int result = authorMapper.update(newAuthor);
         if (result == 1) {
-            log.info("修改作者信息成功：ID={}", author.getId());
+            log.info("修改作者信息成功：ID={}", newAuthor.getId());
             return Result.success("修改成功");
         } else {
-            log.error("修改作者信息失败：ID={}", author.getId());
+            log.error("修改作者信息失败：ID={}", newAuthor.getId());
             return Result.error("修改失败");
         }
     }
@@ -228,7 +252,7 @@ public class AuthorServiceImpl implements AuthorService {
 
         // 1. 检查作者是否存在
         Author author = authorMapper.selectById(id);
-        if (author == null) {
+        if (author == null || author.getIsDel()) {
             log.warn("作者不存在：ID={}", id);
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
@@ -258,7 +282,7 @@ public class AuthorServiceImpl implements AuthorService {
     @Override
     public Result updatePasswordByEmail(PasswordUpdateEmailDTO passwordUpdateEmailDTO) {
         Result result = emailService.verifyCode(passwordUpdateEmailDTO.getEmail(), passwordUpdateEmailDTO.getCode());
-        if(!"验证成功".equals(result.getData())){
+        if(!"success".equals(result.getMsg())){
             return result;
         }
         Author author = new Author();
