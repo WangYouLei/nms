@@ -74,25 +74,11 @@ public class NovelController {
 
     // ==================== Manager - 管理端接口 ====================
 
-    @PostMapping("/manager/novel/add")
-    @ApiOperation("[Manager] 新增小说")
-    public Result managerAddNovel(@RequestBody NovelDTO novel) {
-        log.info("[Manager] 新增小说：{}", novel.getName());
-        return novelService.addNovel(novel);
-    }
-
     @DeleteMapping("/manager/novel/delete/{id}")
     @ApiOperation("[Manager] 删除小说")
     public Result managerDeleteNovel(@PathVariable Integer id) {
         log.info("[Manager] 删除小说：ID={}", id);
         return novelService.deleteNovel(id);
-    }
-
-    @PutMapping("/manager/novel/update")
-    @ApiOperation("[Manager] 修改小说")
-    public Result managerUpdateNovel(@RequestBody NovelDTO novelDTO) {
-        log.info("[Manager] 修改小说：ID={}", novelDTO.getId());
-        return novelService.updateNovel(novelDTO);
     }
 
     @GetMapping("/manager/novel/list")
@@ -109,6 +95,86 @@ public class NovelController {
     public Result managerSearchNovels(@RequestBody NovelSearchDTO dto) {
         log.info("[Manager] 搜索小说：{}", dto);
         return novelService.searchNovels(dto);
+    }
+
+    @GetMapping("/manager/statistics/novel/count")
+    @ApiOperation("[Manager] 小说数量统计")
+    public Result getNovelCountStatistics(@RequestParam String groupBy) {
+        log.info("[Manager] 小说数量统计：groupBy={}", groupBy);
+        return novelService.getNovelCountStatistics(groupBy);
+    }
+
+    @GetMapping("/manager/statistics/author/count")
+    @ApiOperation("[Manager] 作者数量统计（按等级）")
+    public Result getAuthorCountStatistics() {
+        log.info("[Manager] 作者数量统计（按等级）");
+        return novelService.getAuthorCountStatistics();
+    }
+
+    @GetMapping("/manager/statistics/visitor/count")
+    @ApiOperation("[Manager] 用户数量统计（按VIP等级）")
+    public Result getVisitorCountStatistics() {
+        log.info("[Manager] 用户数量统计（按VIP等级）");
+        return novelService.getVisitorCountStatistics();
+    }
+
+    // ==================== Manager - 小说排行榜 ====================
+
+    @GetMapping("/manager/ranking/novel/ongoing")
+    @ApiOperation("[Manager] 连载榜")
+    public Result getNovelOngoingRanking(@RequestParam(defaultValue = "10") Integer limit) {
+        log.info("[Manager] 连载榜：limit={}", limit);
+        return novelService.getNovelOngoingRanking(limit);
+    }
+
+    // ==================== Manager - 作者排行榜 ====================
+
+    @GetMapping("/manager/ranking/author/productive")
+    @ApiOperation("[Manager] 作者高产榜（作品数量）")
+    public Result getAuthorProductiveRanking(@RequestParam(defaultValue = "10") Integer limit) {
+        log.info("[Manager] 作者高产榜：limit={}", limit);
+        return novelService.getAuthorProductiveRanking(limit);
+    }
+
+    // ==================== Manager - 趋势统计 ====================
+
+    @GetMapping("/manager/statistics/novel/trend")
+    @ApiOperation("[Manager] 小说趋势统计")
+    public Result getNovelTrend(
+            @RequestParam String startDate,
+            @RequestParam String endDate,
+            @RequestParam(defaultValue = "month") String type) {
+        log.info("[Manager] 小说趋势统计：startDate={}, endDate={}, type={}", startDate, endDate, type);
+        return novelService.getNovelTrend(
+                java.time.LocalDate.parse(startDate),
+                java.time.LocalDate.parse(endDate),
+                type);
+    }
+
+    @GetMapping("/manager/statistics/author/register")
+    @ApiOperation("[Manager] 作者注册趋势统计")
+    public Result getAuthorTrend(
+            @RequestParam String startDate,
+            @RequestParam String endDate,
+            @RequestParam(defaultValue = "month") String type) {
+        log.info("[Manager] 作者注册趋势统计：startDate={}, endDate={}, type={}", startDate, endDate, type);
+        return novelService.getAuthorTrend(
+                java.time.LocalDate.parse(startDate),
+                java.time.LocalDate.parse(endDate),
+                type);
+    }
+
+    @GetMapping("/manager/statistics/visitor/register")
+    @ApiOperation("[Manager] 用户注册趋势统计")
+    public Result getVisitorTrend(
+            @RequestParam String startDate,
+            @RequestParam String endDate,
+            @RequestParam(defaultValue = "month") String type) {
+        log.info("[Manager] 用户注册趋势统计：startDate={}, endDate={}, type={}", startDate, endDate, type);
+        return novelService.getVisitorTrend(
+                java.time.LocalDate.parse(startDate),
+                java.time.LocalDate.parse(endDate),
+                type);
     }
 
     // ==================== Visitor - 访客端接口 ====================

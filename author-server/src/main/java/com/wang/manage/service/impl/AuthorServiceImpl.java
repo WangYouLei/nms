@@ -3,6 +3,7 @@ package com.wang.manage.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.enums.BizCodeEnum;
+import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.untils.Argon2idUtil;
@@ -135,6 +136,7 @@ public class AuthorServiceImpl implements AuthorService {
                 .name(author.getName())
                 .avatar(author.getAvatar())
                 .account(author.getAccount())
+                .role(UserRole.AUTHOR)
                 .build();
         String token = JWTUtil.geneJsonWebToken(loginUser);
         return Result.success(token);

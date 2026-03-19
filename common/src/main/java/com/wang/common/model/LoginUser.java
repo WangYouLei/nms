@@ -2,6 +2,7 @@ package com.wang.common.model;
 
 
 
+import com.wang.common.enums.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,6 +30,10 @@ public class LoginUser {
      * 账号
      */
     private String account;
+    /**
+     * 用户角色
+     */
+    private UserRole role;
 
 }
 

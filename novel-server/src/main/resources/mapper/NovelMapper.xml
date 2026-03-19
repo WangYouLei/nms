@@ -59,4 +59,62 @@
         AND n.if_del = 0
     </select>
 
+    <!-- ==================== 统计分析接口 ==================== -->
+
+    <!-- 按分类统计小说数量 -->
+    <select id="countNovelsByCategory" resultType="java.util.LinkedHashMap">
+        SELECT nc.type AS name, COUNT(DISTINCT n.id) AS count
+        FROM novel n
+        INNER JOIN novel_category_relation ncr ON n.id = ncr.novel_id
+        INNER JOIN novel_category nc ON ncr.category_id = nc.id
+        WHERE n.if_del = 0
+        GROUP BY nc.type
+        ORDER BY count DESC
+    </select>
+
+    <!-- 按频道统计小说数量 -->
+    <select id="countNovelsByChannel" resultType="java.util.LinkedHashMap">
+        SELECT 
+            CASE nc.category
+                WHEN 1 THEN '男频'
+                WHEN 2 THEN '女频'
+                ELSE '未知'
+            END AS name,
+            COUNT(DISTINCT n.id) AS count
+        FROM novel n
+        INNER JOIN novel_category_relation ncr ON n.id = ncr.novel_id
+        INNER JOIN novel_category nc ON ncr.category_id = nc.id
+        WHERE n.if_del = 0
+        GROUP BY nc.category
+        ORDER BY count DESC
+    </select>
+
+    <!-- 按状态统计小说数量（完结/连载） -->
+    <select id="countNovelsByStatus" resultType="java.util.LinkedHashMap">
+        SELECT 
+            CASE is_finished
+                WHEN 1 THEN '完结'
+                WHEN 0 THEN '连载'
+            END AS name,
+            COUNT(*) AS count
+        FROM novel
+        WHERE if_del = 0
+        GROUP BY is_finished
+        ORDER BY is_finished DESC
+    </select>
+
+    <!-- 按热门状态统计小说数量 -->
+    <select id="countNovelsByHot" resultType="java.util.LinkedHashMap">
+        SELECT 
+            CASE is_hot
+                WHEN 1 THEN '热门'
+                WHEN 0 THEN '普通'
+            END AS name,
+            COUNT(*) AS count
+        FROM novel
+        WHERE if_del = 0
+        GROUP BY is_hot
+        ORDER BY is_hot DESC
+    </select>
+
 </mapper>

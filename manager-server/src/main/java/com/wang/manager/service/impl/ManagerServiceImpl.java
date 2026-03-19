@@ -2,6 +2,7 @@ package com.wang.manager.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.wang.common.enums.BizCodeEnum;
+import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.untils.Argon2idUtil;
@@ -59,6 +60,7 @@ public class ManagerServiceImpl implements ManagerService {
                 .id(manager.getId().intValue())
                 .name(manager.getName())
                 .account(manager.getAccount())
+                .role(UserRole.MANAGER)
                 .build();
         String token = JWTUtil.geneJsonWebToken(loginUser);
 

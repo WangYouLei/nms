@@ -74,16 +74,22 @@ public class Visitor implements Serializable {
     @Length(max= 50,message="编码长度不能超过50")
     private String email;
 
-    /**
-    * VIP级别：0-普通,1-VIP1,2-VIP2,3-VIP3,4-金主
-    */
+/**
+     * VIP级别：0-普通,1-VIP1,2-VIP2,3-VIP3,4-金主
+     */
     @NotNull(message="[VIP级别]不能为空")
     @ApiModelProperty("VIP级别：0-普通,1-VIP1,2-VIP2,3-VIP3,4-金主")
     private Integer vipLevel;
 
     /**
-    * 创建时间
-    */
+     * 是否删除：false-否，true-是
+     */
+    @ApiModelProperty("是否删除：false-否，true-是")
+    private Boolean isDel;
+
+    /**
+     * 创建时间
+     */
     @NotNull(message="[创建时间]不能为空")
     @ApiModelProperty("创建时间")
     private LocalDateTime createTime;

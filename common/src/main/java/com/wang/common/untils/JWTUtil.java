@@ -57,6 +57,7 @@ public class JWTUtil {
                     .claim("name", loginUser.getName())
                     .claim("avatar", loginUser.getAvatar())
                     .claim("account", loginUser.getAccount())
+                    .claim("role", loginUser.getRole() != null ? loginUser.getRole().getCode() : null)
                     //设置当前时间
                     .setIssuedAt(new Date())
                     //设置过期时间

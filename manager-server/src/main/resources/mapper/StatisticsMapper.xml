@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wang.manager.mapper.StatisticsMapper">
+
+    <!-- 统计小说总数 -->
+    <select id="countAllNovels" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM novel WHERE if_del = 0
+    </select>
+
+    <!-- 统计作者总数（未删除） -->
+    <select id="countAllAuthors" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM author WHERE is_del = 0
+    </select>
+
+    <!-- 统计用户总数（未删除） -->
+    <select id="countAllVisitors" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM visitor WHERE is_del = 0
+    </select>
+
+    <!-- 统计分类总数 -->
+    <select id="countAllCategories" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM novel_category
+    </select>
+
+    <!-- 统计今日新增小说 -->
+    <select id="countTodayNewNovels" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM novel 
+        WHERE if_del = 0 AND DATE(create_time) = #{today}
+    </select>
+
+    <!-- 统计今日新增作者 -->
+    <select id="countTodayNewAuthors" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM author 
+        WHERE is_del = 0 AND DATE(create_time) = #{today}
+    </select>
+
+    <!-- 统计今日新增用户 -->
+    <select id="countTodayNewVisitors" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM visitor 
+        WHERE is_del = 0 AND DATE(create_time) = #{today}
+    </select>
+
+    <!-- 统计热门小说数 -->
+    <select id="countHotNovels" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM novel WHERE if_del = 0 AND is_hot = 1
+    </select>
+
+    <!-- 统计完结小说数 -->
+    <select id="countFinishedNovels" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM novel WHERE if_del = 0 AND is_finished = 1
+    </select>
+
+</mapper>

@@ -2,6 +2,7 @@ package com.wang.common.interceptor;
 
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.wang.common.enums.BizCodeEnum;
+import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.untils.CommonUtil;
@@ -42,12 +43,15 @@ public class LoginInterceptor implements HandlerInterceptor {
                 String avatar = (String) claims.get("avatar");
                 String name = (String) claims.get("name");
                 String account = (String) claims.get("account");
+                String roleCode = (String) claims.get("role");
+                UserRole role = UserRole.fromCode(roleCode);
 
                 LoginUser loginUser = LoginUser.builder()
                         .id(id)
                         .name(name)
                         .account(account)
                         .avatar(avatar)
+                        .role(role)
                         .build();
 
 

@@ -77,27 +77,10 @@ public class NovelChapterController {
 
     // ==================== Manager - 管理端接口 ====================
 
-    @PostMapping("/manager/chapter/upload")
-    @ApiOperation("[Manager] 上传新章节")
-    public Result managerUploadChapter(
-            @RequestParam Integer novelId,
-            @RequestParam String title,
-            @RequestParam("file") MultipartFile file) {
-        log.info("[Manager] 上传章节：小说ID={}, 章节标题={}", novelId, title);
-        return novelChapterService.uploadChapter(novelId, title, file);
-    }
-
     @DeleteMapping("/manager/chapter/delete/{id}")
     @ApiOperation("[Manager] 删除章节")
     public Result managerDeleteChapter(@PathVariable Integer id) {
         log.info("[Manager] 删除章节：章节ID={}", id);
         return novelChapterService.deleteChapter(id);
-    }
-
-    @PutMapping("/manager/chapter/update")
-    @ApiOperation("[Manager] 更新章节信息")
-    public Result managerUpdateChapter(@RequestBody NovelChapterDTO chapterDTO) {
-        log.info("[Manager] 更新章节：章节ID={}", chapterDTO.getId());
-        return novelChapterService.updateChapter(chapterDTO);
     }
 }

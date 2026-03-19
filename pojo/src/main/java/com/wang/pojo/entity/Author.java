@@ -69,15 +69,20 @@ public class Author implements Serializable {
     @ApiModelProperty("作者头像地址")
     @Length(max= 255,message="编码长度不能超过255")
     private String avatar;
-    /**
-    * 等级：1-执笔者，2-织梦师，3-造界者，4-渡舟人，5-燃灯者
-    */
+/**
+     * 等级：1-执笔者，2-织梦师，3-造界者，4-渡舟人，5-燃灯者
+     */
     @NotNull(message="[等级]不能为空")
     @ApiModelProperty("等级：1-执笔者，2-织梦师，3-造界者，4-渡舟人，5-燃灯者")
     private Integer rank;
     /**
-    * 是否删除：false-否，true-是
-    */
+     * 作品数量（冗余字段，用于排行榜统计）
+     */
+    @ApiModelProperty("作品数量（冗余字段，用于排行榜统计）")
+    private Integer novelCount;
+    /**
+     * 是否删除：false-否，true-是
+     */
     @ApiModelProperty("是否删除：false-否，true-是")
     @TableLogic
     private Boolean isDel;

@@ -2,27 +2,36 @@ package com.wang.novel.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.enums.BizCodeEnum;
+import com.wang.common.enums.UserRole;
 import com.wang.common.interceptor.LoginInterceptor;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.novel.mapper.NovelMapper;
+import com.wang.novel.mapper.StatisticsMapper;
 import com.wang.novel.service.NovelService;
 import com.wang.pojo.dto.NovelDTO;
 import com.wang.pojo.dto.NovelSearchDTO;
 import com.wang.pojo.entity.Novel;
+import com.wang.pojo.vo.AuthorRankingVO;
+import com.wang.pojo.vo.AuthorStatisticsVO;
 import com.wang.pojo.vo.NovelDetailVO;
 import com.wang.pojo.vo.NovelListVO;
+import com.wang.pojo.vo.NovelRankingVO;
+import com.wang.pojo.vo.NovelStatisticsVO;
+import com.wang.pojo.vo.TrendVO;
+import com.wang.pojo.vo.VisitorStatisticsVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -38,7 +47,7 @@ import java.util.stream.Collectors;
 public class NovelServiceImpl implements NovelService {
 
     private final NovelMapper novelMapper;
-    private final DefaultUrlConfig defaultUrlConfig;
+    private final StatisticsMapper statisticsMapper;
     private final RedisTemplate<String, Object> redisTemplate;
 
     // 缓存Key前缀
@@ -47,6 +56,7 @@ public class NovelServiceImpl implements NovelService {
 
     // 缓存过期时间（秒）
     private static final long NOVEL_HOT_TTL = 86400L;     // 热门小说缓存1天
+
     private static final long NOVEL_DETAIL_TTL = 1800L;   // 小说详情缓存30分钟
 
     // 分页参数限制
@@ -54,10 +64,10 @@ public class NovelServiceImpl implements NovelService {
     private static final int DEFAULT_PAGE_SIZE = 10;
 
     public NovelServiceImpl(NovelMapper novelMapper,
-                            DefaultUrlConfig defaultUrlConfig,
+                            StatisticsMapper statisticsMapper,
                             RedisTemplate<String, Object> redisTemplate) {
         this.novelMapper = novelMapper;
-        this.defaultUrlConfig = defaultUrlConfig;
+        this.statisticsMapper = statisticsMapper;
         this.redisTemplate = redisTemplate;
     }
 
@@ -112,7 +122,12 @@ public class NovelServiceImpl implements NovelService {
         // 获取当前登录用户信息
         LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
 
-        log.info("[Author/Manager] 新增小说：名称={}, 作者ID={}", novelDTO.getName(), loginUser.getId());
+        log.info("[Author] 新增小说：名称={}, 作者ID={}", novelDTO.getName(), loginUser.getId());
+
+        // 权限校验：只有作者可以添加小说
+        if (!UserRole.AUTHOR.equals(loginUser.getRole())) {
+            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
+        }
 
         Novel novel = new Novel();
         BeanUtils.copyProperties(novelDTO, novel);
@@ -163,8 +178,15 @@ public class NovelServiceImpl implements NovelService {
             return Result.buildResult(BizCodeEnum.NOVEL_NOT_FOUND);
         }
 
-        // 检查是否属于当前登录用户
-        if (!Objects.equals(novel.getAuthorId(), loginUser.getId())) {
+        // 权限校验：作者只能删除自己的小说，管理员可以删除所有小说
+        boolean isManager = UserRole.MANAGER.equals(loginUser.getRole());
+        boolean isAuthor = UserRole.AUTHOR.equals(loginUser.getRole());
+        
+        if (isAuthor && !Objects.equals(novel.getAuthorId(), loginUser.getId())) {
+            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
+        }
+        
+        if (!isManager && !isAuthor) {
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }
 
@@ -172,10 +194,10 @@ public class NovelServiceImpl implements NovelService {
         novel.setIfDel(true);
         int result = novelMapper.updateById(novel);
         if (result == 1) {
-            log.info("[Author/Manager] 逻辑删除小说成功：ID={}", id);
+            log.info("{}, 逻辑删除小说成功：ID={}", loginUser.getRole(),id);
             return Result.success(BizCodeEnum.SUCCESS);
         } else {
-            log.error("[Author/Manager] 逻辑删除小说失败：ID={}", id);
+            log.error("{},逻辑删除小说失败：ID={}", loginUser.getRole(),id);
             return Result.buildResult(BizCodeEnum.FAIL);
         }
     }
@@ -193,15 +215,21 @@ public class NovelServiceImpl implements NovelService {
             pageSize = DEFAULT_PAGE_SIZE;
         }
 
-        log.info("[Author/Manager] 分页查询小说列表：页码={}, 每页数量={}, 作者ID={}", pageNum, pageSize, loginUser.getId());
+        log.info("[Author/Manager] 分页查询小说列表：页码={}, 每页数量={}, 用户角色={}", pageNum, pageSize, loginUser.getRole());
 
         // 创建分页对象
         Page<Novel> page = new Page<>(pageNum, pageSize);
 
-        // 创建查询条件，只查询当前登录用户的小说
+        // 创建查询条件
         LambdaQueryWrapper<Novel> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Novel::getAuthorId, loginUser.getId())
-                .orderByDesc(Novel::getUpdateTime);
+        
+        // 权限过滤：作者只能查看自己的小说，管理员可以查看所有小说
+        boolean isManager = UserRole.MANAGER.equals(loginUser.getRole());
+        if (!isManager) {
+            // 作者只能查看自己的小说
+            queryWrapper.eq(Novel::getAuthorId, loginUser.getId());
+        }
+        queryWrapper.orderByDesc(Novel::getUpdateTime);
 
         // 执行分页查询
         Page<Novel> result = novelMapper.selectPage(page, queryWrapper);
@@ -233,14 +261,20 @@ public class NovelServiceImpl implements NovelService {
             pageSize = DEFAULT_PAGE_SIZE;
         }
 
-        log.info("[Author/Manager] 搜索小说：dto={}, 作者ID={}", dto, loginUser.getId());
+        log.info("[Author/Manager] 搜索小说：dto={}, 用户角色={}", dto, loginUser.getRole());
 
         // 创建分页对象
         Page<Novel> page = new Page<>(pageNum, pageSize);
 
         // 创建查询条件
         LambdaQueryWrapper<Novel> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Novel::getAuthorId, loginUser.getId());
+        
+        // 权限过滤：作者只能搜索自己的小说，管理员可以搜索所有小说
+        boolean isManager = UserRole.MANAGER.equals(loginUser.getRole());
+        if (!isManager) {
+            // 作者只能搜索自己的小说
+            queryWrapper.eq(Novel::getAuthorId, loginUser.getId());
+        }
 
         // 添加名称模糊查询条件
         if (StringUtils.hasText(dto.getName())) {
@@ -283,7 +317,12 @@ public class NovelServiceImpl implements NovelService {
     public Result updateNovel(NovelDTO novelDTO) {
         // 获取当前登录用户信息
         LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
-        log.info("[Author/Manager] 修改小说：ID={}, 名称={}, 作者ID={}", novelDTO.getId(), novelDTO.getName(), loginUser.getId());
+        log.info("[Author] 修改小说：ID={}, 名称={}, 作者ID={}", novelDTO.getId(), novelDTO.getName(), loginUser.getId());
+
+        // 权限校验：只有作者可以修改小说
+        if (!UserRole.AUTHOR.equals(loginUser.getRole())) {
+            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
+        }
 
         // 检查小说是否存在
         Novel existingNovel = novelMapper.selectById(novelDTO.getId());
@@ -463,6 +502,275 @@ public class NovelServiceImpl implements NovelService {
         return Result.success(pageResult);
     }
 
+    // ==================== Manager - 统计分析 ====================
+
+    @Override
+    public Result getNovelCountStatistics(String groupBy) {
+        log.info("[Manager] 获取小说数量统计：groupBy={}", groupBy);
+
+        if (groupBy == null || groupBy.isBlank()) {
+            return Result.error("groupBy参数不能为空");
+        }
+
+        List<LinkedHashMap<String, Object>> dataList;
+        
+        switch (groupBy.toLowerCase()) {
+            case "category":
+                dataList = novelMapper.countNovelsByCategory();
+                break;
+            case "channel":
+                dataList = novelMapper.countNovelsByChannel();
+                break;
+            case "status":
+                dataList = novelMapper.countNovelsByStatus();
+                break;
+            case "hot":
+                dataList = novelMapper.countNovelsByHot();
+                break;
+            default:
+                return Result.error("不支持的分组维度：" + groupBy + "，支持：category/channel/status/hot");
+        }
+
+        // 转换为VO
+        NovelStatisticsVO vo = new NovelStatisticsVO();
+        List<NovelStatisticsVO.Item> items = dataList.stream()
+                .map(map -> {
+                    NovelStatisticsVO.Item item = new NovelStatisticsVO.Item();
+                    item.setName((String) map.get("name"));
+                    Object count = map.get("count");
+                    item.setCount(count instanceof Number ? ((Number) count).longValue() : 0L);
+                    return item;
+                })
+                .collect(Collectors.toList());
+        vo.setItems(items);
+
+        log.info("小说数量统计完成：groupBy={}, 结果数={}", groupBy, items.size());
+        return Result.success(vo);
+    }
+
+    @Override
+    public Result getAuthorCountStatistics() {
+        log.info("[Manager] 获取作者数量统计（按等级）");
+
+        List<LinkedHashMap<String, Object>> dataList = statisticsMapper.countAuthorsByRank();
+
+        // 转换为VO
+        AuthorStatisticsVO vo = new AuthorStatisticsVO();
+        List<AuthorStatisticsVO.Item> items = dataList.stream()
+                .map(map -> {
+                    AuthorStatisticsVO.Item item = new AuthorStatisticsVO.Item();
+                    Object rank = map.get("rank");
+                    item.setRank(rank instanceof Number ? ((Number) rank).intValue() : 0);
+                    item.setRankName((String) map.get("rankName"));
+                    Object count = map.get("count");
+                    item.setCount(count instanceof Number ? ((Number) count).longValue() : 0L);
+                    return item;
+                })
+                .collect(Collectors.toList());
+        vo.setItems(items);
+
+        log.info("作者数量统计完成：结果数={}", items.size());
+        return Result.success(vo);
+    }
+
+    @Override
+    public Result getVisitorCountStatistics() {
+        log.info("[Manager] 获取用户数量统计（按VIP等级）");
+
+        List<LinkedHashMap<String, Object>> dataList = statisticsMapper.countVisitorsByVipLevel();
+
+        // 转换为VO
+        VisitorStatisticsVO vo = new VisitorStatisticsVO();
+        List<VisitorStatisticsVO.Item> items = dataList.stream()
+                .map(map -> {
+                    VisitorStatisticsVO.Item item = new VisitorStatisticsVO.Item();
+                    Object vipLevel = map.get("vipLevel");
+                    item.setVipLevel(vipLevel instanceof Number ? ((Number) vipLevel).intValue() : 0);
+                    item.setVipName((String) map.get("vipName"));
+                    Object count = map.get("count");
+                    item.setCount(count instanceof Number ? ((Number) count).longValue() : 0L);
+                    return item;
+                })
+                .collect(Collectors.toList());
+        vo.setItems(items);
+
+        log.info("用户数量统计完成：结果数={}", items.size());
+        return Result.success(vo);
+    }
+
+    // ==================== Manager - 小说排行榜 ====================
+
+    @Override
+    public Result getNovelOngoingRanking(Integer limit) {
+        log.info("[Manager] 获取连载榜：limit={}", limit);
+        return buildNovelRanking(statisticsMapper.rankNovelsByOngoing(limit), "连载榜");
+    }
+
+    // ==================== Manager - 作者排行榜 ====================
+
+    @Override
+    public Result getAuthorProductiveRanking(Integer limit) {
+        log.info("[Manager] 获取作者高产榜：limit={}", limit);
+
+        List<LinkedHashMap<String, Object>> dataList = statisticsMapper.rankAuthorsByProductive(limit);
+
+        AuthorRankingVO vo = new AuthorRankingVO();
+        List<AuthorRankingVO.Item> items = new java.util.ArrayList<>();
+
+        int rank = 1;
+        for (LinkedHashMap<String, Object> map : dataList) {
+            AuthorRankingVO.Item item = new AuthorRankingVO.Item();
+            item.setRank(rank++);
+            item.setId(getIntValue(map, "id"));
+            item.setName((String) map.get("name"));
+            item.setAuthorRank(getIntValue(map, "authorRank"));
+            item.setRankName((String) map.get("rankName"));
+            item.setNovelCount(getIntValue(map, "novelCount"));
+            item.setAvatar((String) map.get("avatar"));
+            items.add(item);
+        }
+        vo.setItems(items);
+
+        log.info("作者高产榜获取完成：结果数={}", items.size());
+        return Result.success(vo);
+    }
+
+    // ==================== Manager - 趋势统计 ====================
+
+    @Override
+    public Result getNovelTrend(LocalDate startDate, LocalDate endDate, String type) {
+        log.info("[Manager] 获取小说趋势：startDate={}, endDate={}, type={}", startDate, endDate, type);
+        return buildTrendResult(startDate, endDate, type, "小说",
+                statisticsMapper::novelTrendByDay,
+                statisticsMapper::novelTrendByWeek,
+                statisticsMapper::novelTrendByMonth,
+                statisticsMapper::novelTrendByYear);
+    }
+
+    @Override
+    public Result getAuthorTrend(LocalDate startDate, LocalDate endDate, String type) {
+        log.info("[Manager] 获取作者注册趋势：startDate={}, endDate={}, type={}", startDate, endDate, type);
+        return buildTrendResult(startDate, endDate, type, "作者注册",
+                statisticsMapper::authorTrendByDay,
+                statisticsMapper::authorTrendByWeek,
+                statisticsMapper::authorTrendByMonth,
+                statisticsMapper::authorTrendByYear);
+    }
+
+    @Override
+    public Result getVisitorTrend(LocalDate startDate, LocalDate endDate, String type) {
+        log.info("[Manager] 获取用户注册趋势：startDate={}, endDate={}, type={}", startDate, endDate, type);
+        return buildTrendResult(startDate, endDate, type, "用户注册",
+                statisticsMapper::visitorTrendByDay,
+                statisticsMapper::visitorTrendByWeek,
+                statisticsMapper::visitorTrendByMonth,
+                statisticsMapper::visitorTrendByYear);
+    }
+
+    /**
+     * 构建趋势统计结果
+     */
+    @FunctionalInterface
+    private interface TrendQuery {
+        List<LinkedHashMap<String, Object>> query(LocalDate start, LocalDate end);
+    }
+
+    private Result buildTrendResult(LocalDate startDate, LocalDate endDate, String type,
+                                     String trendName,
+                                     TrendQuery dayQuery,
+                                     TrendQuery weekQuery,
+                                     TrendQuery monthQuery,
+                                     TrendQuery yearQuery) {
+        // 参数校验
+        if (startDate == null || endDate == null) {
+            return Result.error("日期参数不能为空");
+        }
+        if (startDate.isAfter(endDate)) {
+            return Result.error("开始日期不能晚于结束日期");
+        }
+
+        // 默认按月统计
+        if (type == null || type.isBlank()) {
+            type = "month";
+        }
+
+        List<LinkedHashMap<String, Object>> dataList;
+        switch (type.toLowerCase()) {
+            case "day":
+                dataList = dayQuery.query(startDate, endDate);
+                break;
+            case "week":
+                dataList = weekQuery.query(startDate, endDate);
+                break;
+            case "month":
+                dataList = monthQuery.query(startDate, endDate);
+                break;
+            case "year":
+                dataList = yearQuery.query(startDate, endDate);
+                break;
+            default:
+                return Result.error("不支持的统计粒度：" + type + "，支持：day/week/month/year");
+        }
+
+        // 转换为VO
+        TrendVO vo = new TrendVO();
+        List<TrendVO.Item> items = dataList.stream()
+                .map(map -> {
+                    TrendVO.Item item = new TrendVO.Item();
+                    Object date = map.get("date");
+                    item.setDate(date != null ? date.toString() : "");
+                    Object count = map.get("count");
+                    item.setCount(count instanceof Number ? ((Number) count).longValue() : 0L);
+                    return item;
+                })
+                .collect(Collectors.toList());
+        vo.setItems(items);
+
+        log.info("{}趋势统计完成：type={}, 结果数={}", trendName, type, items.size());
+        return Result.success(vo);
+    }
+
+    /**
+     * 构建小说排行榜VO
+     */
+    private Result buildNovelRanking(List<LinkedHashMap<String, Object>> dataList, String rankingName) {
+        NovelRankingVO vo = new NovelRankingVO();
+        List<NovelRankingVO.Item> items = new java.util.ArrayList<>();
+        
+        int rank = 1;
+        for (LinkedHashMap<String, Object> map : dataList) {
+            NovelRankingVO.Item item = new NovelRankingVO.Item();
+            item.setRank(rank++);
+            item.setId(getIntValue(map, "id"));
+            item.setName((String) map.get("name"));
+            item.setAuthorName((String) map.get("authorName"));
+            item.setChapterCount(getIntValue(map, "chapterCount"));
+            item.setIsFinished(getBoolValue(map, "isFinished"));
+            item.setIsHot(getBoolValue(map, "isHot"));
+            item.setUrl((String) map.get("url"));
+            item.setUpdateTime((String) map.get("updateTime"));
+            items.add(item);
+        }
+        vo.setItems(items);
+
+        log.info("{}获取完成：结果数={}", rankingName, items.size());
+        return Result.success(vo);
+    }
+
+    private Boolean getBoolValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) {
+            return false;
+        }
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue() == 1;
+        }
+        return false;
+    }
+
     // ==================== 私有方法 ====================
 
     /**
@@ -506,8 +814,8 @@ public class NovelServiceImpl implements NovelService {
         if (value == null) {
             return null;
         }
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
+        if (value instanceof Number num) {
+            return num.intValue();
         }
         return null;
     }

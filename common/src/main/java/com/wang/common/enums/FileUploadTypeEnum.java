@@ -59,12 +59,11 @@ public enum FileUploadTypeEnum {
      * 根据状态码获取枚举实例 (O(1)时间复杂度)
      * @param code 状态码
      * @return 对应的枚举实例
-     * @throws IllegalArgumentException 如果找不到对应的枚举
      */
     public static FileUploadTypeEnum getMessageByCode(int code) {
         FileUploadTypeEnum type = CODE_MAP.get(code);
         if (type == null) {
-            throw new IllegalArgumentException("无效的文件上传类型编码: " + code);
+            return null;
         }
         return type;
     }

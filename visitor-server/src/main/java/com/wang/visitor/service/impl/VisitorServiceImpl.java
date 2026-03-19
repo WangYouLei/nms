@@ -3,6 +3,7 @@ package com.wang.visitor.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.enums.BizCodeEnum;
+import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.untils.Argon2idUtil;
@@ -135,6 +136,7 @@ public class VisitorServiceImpl implements VisitorService {
                 .name(visitor.getName())
                 .avatar(visitor.getAvatar())
                 .account(visitor.getAccount())
+                .role(UserRole.VISITOR)
                 .build();
         String token = JWTUtil.geneJsonWebToken(loginUser);
         return Result.success(token);

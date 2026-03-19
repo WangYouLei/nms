@@ -35,6 +35,9 @@ public class VisitorVO {
     @ApiModelProperty("VIP级别名称")
     private String vipLevelName;
 
+    @ApiModelProperty("是否删除：false-否，true-是")
+    private Boolean isDel;
+
     @ApiModelProperty("创建时间")
     private LocalDateTime createTime;
 }

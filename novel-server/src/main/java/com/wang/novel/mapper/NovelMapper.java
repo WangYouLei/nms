@@ -57,4 +57,30 @@ public interface NovelMapper extends BaseMapper<Novel> {
      * @return 总数
      */
     Integer countNovelsByCategoryId(@Param("categoryId") Integer categoryId);
+
+    // ==================== 统计分析接口 ====================
+
+    /**
+     * 按分类统计小说数量
+     * @return 分类统计列表 [{name, count}]
+     */
+    List<LinkedHashMap<String, Object>> countNovelsByCategory();
+
+    /**
+     * 按频道统计小说数量
+     * @return 频道统计列表 [{name, count}]
+     */
+    List<LinkedHashMap<String, Object>> countNovelsByChannel();
+
+    /**
+     * 按状态统计小说数量（完结/连载）
+     * @return 状态统计列表 [{name, count}]
+     */
+    List<LinkedHashMap<String, Object>> countNovelsByStatus();
+
+    /**
+     * 按热门状态统计小说数量
+     * @return 热门统计列表 [{name, count}]
+     */
+    List<LinkedHashMap<String, Object>> countNovelsByHot();
 }

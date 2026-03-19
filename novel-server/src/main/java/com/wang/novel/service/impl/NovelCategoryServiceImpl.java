@@ -3,6 +3,9 @@ package com.wang.novel.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.enums.BizCodeEnum;
+import com.wang.common.enums.UserRole;
+import com.wang.common.interceptor.LoginInterceptor;
+import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.novel.mapper.NovelCategoryMapper;
@@ -88,6 +91,12 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     public Result addCategory(NovelCategoryDTO dto) {
         log.info("[Manager] 添加分类：type={}, category={}", dto.getType(), dto.getCategory());
 
+        // 权限校验：只有管理员可以添加分类
+        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
+        if (loginUser == null || !UserRole.MANAGER.equals(loginUser.getRole())) {
+            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
+        }
+
         // 检查分类是否已存在（同一type和category组合）
         LambdaQueryWrapper<NovelCategory> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(NovelCategory::getType, dto.getType())
@@ -106,6 +115,12 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     @Override
     public Result updateCategory(NovelCategoryDTO dto) {
         log.info("[Manager] 修改分类：ID={}", dto.getId());
+
+        // 权限校验：只有管理员可以修改分类
+        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
+        if (loginUser == null || !UserRole.MANAGER.equals(loginUser.getRole())) {
+            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
+        }
 
         NovelCategory entity = categoryMapper.selectById(dto.getId());
         if (entity == null) {
@@ -132,6 +147,12 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     @Transactional
     public Result deleteCategory(Integer id) {
         log.info("[Manager] 删除分类：ID={}", id);
+
+        // 权限校验：只有管理员可以删除分类
+        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
+        if (loginUser == null || !UserRole.MANAGER.equals(loginUser.getRole())) {
+            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
+        }
 
         NovelCategory entity = categoryMapper.selectById(id);
         if (entity == null) {

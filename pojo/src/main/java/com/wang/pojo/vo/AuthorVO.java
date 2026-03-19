@@ -38,6 +38,10 @@ public class AuthorVO implements Serializable {
      */
     private Integer rank;
     /**
+     * 作品数量（冗余字段，用于排行榜统计）
+     */
+    private Integer novelCount;
+    /**
      * 是否删除：false-否，true-是
      */
     private Boolean isDel;
