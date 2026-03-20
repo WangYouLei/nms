@@ -36,10 +36,10 @@ public interface NovelChapterService {
     // ==================== Author/Manager - 作者/管理端方法 ====================
 
     /**
-     * 上传章节
+     * 上传新章节
      * @param novelId 小说ID
-     * @param title 章节标题
-     * @param file 章节文件
+     * @param title 新章节标题
+     * @param file 新章节文件
      * @return 操作结果
      */
     Result uploadChapter(Integer novelId, String title, MultipartFile file);

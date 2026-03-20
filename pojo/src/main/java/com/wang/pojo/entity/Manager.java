@@ -57,6 +57,14 @@ public class Manager implements Serializable {
     private String password;
 
     /**
+     * 头像
+     */
+    @Size(max = 512, message = "头像URL长度不能超过512")
+    @ApiModelProperty("头像")
+    @Length(max = 512, message = "头像URL长度不能超过512")
+    private String avatar;
+
+    /**
      * 创建者ID
      */
     @NotNull(message = "[创建者ID]不能为空")
@@ -68,5 +76,11 @@ public class Manager implements Serializable {
      */
     @ApiModelProperty("创建时间")
     private LocalDateTime createTime;
+
+    /**
+     * 更新时间
+     */
+    @ApiModelProperty("更新时间")
+    private LocalDateTime updateTime;
 
 }

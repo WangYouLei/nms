@@ -3,6 +3,7 @@ package com.wang.manager.controller;
 import com.wang.common.result.Result;
 import com.wang.manager.service.ManagerService;
 import com.wang.pojo.dto.ManagerDTO;
+import com.wang.pojo.dto.ManagerQueryDTO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -53,11 +54,20 @@ public class ManagerController {
         return managerService.updateManager(managerDTO);
     }
 
-    @GetMapping("/get/{id}")
-    @ApiOperation("根据ID查询管理员")
-    public Result getManagerById(@PathVariable Long id) {
-        log.info("查询管理员请求：ID={}", id);
-        return managerService.getManagerById(id);
+    @GetMapping("/list")
+    @ApiOperation("多条件查询管理员（支持id、姓名、账号，条件可为空）")
+    public Result getManagerList(ManagerQueryDTO queryDTO) {
+        log.info("多条件查询管理员请求：queryDTO={}", queryDTO);
+        return managerService.getManagerList(queryDTO);
+    }
+
+    @GetMapping("/page")
+    @ApiOperation("分页查询管理员信息")
+    public Result getManagerPage(
+            @ApiParam("页码") @RequestParam(defaultValue = "1") Integer pageNum,
+            @ApiParam("每页数量") @RequestParam(defaultValue = "10") Integer pageSize) {
+        log.info("分页查询管理员请求：页码={}, 每页数量={}", pageNum, pageSize);
+        return managerService.getManagerPage(pageNum, pageSize);
     }
 
     @PostMapping("/updatePassword")

@@ -1,22 +1,30 @@
 package com.wang.manager.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
+import com.wang.common.interceptor.LoginInterceptor;
 import com.wang.common.model.LoginUser;
+import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.common.untils.Argon2idUtil;
+import com.wang.common.untils.CopyPropertiesUtil;
 import com.wang.common.untils.JWTUtil;
 import com.wang.manager.mapper.ManagerMapper;
 import com.wang.manager.service.ManagerService;
 import com.wang.pojo.dto.ManagerDTO;
+import com.wang.pojo.dto.ManagerQueryDTO;
 import com.wang.pojo.entity.Manager;
 import com.wang.pojo.vo.ManagerVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -36,8 +44,8 @@ public class ManagerServiceImpl implements ManagerService {
         log.info("管理员登录：账号={}", account);
 
         // 查询管理员信息
-        QueryWrapper<Manager> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("account", account);
+        LambdaQueryWrapper<Manager> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Manager::getAccount, account);
         Manager manager = managerMapper.selectOne(queryWrapper);
 
         // 判断管理员是否存在
@@ -68,15 +76,30 @@ public class ManagerServiceImpl implements ManagerService {
     }
 
     /**
-     * 添加管理员
+     * 添加管理员（需要管理员登录）
      */
     @Override
     public Result addManager(ManagerDTO managerDTO) {
-        log.info("添加管理员：账号={}", managerDTO.getAccount());
+        // 获取当前登录用户
+        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
+
+        // 验证是否登录
+        if (loginUser == null) {
+            log.warn("未登录用户尝试添加管理员");
+            return Result.buildResult(BizCodeEnum.USER_NOT_LOGIN);
+        }
+
+        // 验证是否为管理员
+        if (!UserRole.MANAGER.equals(loginUser.getRole())) {
+            log.warn("非管理员用户尝试添加管理员：账号={}", loginUser.getAccount());
+            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
+        }
+
+        log.info("添加管理员：账号={}, 操作者={}", managerDTO.getAccount(), loginUser.getAccount());
 
         // 检查账号是否已存在
-        QueryWrapper<Manager> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("account", managerDTO.getAccount());
+        LambdaQueryWrapper<Manager> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Manager::getAccount, managerDTO.getAccount());
         Manager existManager = managerMapper.selectOne(queryWrapper);
         if (existManager != null) {
             log.warn("账号已存在：账号={}", managerDTO.getAccount());
@@ -87,6 +110,8 @@ public class ManagerServiceImpl implements ManagerService {
         Manager manager = new Manager();
         BeanUtils.copyProperties(managerDTO, manager);
         manager.setCreateTime(LocalDateTime.now());
+        // 设置创建者为当前登录管理员的ID
+        manager.setCreateId(loginUser.getId().longValue());
 
         // 密码加密
         String hashedPassword = Argon2idUtil.hash(managerDTO.getPassword());
@@ -148,13 +173,11 @@ public class ManagerServiceImpl implements ManagerService {
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
 
-        // 更新信息（不更新密码）
-        if (managerDTO.getName() != null) {
-            existingManager.setName(managerDTO.getName());
-        }
-        if (managerDTO.getAccount() != null) {
-            existingManager.setAccount(managerDTO.getAccount());
-        }
+        // 使用工具类复制非空属性，忽略 password、id、createTime、createId
+        CopyPropertiesUtil.copyNonNullProperties(managerDTO, existingManager, "password", "id", "createTime", "createId");
+        
+        // 设置更新时间
+        existingManager.setUpdateTime(LocalDateTime.now());
 
         int result = managerMapper.updateById(existingManager);
         if (result == 1) {
@@ -169,21 +192,89 @@ public class ManagerServiceImpl implements ManagerService {
     }
 
     /**
-     * 根据ID查询管理员
+     * 多条件查询管理员（支持id、姓名、账号，条件可为空）
      */
     @Override
-    public Result getManagerById(Long id) {
-        log.info("查询管理员：ID={}", id);
+    public Result getManagerList(ManagerQueryDTO queryDTO) {
+        log.info("多条件查询管理员：queryDTO={}", queryDTO);
 
-        Manager manager = managerMapper.selectById(id);
-        if (manager == null) {
-            log.warn("管理员不存在：ID={}", id);
-            return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
+        LambdaQueryWrapper<Manager> queryWrapper = new LambdaQueryWrapper<>();
+
+        // 根据ID精确查询
+        if (queryDTO.getId() != null) {
+            queryWrapper.eq(Manager::getId, queryDTO.getId());
         }
 
+        // 根据姓名模糊查询
+        if (StringUtils.hasText(queryDTO.getName())) {
+            queryWrapper.like(Manager::getName, queryDTO.getName());
+        }
+
+        // 根据账号模糊查询
+        if (StringUtils.hasText(queryDTO.getAccount())) {
+            queryWrapper.like(Manager::getAccount, queryDTO.getAccount());
+        }
+
+        queryWrapper.orderByDesc(Manager::getCreateTime);
+
+        List<Manager> managers = managerMapper.selectList(queryWrapper);
+
+        List<ManagerVO> voList = managers.stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+
+        return Result.success(voList);
+    }
+
+    /**
+     * 分页查询管理员信息
+     */
+    @Override
+    public Result getManagerPage(Integer pageNum, Integer pageSize) {
+        log.info("分页查询管理员：页码={}, 每页数量={}", pageNum, pageSize);
+
+        // 参数校验
+        if (pageNum == null || pageNum < 1) {
+            pageNum = 1;
+        }
+        if (pageSize == null || pageSize < 1 || pageSize > 100) {
+            pageSize = 10;
+        }
+
+        // 创建分页对象
+        Page<Manager> page = new Page<>(pageNum, pageSize);
+
+        // 创建查询条件
+        LambdaQueryWrapper<Manager> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.orderByDesc(Manager::getCreateTime);
+
+        // 执行分页查询
+        Page<Manager> result = managerMapper.selectPage(page, queryWrapper);
+
+        // 转换为VO
+        List<ManagerVO> voList = result.getRecords().stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+
+        // 构建分页结果
+        PageResult<ManagerVO> pageResult = PageResult.build(
+                (int) result.getCurrent(),
+                (int) result.getSize(),
+                result.getTotal(),
+                voList
+        );
+
+        log.info("分页查询管理员成功，总记录数：{}", result.getTotal());
+        return Result.success(pageResult);
+    }
+
+    /**
+     * 转换为VO
+     */
+    private ManagerVO convertToVO(Manager manager) {
         ManagerVO vo = new ManagerVO();
         BeanUtils.copyProperties(manager, vo);
-        return Result.success(vo);
+        return vo;
     }
 
     /**

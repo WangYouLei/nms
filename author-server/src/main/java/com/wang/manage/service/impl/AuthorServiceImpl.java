@@ -7,6 +7,7 @@ import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.untils.Argon2idUtil;
+import com.wang.common.untils.CopyPropertiesUtil;
 import com.wang.common.untils.JWTUtil;
 import com.wang.commonserver.service.CaptchaService;
 import com.wang.commonserver.service.EmailService;
@@ -219,22 +220,18 @@ public class AuthorServiceImpl implements AuthorService {
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
 
-        // 构建更新对象，只设置需要更新的字段（
-        Author newAuthor = new Author();
-        newAuthor.setId(authorDTO.getId());
-        newAuthor.setName(authorDTO.getName());
-        newAuthor.setAccount(authorDTO.getAccount());
-        newAuthor.setAvatar(authorDTO.getAvatar());
-        newAuthor.setRank(authorDTO.getRank());
-        newAuthor.setUpdateTime(LocalDateTime.now());
+        // 使用工具类复制非空属性，忽略 password、id、createTime、isDel、email
+        CopyPropertiesUtil.copyNonNullProperties(authorDTO, author, "password", "id", "createTime", "isDel", "email");
+        
+        // 设置更新时间
+        author.setUpdateTime(LocalDateTime.now());
 
-
-        int result = authorMapper.update(newAuthor);
+        int result = authorMapper.updateById(author);
         if (result == 1) {
-            log.info("修改作者信息成功：ID={}", newAuthor.getId());
+            log.info("修改作者信息成功：ID={}", author.getId());
             return Result.success("修改成功");
         } else {
-            log.error("修改作者信息失败：ID={}", newAuthor.getId());
+            log.error("修改作者信息失败：ID={}", author.getId());
             return Result.error("修改失败");
         }
     }

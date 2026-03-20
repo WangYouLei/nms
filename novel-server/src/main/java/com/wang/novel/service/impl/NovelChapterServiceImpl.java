@@ -102,7 +102,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
     @Transactional
     public Result uploadChapter(Integer novelId, String title, MultipartFile file) {
         LoginUser loginUser = getLoginUser();
-        log.info("[Author] 上传章节：小说ID={}, 章节标题={}, 用户ID={}", novelId, title, loginUser.getId());
+        log.info("[Author] 上传新章节：小说ID={}, 新章节标题={}, 用户ID={}", novelId, title, loginUser.getId());
 
         // 权限校验：只有作者可以上传章节
         if (!UserRole.AUTHOR.equals(loginUser.getRole())) {
@@ -130,7 +130,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
             );
 
             if (!"success".equals(uploadResult.getMsg())) {
-                return Result.error("上传章节文件失败");
+                return Result.error("上传新章节文件失败");
             }
 
             String contentUrl = (String) uploadResult.getData();
@@ -138,8 +138,8 @@ public class NovelChapterServiceImpl implements NovelChapterService {
             // 保存章节记录
             return saveChapterRecord(novel, title, contentUrl, getNextChapterOrder(novelId));
         } catch (Exception e) {
-            log.error("上传章节异常", e);
-            return Result.error("上传章节失败：" + e.getMessage());
+            log.error("上传新章节异常", e);
+            return Result.error("上传新章节失败：" + e.getMessage());
         }
     }
 
@@ -149,18 +149,11 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         LoginUser loginUser = getLoginUser();
         log.info("[Author/Manager] 删除章节：章节ID={}, 用户ID={}", id, loginUser.getId());
 
-        // 权限校验：作者只能删除自己的章节，管理员可以删除所有章节
-        boolean isManager = UserRole.MANAGER.equals(loginUser.getRole());
+        // 权限校验：作者只能删除自己的章节
         boolean isAuthor = UserRole.AUTHOR.equals(loginUser.getRole());
         
         NovelChapter chapter;
-        if (isManager) {
-            // 管理员只需要检查章节是否存在
-            chapter = novelChapterMapper.selectById(id);
-            if (chapter == null) {
-                return Result.buildResult(BizCodeEnum.NOVEL_CHAPTER_NOT_FOUND);
-            }
-        } else if (isAuthor) {
+        if (isAuthor) {
             // 作者需要检查章节所有权
             chapter = checkChapterOwnership(id, loginUser.getId());
             if (chapter == null) {
@@ -285,6 +278,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         wrapper.eq(NovelChapter::getNovelId, novelId)
                 .eq(NovelChapter::getTitle, title);
         if (excludeId != null) {
+            //忽略掉当前章节
             wrapper.ne(NovelChapter::getId, excludeId);
         }
         return novelChapterMapper.selectCount(wrapper) > 0;

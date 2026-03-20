@@ -36,4 +36,9 @@ public class ManagerDTO implements Serializable {
      */
     private Long createId;
 
+    /**
+     * 头像
+     */
+    private String avatar;
+
 }

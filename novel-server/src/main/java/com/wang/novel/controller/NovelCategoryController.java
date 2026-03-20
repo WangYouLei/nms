@@ -56,6 +56,13 @@ public class NovelCategoryController {
         return novelCategoryService.getCategoryById(id);
     }
 
+    @GetMapping("/common/category/relation/{novelId}")
+    @ApiOperation("[Common] 获取小说的分类")
+    public Result getNovelCategory(@PathVariable Integer novelId) {
+        log.info("[Common] 获取小说分类：小说ID={}", novelId);
+        return novelCategoryService.getNovelCategory(novelId);
+    }
+
     // ==================== Manager - 管理端接口 ====================
 
     @PostMapping("/manager/category/add")
@@ -95,12 +102,5 @@ public class NovelCategoryController {
     public Result setNovelCategory(@RequestBody NovelCategoryRelationDTO dto) {
         log.info("[Manager] 设置小说分类：小说ID={}, 分类ID={}", dto.getNovelId(), dto.getCategoryId());
         return novelCategoryService.setNovelCategory(dto);
-    }
-
-    @GetMapping("/manager/category/relation/{novelId}")
-    @ApiOperation("[Manager] 获取小说的分类")
-    public Result getNovelCategory(@PathVariable Integer novelId) {
-        log.info("[Manager] 获取小说分类：小说ID={}", novelId);
-        return novelCategoryService.getNovelCategory(novelId);
     }
 }

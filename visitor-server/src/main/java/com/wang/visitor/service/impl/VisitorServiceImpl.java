@@ -7,6 +7,7 @@ import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.untils.Argon2idUtil;
+import com.wang.common.untils.CopyPropertiesUtil;
 import com.wang.common.untils.JWTUtil;
 import com.wang.commonserver.service.CaptchaService;
 import com.wang.commonserver.service.EmailService;
@@ -181,22 +182,18 @@ public class VisitorServiceImpl implements VisitorService {
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
 
-        // 构建更新对象（这里不提供密码修改）
-        Visitor visitor = new Visitor();
-        visitor.setId(visitorDTO.getId());
-        visitor.setName(visitorDTO.getName());
-        visitor.setAccount(visitorDTO.getAccount());
-        visitor.setEmail(visitorDTO.getEmail());
-        visitor.setAvatar(visitorDTO.getAvatar());
-        visitor.setUpdateTime(LocalDateTime.now());
+        // 使用工具类复制非空属性，忽略 password、id、createTime、vipLevel
+        CopyPropertiesUtil.copyNonNullProperties(visitorDTO, existingVisitor, "password", "id", "createTime", "vipLevel");
+        
+        // 设置更新时间
+        existingVisitor.setUpdateTime(LocalDateTime.now());
 
-
-        int result = visitorMapper.update(visitor);
+        int result = visitorMapper.updateById(existingVisitor);
         if (result == 1) {
-            log.info("修改访客信息成功：ID={}", visitor.getId());
+            log.info("修改访客信息成功：ID={}", existingVisitor.getId());
             return Result.success("修改成功");
         } else {
-            log.error("修改访客信息失败：ID={}", visitor.getId());
+            log.error("修改访客信息失败：ID={}", existingVisitor.getId());
             return Result.error("修改失败");
         }
     }

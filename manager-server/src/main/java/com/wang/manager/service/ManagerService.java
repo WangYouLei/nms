@@ -2,6 +2,7 @@ package com.wang.manager.service;
 
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.ManagerDTO;
+import com.wang.pojo.dto.ManagerQueryDTO;
 
 public interface ManagerService {
 
@@ -35,11 +36,19 @@ public interface ManagerService {
     Result updateManager(ManagerDTO managerDTO);
 
     /**
-     * 根据ID查询管理员
-     * @param id 管理员ID
-     * @return 管理员信息
+     * 多条件查询管理员（支持id、姓名、账号，条件可为空）
+     * @param queryDTO 查询条件
+     * @return 管理员信息列表
      */
-    Result getManagerById(Long id);
+    Result getManagerList(ManagerQueryDTO queryDTO);
+
+    /**
+     * 分页查询管理员信息
+     * @param pageNum 页码
+     * @param pageSize 每页数量
+     * @return 分页结果
+     */
+    Result getManagerPage(Integer pageNum, Integer pageSize);
 
     /**
      * 修改管理员密码

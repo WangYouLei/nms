@@ -18,6 +18,9 @@ public class DefaultUrlConfig {
     // 用户默认头像
     private String visitorAvatarUrl;
 
+    // 管理员默认头像
+    private String managerAvatarUrl;
+
     // 小说默认封面
     private String novelCoverUrl;
 

@@ -8,9 +8,9 @@ import java.util.Map;
 @Getter
 public enum FileUploadTypeEnum {
     /**
-     * 管理员头像上传
+     * 作者头像上传
      */
-    AUTHOR_AVATAR(0, "管理员头像上传"),
+    AUTHOR_AVATAR(0, "作者头像上传"),
 
     /**
      * 用户头像上传
@@ -18,14 +18,19 @@ public enum FileUploadTypeEnum {
     USER_AVATAR(1, "用户头像上传"),
 
     /**
+     * 管理员头像上传
+     */
+    MANAGER_AVATAR(2, "管理员头像上传"),
+
+    /**
      * 小说封面
      */
-    NOVEL_COVER(2, "小说封面"),
+    NOVEL_COVER(3, "小说封面"),
 
     /**
      * 小说章节
      */
-    NOVEL_CHAPTER(3, "小说章节");
+    NOVEL_CHAPTER(4, "小说章节");
 
 
     /**
