@@ -21,17 +21,30 @@ spring:
           min-idle: 0
 
   application:
-    name: novle-server
+    name: novel-server
+
+  # 邮件配置
+  mail:
+    host: smtp.qq.com                    # QQ邮箱SMTP服务器
+    port: 587                            # 端口
+    username: 2531215075@qq.com          # 发送方邮箱
+    password: ${QQ_SMTP/IMAP}            # SMTP授权码（环境变量）
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
 
 server:
-  port: 5240
-
+  port: 5250
 
 minio:
   endpoint: http://127.0.0.1:9000
   accessKey: minioadmin
   secretKey: minioadmin
-  bucketName: nms-manage
+  bucketName: nms
 
 #配置plus答应sql日志
 mybatis-plus:

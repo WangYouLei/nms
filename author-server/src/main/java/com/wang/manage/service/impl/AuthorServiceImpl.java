@@ -1,14 +1,14 @@
 package com.wang.manage.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
-import com.wang.common.untils.Argon2idUtil;
-import com.wang.common.untils.CopyPropertiesUtil;
-import com.wang.common.untils.JWTUtil;
+import com.wang.common.utils.Argon2idUtil;
+import com.wang.common.utils.CopyPropertiesUtil;
+import com.wang.common.utils.JWTUtil;
 import com.wang.commonserver.service.CaptchaService;
 import com.wang.commonserver.service.EmailService;
 import com.wang.manage.mapper.AuthorMapper;
@@ -18,11 +18,9 @@ import com.wang.pojo.dto.AuthorRegisterDTO;
 import com.wang.pojo.dto.PasswordUpdateEmailDTO;
 import com.wang.pojo.entity.Author;
 import com.wang.pojo.vo.AuthorVO;
-import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
+
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PostMapping;
 
 import java.time.LocalDateTime;
 
@@ -87,7 +85,7 @@ public class AuthorServiceImpl implements AuthorService {
             if (result == 1) {
                 log.info("作者注册成功：ID={}", author.getId());
                 AuthorVO vo = new AuthorVO();
-                BeanUtils.copyProperties(author, vo);
+                CopyPropertiesUtil.copyNonNullProperties(author, vo);
                 return Result.success(vo);
             } else {
                 return Result.buildResult(BizCodeEnum.FAIL);
@@ -112,8 +110,8 @@ public class AuthorServiceImpl implements AuthorService {
         log.info("作者登录：账号={}", account);
 
         //查询作者信息
-        QueryWrapper<Author> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("account", account);
+        LambdaQueryWrapper<Author> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Author::getAccount, account);
         Author author = authorMapper.selectOne(queryWrapper);
 
         //判断作者是否存在
@@ -160,19 +158,10 @@ public class AuthorServiceImpl implements AuthorService {
         }
 
         AuthorVO vo = new AuthorVO();
-        BeanUtils.copyProperties(author, vo);
+        CopyPropertiesUtil.copyNonNullProperties(author, vo);
         return Result.success(vo);
     }
 
-    /**
-     * 作者退出登入
-     */
-    @PostMapping("logout")
-    @ApiOperation("作者退出登入")
-    public Result logout() {
-        log.info("作者退出登入");
-        return Result.success("退出登入成功");
-    }
 
     /**
      * 删除作者（逻辑删除）
@@ -193,7 +182,7 @@ public class AuthorServiceImpl implements AuthorService {
 
         //执行逻辑删除操作
         author.setIsDel(true);
-        int result = authorMapper.deleteById(id);
+        int result = authorMapper.updateById(author);
         if (result == 1) {
             log.info("删除作者成功：ID={}, 姓名={}", id, author.getName());
             return Result.success("删除成功");
@@ -222,7 +211,6 @@ public class AuthorServiceImpl implements AuthorService {
 
         // 使用工具类复制非空属性，忽略 password、id、createTime、isDel、email
         CopyPropertiesUtil.copyNonNullProperties(authorDTO, author, "password", "id", "createTime", "isDel", "email");
-        
         // 设置更新时间
         author.setUpdateTime(LocalDateTime.now());
 

@@ -5,6 +5,7 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 小说详情VO类（访客端）
@@ -35,7 +36,7 @@ public class NovelDetailVO {
     @ApiModelProperty("作者名称")
     private String authorName;
 
-    @ApiModelProperty("小说章节")
+    @ApiModelProperty("小说章节数")
     private Integer chapterCount;
     
     @ApiModelProperty("是否完结（false未完结，true已完结）")
@@ -50,6 +51,6 @@ public class NovelDetailVO {
     @ApiModelProperty("更新时间")
     private LocalDateTime updateTime;
 
-    @ApiModelProperty("分类信息")
-    private NovelCategoryVO category;
+    @ApiModelProperty("分类信息列表（多对多）")
+    private List<NovelCategoryVO> categories;
 }

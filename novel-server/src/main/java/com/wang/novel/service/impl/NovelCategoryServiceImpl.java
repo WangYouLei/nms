@@ -2,9 +2,9 @@ package com.wang.novel.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.wang.common.utils.UserContextUtil;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
-import com.wang.common.interceptor.LoginInterceptor;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
@@ -14,15 +14,19 @@ import com.wang.novel.mapper.NovelMapper;
 import com.wang.novel.service.NovelCategoryService;
 import com.wang.pojo.dto.NovelCategoryDTO;
 import com.wang.pojo.dto.NovelCategoryRelationDTO;
+import com.wang.pojo.entity.Novel;
 import com.wang.pojo.entity.NovelCategory;
 import com.wang.pojo.entity.NovelCategoryRelation;
 import com.wang.pojo.vo.NovelCategoryVO;
+import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
+import com.wang.common.utils.CopyPropertiesUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -49,7 +53,6 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
 
     @Override
     public Result getAllCategories() {
-        log.info("[Common] 获取所有分类");
         List<NovelCategory> list = categoryMapper.selectList(null);
         List<NovelCategoryVO> voList = list.stream().map(this::convertToVO).collect(Collectors.toList());
         return Result.success(voList);
@@ -57,7 +60,6 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
 
     @Override
     public Result getCategoriesByChannel(Integer category) {
-        log.info("[Common] 根据频道获取分类：category={}", category);
         LambdaQueryWrapper<NovelCategory> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(NovelCategory::getCategory, category);
         List<NovelCategory> list = categoryMapper.selectList(queryWrapper);
@@ -67,7 +69,6 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
 
     @Override
     public Result getHotCategories() {
-        log.info("[Common] 获取热门分类");
         LambdaQueryWrapper<NovelCategory> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(NovelCategory::getIsHot, 1);
         List<NovelCategory> list = categoryMapper.selectList(queryWrapper);
@@ -77,7 +78,6 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
 
     @Override
     public Result getCategoryById(Integer id) {
-        log.info("[Common] 根据ID查询分类：id={}", id);
         NovelCategory entity = categoryMapper.selectById(id);
         if (entity == null) {
             return Result.buildResult(BizCodeEnum.NOVEL_CATEGORY_NOT_FOUND);
@@ -89,10 +89,8 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
 
     @Override
     public Result addCategory(NovelCategoryDTO dto) {
-        log.info("[Manager] 添加分类：type={}, category={}", dto.getType(), dto.getCategory());
-
         // 权限校验：只有管理员可以添加分类
-        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
+        LoginUser loginUser = UserContextUtil.getCurrentUser();
         if (loginUser == null || !UserRole.MANAGER.equals(loginUser.getRole())) {
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }
@@ -106,7 +104,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
         }
 
         NovelCategory entity = new NovelCategory();
-        BeanUtils.copyProperties(dto, entity);
+        CopyPropertiesUtil.copyNonNullProperties(dto, entity);
         entity.setIsHot(dto.getIsHot() != null ? dto.getIsHot() : 0);
         categoryMapper.insert(entity);
         return Result.success(convertToVO(entity));
@@ -114,10 +112,8 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
 
     @Override
     public Result updateCategory(NovelCategoryDTO dto) {
-        log.info("[Manager] 修改分类：ID={}", dto.getId());
-
         // 权限校验：只有管理员可以修改分类
-        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
+        LoginUser loginUser = UserContextUtil.getCurrentUser();
         if (loginUser == null || !UserRole.MANAGER.equals(loginUser.getRole())) {
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }
@@ -138,7 +134,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
             }
         }
 
-        BeanUtils.copyProperties(dto, entity);
+        CopyPropertiesUtil.copyNonNullProperties(dto, entity);
         categoryMapper.updateById(entity);
         return Result.success(convertToVO(entity));
     }
@@ -146,10 +142,8 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     @Override
     @Transactional
     public Result deleteCategory(Integer id) {
-        log.info("[Manager] 删除分类：ID={}", id);
-
         // 权限校验：只有管理员可以删除分类
-        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
+        LoginUser loginUser = UserContextUtil.getCurrentUser();
         if (loginUser == null || !UserRole.MANAGER.equals(loginUser.getRole())) {
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }
@@ -172,8 +166,6 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
 
     @Override
     public Result getCategoryList(Integer pageNum, Integer pageSize, String type, Integer category) {
-        log.info("[Manager] 分页查询分类：页码={}, 每页数量={}", pageNum, pageSize);
-        
         Page<NovelCategory> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<NovelCategory> queryWrapper = new LambdaQueryWrapper<>();
 
@@ -188,69 +180,101 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
         Page<NovelCategory> result = categoryMapper.selectPage(page, queryWrapper);
         List<NovelCategoryVO> voList = result.getRecords().stream().map(this::convertToVO).collect(Collectors.toList());
 
-        PageResult<NovelCategoryVO> pageResult = new PageResult<>();
-        pageResult.setTotal(result.getTotal());
-        pageResult.setList(voList);
+        PageResult<NovelCategoryVO> pageResult = PageResult.build(
+                (int) result.getCurrent(),
+                (int) result.getSize(),
+                result.getTotal(),
+                voList
+        );
         return Result.success(pageResult);
     }
 
     @Override
     @Transactional
     public Result setNovelCategory(NovelCategoryRelationDTO dto) {
-        log.info("[Manager] 设置小说分类：小说ID={}, 分类ID={}", dto.getNovelId(), dto.getCategoryId());
+        // 参数校验
+        if (dto.getCategoryIds() == null || dto.getCategoryIds().isEmpty()) {
+            return Result.error("分类ID列表不能为空");
+        }
 
         // 检查小说是否存在
-        if (novelMapper.selectById(dto.getNovelId()) == null) {
+        Novel novel = novelMapper.selectById(dto.getNovelId());
+        if (novel == null) {
             return Result.buildResult(BizCodeEnum.NOVEL_NOT_FOUND);
         }
 
-        // 检查分类是否存在
-        if (categoryMapper.selectById(dto.getCategoryId()) == null) {
-            return Result.buildResult(BizCodeEnum.NOVEL_CATEGORY_NOT_FOUND);
+        // 权限校验：只有作者可以设置自己小说的分类
+        LoginUser loginUser = UserContextUtil.getCurrentUser();
+        if (loginUser == null || !UserRole.AUTHOR.equals(loginUser.getRole())) {
+            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
+        }
+        if (!Objects.equals(novel.getAuthorId(), loginUser.getId())) {
+            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }
 
-        // 删除原有分类
+        // 批量检查分类是否存在
+        List<NovelCategory> categories = categoryMapper.selectBatchIds(dto.getCategoryIds());
+        if (categories.size() != dto.getCategoryIds().size()) {
+            return Result.error("部分分类不存在");
+        }
+
+        // 删除原有分类关联
         LambdaQueryWrapper<NovelCategoryRelation> deleteWrapper = new LambdaQueryWrapper<>();
         deleteWrapper.eq(NovelCategoryRelation::getNovelId, dto.getNovelId());
         relationMapper.delete(deleteWrapper);
 
-        // 添加新分类
-        NovelCategoryRelation relation = new NovelCategoryRelation();
-        BeanUtils.copyProperties(dto, relation);
-        relationMapper.insert(relation);
+        // 批量添加新分类关联
+        for (Integer categoryId : dto.getCategoryIds()) {
+            NovelCategoryRelation relation = new NovelCategoryRelation();
+            relation.setNovelId(dto.getNovelId());
+            relation.setCategoryId(categoryId);
+            relationMapper.insert(relation);
+        }
 
+        log.info("设置小说分类成功：小说ID={}, 分类数量={}", dto.getNovelId(), dto.getCategoryIds().size());
         return Result.success("设置成功");
     }
 
     @Override
     public Result getNovelCategory(Integer novelId) {
-        log.info("[Manager] 获取小说分类：小说ID={}", novelId);
-
         LambdaQueryWrapper<NovelCategoryRelation> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(NovelCategoryRelation::getNovelId, novelId);
-        NovelCategoryRelation relation = relationMapper.selectOne(queryWrapper);
+        List<NovelCategoryRelation> relations = relationMapper.selectList(queryWrapper);
 
-        if (relation == null) {
+        if (relations.isEmpty()) {
+            return Result.success(null);
+        }
+        //提取出所有分类ID
+        List<Integer> list = relations.stream().map(NovelCategoryRelation::getCategoryId).toList();
+        List<NovelCategory> categoryList = categoryMapper.selectBatchIds(list);
+
+        if (categoryList.isEmpty()) {
             return Result.success(null);
         }
 
-        NovelCategory category = categoryMapper.selectById(relation.getCategoryId());
-        if (category == null) {
-            return Result.success(null);
-        }
-
-        return Result.success(convertToVO(category));
+        return Result.success(convertToVO(categoryList));
     }
 
     // ==================== 私有方法 ====================
 
     /**
-     * 转换为VO
+     * 转换为VO（单个对象）
      */
     private NovelCategoryVO convertToVO(NovelCategory entity) {
         NovelCategoryVO vo = new NovelCategoryVO();
-        BeanUtils.copyProperties(entity, vo);
+        CopyPropertiesUtil.copyNonNullProperties(entity, vo);
         vo.setCategoryName(entity.getCategory() == 1 ? "男频" : "女频");
         return vo;
+    }
+
+    /**
+     * 转换为VO（列表）
+     */
+    private List<NovelCategoryVO> convertToVO(List<NovelCategory> entitys) {
+        List<NovelCategoryVO> vos = new ArrayList<>();
+        entitys.forEach(entity -> {
+            vos.add(convertToVO(entity));
+        });
+        return vos;
     }
 }

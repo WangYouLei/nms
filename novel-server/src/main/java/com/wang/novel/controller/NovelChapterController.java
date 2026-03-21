@@ -68,11 +68,17 @@ public class NovelChapterController {
         return novelChapterService.deleteChapter(id);
     }
 
-    @PutMapping("/author/chapter/update")
-    @ApiOperation("[Author] 更新章节信息")
-    public Result authorUpdateChapter(@RequestBody NovelChapterDTO chapterDTO) {
-        log.info("[Author] 更新章节：章节ID={}", chapterDTO.getId());
-        return novelChapterService.updateChapter(chapterDTO);
+    @PostMapping("/author/chapter/update")
+    @ApiOperation("[Author] 更新章节信息及章节内容")
+    public Result authorUpdateChapter(
+            @RequestParam Integer id,
+            @RequestParam String title,
+            @RequestParam(required = false) Integer chapterOrder,
+            @RequestParam(required = false) String oldFileUrl,
+            @RequestParam(required = false) MultipartFile file
+    ) {
+        log.info("[Author] 更新章节：章节ID={}, 标题={}, 顺序={}", id, title, chapterOrder);
+        return novelChapterService.updateChapter(id, title, chapterOrder, oldFileUrl, file);
     }
 
 }

@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -85,6 +86,7 @@ public class Visitor implements Serializable {
      * 是否删除：false-否，true-是
      */
     @ApiModelProperty("是否删除：false-否，true-是")
+    @TableLogic
     private Boolean isDel;
 
     /**

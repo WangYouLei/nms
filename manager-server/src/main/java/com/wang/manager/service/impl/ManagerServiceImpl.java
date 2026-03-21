@@ -2,15 +2,16 @@ package com.wang.manager.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.wang.common.config.DefaultUrlConfig;
+import com.wang.common.utils.UserContextUtil;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
-import com.wang.common.interceptor.LoginInterceptor;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
-import com.wang.common.untils.Argon2idUtil;
-import com.wang.common.untils.CopyPropertiesUtil;
-import com.wang.common.untils.JWTUtil;
+import com.wang.common.utils.Argon2idUtil;
+import com.wang.common.utils.CopyPropertiesUtil;
+import com.wang.common.utils.JWTUtil;
 import com.wang.manager.mapper.ManagerMapper;
 import com.wang.manager.service.ManagerService;
 import com.wang.pojo.dto.ManagerDTO;
@@ -18,7 +19,7 @@ import com.wang.pojo.dto.ManagerQueryDTO;
 import com.wang.pojo.entity.Manager;
 import com.wang.pojo.vo.ManagerVO;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
+
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -31,9 +32,11 @@ import java.util.stream.Collectors;
 public class ManagerServiceImpl implements ManagerService {
 
     private final ManagerMapper managerMapper;
+    private final DefaultUrlConfig defaultUrlConfig;
 
-    public ManagerServiceImpl(ManagerMapper managerMapper) {
+    public ManagerServiceImpl(ManagerMapper managerMapper, DefaultUrlConfig defaultUrlConfig) {
         this.managerMapper = managerMapper;
+        this.defaultUrlConfig = defaultUrlConfig;
     }
 
     /**
@@ -81,7 +84,7 @@ public class ManagerServiceImpl implements ManagerService {
     @Override
     public Result addManager(ManagerDTO managerDTO) {
         // 获取当前登录用户
-        LoginUser loginUser = LoginInterceptor.THREAD_LOCAL.get();
+        LoginUser loginUser = UserContextUtil.getCurrentUser();
 
         // 验证是否登录
         if (loginUser == null) {
@@ -108,10 +111,12 @@ public class ManagerServiceImpl implements ManagerService {
 
         // 构建实体对象
         Manager manager = new Manager();
-        BeanUtils.copyProperties(managerDTO, manager);
+        CopyPropertiesUtil.copyNonNullProperties(managerDTO, manager);
         manager.setCreateTime(LocalDateTime.now());
         // 设置创建者为当前登录管理员的ID
         manager.setCreateId(loginUser.getId().longValue());
+        manager.setUpdateTime(LocalDateTime.now());
+        manager.setAvatar(defaultUrlConfig.getManagerAvatarUrl());
 
         // 密码加密
         String hashedPassword = Argon2idUtil.hash(managerDTO.getPassword());
@@ -123,7 +128,7 @@ public class ManagerServiceImpl implements ManagerService {
             if (result == 1) {
                 log.info("添加管理员成功：ID={}", manager.getId());
                 ManagerVO vo = new ManagerVO();
-                BeanUtils.copyProperties(manager, vo);
+                CopyPropertiesUtil.copyNonNullProperties(manager, vo);
                 return Result.success(vo);
             } else {
                 return Result.buildResult(BizCodeEnum.FAIL);
@@ -148,10 +153,11 @@ public class ManagerServiceImpl implements ManagerService {
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
 
+        LoginUser loginUser = UserContextUtil.getCurrentUser();
         // 执行删除
         int result = managerMapper.deleteById(id);
         if (result == 1) {
-            log.info("删除管理员成功：ID={}", id);
+            log.info("删除管理员成功：被删ID={},操作者ID={}", id, loginUser.getId());
             return Result.success("删除成功");
         } else {
             log.error("删除管理员失败：ID={}", id);
@@ -183,7 +189,7 @@ public class ManagerServiceImpl implements ManagerService {
         if (result == 1) {
             log.info("修改管理员信息成功：ID={}", existingManager.getId());
             ManagerVO vo = new ManagerVO();
-            BeanUtils.copyProperties(existingManager, vo);
+            CopyPropertiesUtil.copyNonNullProperties(existingManager, vo);
             return Result.success(vo);
         } else {
             log.error("修改管理员信息失败：ID={}", existingManager.getId());
@@ -273,7 +279,7 @@ public class ManagerServiceImpl implements ManagerService {
      */
     private ManagerVO convertToVO(Manager manager) {
         ManagerVO vo = new ManagerVO();
-        BeanUtils.copyProperties(manager, vo);
+        CopyPropertiesUtil.copyNonNullProperties(manager, vo);
         return vo;
     }
 
@@ -294,10 +300,11 @@ public class ManagerServiceImpl implements ManagerService {
         // 加密新密码
         String hashedPassword = Argon2idUtil.hash(newPassword);
         manager.setPassword(hashedPassword);
+        LoginUser loginUser = UserContextUtil.getCurrentUser();
 
         int result = managerMapper.updateById(manager);
         if (result == 1) {
-            log.info("修改管理员密码成功：ID={}", id);
+            log.info("修改管理员密码成功：被修改ID={}，修改者ID={}", id,loginUser.getId());
             return Result.success("密码修改成功");
         } else {
             log.error("修改管理员密码失败：ID={}", id);

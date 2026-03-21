@@ -16,12 +16,6 @@
     <description>小说核心服务模块 - 包含小说、章节、分类的核心业务逻辑</description>
 
     <dependencies>
-        <!-- 依赖common模块 -->
-        <dependency>
-            <groupId>com.wang</groupId>
-            <artifactId>common</artifactId>
-            <version>${project.version}</version>
-        </dependency>
 
         <!-- 依赖pojo模块 -->
         <dependency>

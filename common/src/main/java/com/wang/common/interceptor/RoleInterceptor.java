@@ -1,29 +1,46 @@
 package com.wang.common.interceptor;
 
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.wang.common.utils.UserContextUtil;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
-import com.wang.common.untils.CommonUtil;
-import com.wang.common.untils.JWTUtil;
+import com.wang.common.utils.CommonUtil;
+import com.wang.common.utils.JWTUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.servlet.HandlerInterceptor;
-import org.springframework.web.servlet.ModelAndView;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * 登录拦截器
+ * 角色拦截器
+ * 通过构造函数指定允许访问的角色列表
+ * 使用 UserContextUtil 存储用户信息，服务层可通过 UserContextUtil.getCurrentUser() 获取
  */
 @Slf4j
-public class LoginInterceptor implements HandlerInterceptor {
-    public static final ThreadLocal<LoginUser> THREAD_LOCAL = new ThreadLocal<>();
+public class RoleInterceptor implements HandlerInterceptor {
 
+    private final Set<UserRole> allowedRoles;
+    private final String moduleName;
+
+    /**
+     * 构造函数
+     * @param moduleName 模块名称（用于日志）
+     * @param roles 允许访问的角色列表
+     */
+    public RoleInterceptor(String moduleName, UserRole... roles) {
+        this.moduleName = moduleName;
+        this.allowedRoles = new HashSet<>(Arrays.asList(roles));
+    }
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         try {
             //前端传来的token可能在请求头，也可能在Get请求类型的请求参数中
             String accessToken = request.getHeader("token");
@@ -46,6 +63,14 @@ public class LoginInterceptor implements HandlerInterceptor {
                 String roleCode = (String) claims.get("role");
                 UserRole role = UserRole.fromCode(roleCode);
 
+                // 角色校验
+                if (role == null || !allowedRoles.contains(role)) {
+                    log.warn("[{}] 非法角色访问：account={}, role={}, 允许的角色={}", 
+                            moduleName, account, roleCode, allowedRoles);
+                    CommonUtil.sendJsonMessage(response, Result.buildResult(BizCodeEnum.PERMISSION_DENIED));
+                    return false;
+                }
+
                 LoginUser loginUser = LoginUser.builder()
                         .id(id)
                         .name(name)
@@ -54,43 +79,22 @@ public class LoginInterceptor implements HandlerInterceptor {
                         .role(role)
                         .build();
 
-
-                //用户信息传递,使用ThreadLocal   后面要获取时，直接从threadLocal.get()获取就行
-                THREAD_LOCAL.set(loginUser);
-
+                // 用户信息存储到 UserContextUtil，服务层可通过 UserContextUtil.getCurrentUser() 获取
+                UserContextUtil.setCurrentUser(loginUser);
                 return true;
-
             }
 
         } catch (Exception e) {
-            log.error("登录拦截失败：{}", e.getMessage());
+            log.error("[{}] 拦截器异常：{}", moduleName, e.getMessage());
         }
-
 
         CommonUtil.sendJsonMessage(response, Result.buildResult(BizCodeEnum.USER_NOT_LOGIN));
         return false;
-
     }
 
     @Override
-    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-        //线程变量销毁,防止outOfMemory
-        THREAD_LOCAL.remove();
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+        // 线程变量销毁，防止内存泄漏
+        UserContextUtil.clear();
     }
-
-    /**
-     * postHandle 在 Controller 方法执行后、视图渲染前调用
-     * 登录拦截器只需要在请求前验证 token(preHandle) 和请求后清理资源 (afterCompletion)
-     * 中间阶段不需要任何操作
-     * @param request
-     * @param response
-     * @param handler
-     * @param modelAndView
-     * @throws Exception
-     */
-    @Override
-    public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
-        HandlerInterceptor.super.postHandle(request, response, handler, modelAndView);
-    }
-
 }

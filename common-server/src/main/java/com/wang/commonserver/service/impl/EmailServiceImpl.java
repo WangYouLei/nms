@@ -2,7 +2,7 @@ package com.wang.commonserver.service.impl;
 
 import com.wang.common.result.Result;
 import com.wang.commonserver.service.EmailService;
-import com.wang.common.untils.CommonUtil;
+import com.wang.common.utils.CommonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;

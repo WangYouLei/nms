@@ -6,7 +6,7 @@
 
     <!-- 统计小说总数 -->
     <select id="countAllNovels" resultType="java.lang.Long">
-        SELECT COUNT(*) FROM novel WHERE if_del = 0
+        SELECT COUNT(*) FROM novel WHERE is_del = 0
     </select>
 
     <!-- 统计作者总数（未删除） -->
@@ -27,7 +27,7 @@
     <!-- 统计今日新增小说 -->
     <select id="countTodayNewNovels" resultType="java.lang.Long">
         SELECT COUNT(*) FROM novel 
-        WHERE if_del = 0 AND DATE(create_time) = #{today}
+        WHERE is_del = 0 AND DATE(create_time) = #{today}
     </select>
 
     <!-- 统计今日新增作者 -->
@@ -44,12 +44,12 @@
 
     <!-- 统计热门小说数 -->
     <select id="countHotNovels" resultType="java.lang.Long">
-        SELECT COUNT(*) FROM novel WHERE if_del = 0 AND is_hot = 1
+        SELECT COUNT(*) FROM novel WHERE is_del = 0 AND is_hot = 1
     </select>
 
     <!-- 统计完结小说数 -->
     <select id="countFinishedNovels" resultType="java.lang.Long">
-        SELECT COUNT(*) FROM novel WHERE if_del = 0 AND is_finished = 1
+        SELECT COUNT(*) FROM novel WHERE is_del = 0 AND is_finished = 1
     </select>
 
     <!-- ==================== 数量统计 ==================== -->
@@ -59,7 +59,7 @@
         SELECT nc.type AS name, COUNT(n.id) AS count
         FROM novel_category nc
         LEFT JOIN novel_category_relation ncr ON nc.id = ncr.category_id
-        LEFT JOIN novel n ON ncr.novel_id = n.id AND n.if_del = 0
+        LEFT JOIN novel n ON ncr.novel_id = n.id AND n.is_del = 0
         GROUP BY nc.id, nc.type
         ORDER BY count DESC
     </select>
@@ -74,7 +74,7 @@
             COUNT(DISTINCT n.id) AS count
         FROM novel_category nc
         LEFT JOIN novel_category_relation ncr ON nc.id = ncr.category_id
-        LEFT JOIN novel n ON ncr.novel_id = n.id AND n.if_del = 0
+        LEFT JOIN novel n ON ncr.novel_id = n.id AND n.is_del = 0
         GROUP BY nc.category
         ORDER BY nc.category ASC
     </select>
@@ -88,7 +88,7 @@
             END AS name,
             COUNT(*) AS count
         FROM novel
-        WHERE if_del = 0
+        WHERE is_del = 0
         GROUP BY is_finished
         ORDER BY is_finished ASC
     </select>
@@ -102,7 +102,7 @@
             END AS name,
             COUNT(*) AS count
         FROM novel
-        WHERE if_del = 0
+        WHERE is_del = 0
         GROUP BY is_hot
         ORDER BY is_hot DESC
     </select>
@@ -152,7 +152,7 @@
             is_finished AS isFinished, is_hot AS isHot, url,
             DATE_FORMAT(update_time, '%Y-%m-%d %H:%i') AS updateTime
         FROM novel
-        WHERE if_del = 0 AND is_finished = 0
+        WHERE is_del = 0 AND is_finished = 0
         ORDER BY chapter_count DESC, update_time DESC
         LIMIT #{limit}
     </select>
@@ -184,7 +184,7 @@
             DATE_FORMAT(create_time, '%Y-%m-%d') AS date,
             COUNT(*) AS count
         FROM novel
-        WHERE if_del = 0 
+        WHERE is_del = 0 
             AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}
         GROUP BY DATE(create_time)
         ORDER BY date ASC
@@ -196,7 +196,7 @@
             CONCAT(YEAR(create_time), '-W', LPAD(WEEK(create_time, 1), 2, '0')) AS date,
             COUNT(*) AS count
         FROM novel
-        WHERE if_del = 0 
+        WHERE is_del = 0 
             AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}
         GROUP BY YEAR(create_time), WEEK(create_time, 1)
         ORDER BY date ASC
@@ -208,7 +208,7 @@
             DATE_FORMAT(create_time, '%Y-%m') AS date,
             COUNT(*) AS count
         FROM novel
-        WHERE if_del = 0 
+        WHERE is_del = 0 
             AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}
         GROUP BY DATE_FORMAT(create_time, '%Y-%m')
         ORDER BY date ASC
@@ -220,7 +220,7 @@
             YEAR(create_time) AS date,
             COUNT(*) AS count
         FROM novel
-        WHERE if_del = 0 
+        WHERE is_del = 0 
             AND DATE(create_time) BETWEEN #{startDate} AND #{endDate}
         GROUP BY YEAR(create_time)
         ORDER BY date ASC

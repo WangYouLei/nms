@@ -1,4 +1,4 @@
-package com.wang.common.untils;
+package com.wang.common.utils;
 
 import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class Argon2idUtil {
+
     /*
      * 设置默认推荐参数
      */
@@ -27,19 +28,20 @@ public class Argon2idUtil {
     }
     /**
      * 加密   Argon2 会自动生成随机盐值
-     * @param password
-     * @return
+     * @param password 密码
+     * @return 加密后的密码
      */
     public static String hash(String password){
-        return INSTANCE.hash(ITERATIONS, MEMORY, PARALLELISM, password.toCharArray());//使用argon2id加密
+        //使用argon2id加密
+        return INSTANCE.hash(ITERATIONS, MEMORY, PARALLELISM, password.toCharArray());
     }
 
 
     /**
      * 验证
-     * @param encodedPassword
-     * @param password
-     * @return
+     * @param encodedPassword 加密后的密码
+     * @param password 密码
+     * @return 验证结果
      */
     public static boolean verify(String encodedPassword,String password){
         return INSTANCE.verify(encodedPassword, password.toCharArray());

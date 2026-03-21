@@ -33,6 +33,14 @@ public class NovelController {
         return novelService.getNovelDetail(novelId);
     }
 
+    //TODO后期弄成es搜索
+    @PostMapping("/common/novel/search")
+    @ApiOperation("[Common] 搜索小说列表")
+    public Result searchNovels(@RequestBody NovelSearchDTO dto) {
+        log.info("[Common] 搜索小说：{}", dto);
+        return novelService.searchNovels(dto);
+    }
+
     // ==================== Author - 作者端接口 ====================
 
     @PostMapping("/author/novel/add")
@@ -43,26 +51,10 @@ public class NovelController {
     }
 
     @DeleteMapping("/author/novel/delete/{id}")
-    @ApiOperation("[Author] 删除小说")
+    @ApiOperation("[Author] 删除小说(逻辑删除)")
     public Result deleteNovel(@PathVariable Integer id) {
-        log.info("[Author] 删除小说：ID={}", id);
+        log.info("[Author] 删除小说（逻辑删除）：ID={}", id);
         return novelService.deleteNovel(id);
-    }
-
-    @GetMapping("/author/novel/list")
-    @ApiOperation("[Author] 查询我的小说列表")
-    public Result getMyNovelList(
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize) {
-        log.info("[Author] 查询小说列表：页码={}, 每页数量={}", pageNum, pageSize);
-        return novelService.getNovelList(pageNum, pageSize);
-    }
-
-    @PostMapping("/author/novel/search")
-    @ApiOperation("[Author] 搜索我的小说")
-    public Result searchMyNovels(@RequestBody NovelSearchDTO dto) {
-        log.info("[Author] 搜索小说：{}", dto);
-        return novelService.searchNovels(dto);
     }
 
     @PutMapping("/author/novel/update")
@@ -81,33 +73,7 @@ public class NovelController {
         return novelService.deleteNovel(id);
     }
 
-    @GetMapping("/manager/novel/list")
-    @ApiOperation("[Manager] 查询小说列表")
-    public Result managerGetNovelList(
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize) {
-        log.info("[Manager] 查询小说列表：页码={}, 每页数量={}", pageNum, pageSize);
-        return novelService.getNovelList(pageNum, pageSize);
-    }
-
-    @PostMapping("/manager/novel/search")
-    @ApiOperation("[Manager] 搜索小说")
-    public Result managerSearchNovels(@RequestBody NovelSearchDTO dto) {
-        log.info("[Manager] 搜索小说：{}", dto);
-        return novelService.searchNovels(dto);
-    }
-
     // ==================== Visitor - 访客端接口 ====================
-
-    @GetMapping("/visitor/novel/list")
-    @ApiOperation("[Visitor] 分页查询小说列表")
-    public Result visitorGetNovelList(
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) String keyword) {
-        log.info("[Visitor] 查询小说列表：页码={}, 每页数量={}", pageNum, pageSize);
-        return novelService.getVisitorNovelList(pageNum, pageSize, keyword);
-    }
 
     @GetMapping("/visitor/novel/hot")
     @ApiOperation("[Visitor] 分页查询热门小说")

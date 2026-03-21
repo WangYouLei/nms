@@ -4,8 +4,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.wang.pojo.entity.Novel;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
@@ -33,12 +31,6 @@ public interface NovelMapper extends BaseMapper<Novel> {
      */
     Integer countHotNovels(@Param("categoryId") Integer categoryId);
 
-    /**
-     * 查询小说详情（包含统计信息）
-     * @param novelId 小说ID
-     * @return 小说详情Map
-     */
-    LinkedHashMap<String, Object> selectNovelDetail(@Param("novelId") Integer novelId);
 
     /**
      * 根据分类ID分页查询小说
@@ -58,29 +50,4 @@ public interface NovelMapper extends BaseMapper<Novel> {
      */
     Integer countNovelsByCategoryId(@Param("categoryId") Integer categoryId);
 
-    // ==================== 统计分析接口 ====================
-
-    /**
-     * 按分类统计小说数量
-     * @return 分类统计列表 [{name, count}]
-     */
-    List<LinkedHashMap<String, Object>> countNovelsByCategory();
-
-    /**
-     * 按频道统计小说数量
-     * @return 频道统计列表 [{name, count}]
-     */
-    List<LinkedHashMap<String, Object>> countNovelsByChannel();
-
-    /**
-     * 按状态统计小说数量（完结/连载）
-     * @return 状态统计列表 [{name, count}]
-     */
-    List<LinkedHashMap<String, Object>> countNovelsByStatus();
-
-    /**
-     * 按热门状态统计小说数量
-     * @return 热门统计列表 [{name, count}]
-     */
-    List<LinkedHashMap<String, Object>> countNovelsByHot();
 }

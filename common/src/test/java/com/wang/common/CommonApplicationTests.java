@@ -1,6 +1,6 @@
 package com.wang.common;
 
-import com.wang.common.untils.Argon2idUtil;
+import com.wang.common.utils.Argon2idUtil;
 import org.junit.jupiter.api.Test;
 
 /**

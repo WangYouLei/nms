@@ -19,7 +19,23 @@ public interface NovelService {
      */
     Result getNovelDetail(Integer novelId);
 
-    // ==================== Author/Manager - 作者/管理端方法 ====================
+    /**
+     * 分页搜索小说列表（统一接口）
+     * <p>
+     * 权限控制：
+     * - Author: 只能搜索自己的小说
+     * - Manager/Visitor: 可以搜索所有小说
+     * <p>
+     * 搜索条件：
+     * - keyword: 关键词搜索（模糊匹配名称、副名称、标签）
+     * - name/subName/isHot/isFinished: 精确条件筛选
+     *
+     * @param dto 搜索条件
+     * @return 分页查询结果
+     */
+    Result searchNovels(NovelSearchDTO dto);
+
+    // ==================== Author - 作者端方法 ====================
 
     /**
      * 新增小说
@@ -36,21 +52,6 @@ public interface NovelService {
     Result deleteNovel(Integer id);
 
     /**
-     * 分页查询当前登录作者的小说
-     * @param pageNum 页码
-     * @param pageSize 每页数量
-     * @return 分页查询结果
-     */
-    Result getNovelList(Integer pageNum, Integer pageSize);
-
-    /**
-     * 搜索小说
-     * @param dto 搜索条件
-     * @return 分页查询结果
-     */
-    Result searchNovels(NovelSearchDTO dto);
-
-    /**
      * 修改小说信息
      * @param novelDTO 小说信息
      * @return 操作结果
@@ -58,15 +59,6 @@ public interface NovelService {
     Result updateNovel(NovelDTO novelDTO);
 
     // ==================== Visitor - 访客端方法 ====================
-
-    /**
-     * 分页查询小说列表（访客端）
-     * @param pageNum 页码
-     * @param pageSize 每页数量
-     * @param keyword 搜索关键词
-     * @return 小说列表
-     */
-    Result getVisitorNovelList(Integer pageNum, Integer pageSize, String keyword);
 
     /**
      * 分页查询热门小说

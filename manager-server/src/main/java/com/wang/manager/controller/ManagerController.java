@@ -56,7 +56,7 @@ public class ManagerController {
 
     @GetMapping("/list")
     @ApiOperation("多条件查询管理员（支持id、姓名、账号，条件可为空）")
-    public Result getManagerList(ManagerQueryDTO queryDTO) {
+    public Result getManagerList(@RequestBody ManagerQueryDTO queryDTO) {
         log.info("多条件查询管理员请求：queryDTO={}", queryDTO);
         return managerService.getManagerList(queryDTO);
     }

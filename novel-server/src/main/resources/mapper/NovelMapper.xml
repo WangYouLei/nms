@@ -8,7 +8,7 @@
         FROM novel n
         LEFT JOIN novel_category_relation ncr ON n.id= ncr.novel_id
         WHERE n.is_hot = 1
-        AND n.if_del = 0
+        AND n.is_del = 0
         <if test="categoryId != null">
             AND ncr.category_id= #{categoryId}
         </if>
@@ -22,22 +22,13 @@
         FROM novel n
         LEFT JOIN novel_category_relation ncr ON n.id = ncr.novel_id
         WHERE n.is_hot = 1
-        AND n.if_del = 0
+        AND n.is_del = 0
         <if test="categoryId != null">
             AND ncr.category_id = #{categoryId}
         </if>
     </select>
 
-    <!-- 查询小说详情（包含统计信息） -->
-    <select id="selectNovelDetail" resultType="java.util.Map">
-        SELECT n.*,
-               (SELECT COUNT(*) FROM novel_character nc WHERE nc.novel_id= n.id) as character_count,
-               (SELECT COUNT(*) FROM faction f WHERE f.novel_id = n.id) as faction_count,
-               (SELECT COUNT(*) FROM location l WHERE l.novel_id = n.id) as location_count
-        FROM novel n
-        WHERE n.id = #{novelId}
-        AND n.if_del = 0
-    </select>
+
 
     <!-- 根据分类 ID 分页查询小说 -->
     <select id="selectNovelsByCategoryId" resultType="com.wang.pojo.entity.Novel">
@@ -45,7 +36,7 @@
         FROM novel n
         INNER JOIN novel_category_relation ncr ON n.id = ncr.novel_id
         WHERE ncr.category_id = #{categoryId}
-        AND n.if_del = 0
+        AND n.is_del = 0
         ORDER BY n.update_time DESC
         LIMIT #{offset}, #{pageSize}
     </select>
@@ -56,65 +47,7 @@
         FROM novel n
         INNER JOIN novel_category_relation ncr ON n.id= ncr.novel_id
         WHERE ncr.category_id = #{categoryId}
-        AND n.if_del = 0
-    </select>
-
-    <!-- ==================== 统计分析接口 ==================== -->
-
-    <!-- 按分类统计小说数量 -->
-    <select id="countNovelsByCategory" resultType="java.util.LinkedHashMap">
-        SELECT nc.type AS name, COUNT(DISTINCT n.id) AS count
-        FROM novel n
-        INNER JOIN novel_category_relation ncr ON n.id = ncr.novel_id
-        INNER JOIN novel_category nc ON ncr.category_id = nc.id
-        WHERE n.if_del = 0
-        GROUP BY nc.type
-        ORDER BY count DESC
-    </select>
-
-    <!-- 按频道统计小说数量 -->
-    <select id="countNovelsByChannel" resultType="java.util.LinkedHashMap">
-        SELECT 
-            CASE nc.category
-                WHEN 1 THEN '男频'
-                WHEN 2 THEN '女频'
-                ELSE '未知'
-            END AS name,
-            COUNT(DISTINCT n.id) AS count
-        FROM novel n
-        INNER JOIN novel_category_relation ncr ON n.id = ncr.novel_id
-        INNER JOIN novel_category nc ON ncr.category_id = nc.id
-        WHERE n.if_del = 0
-        GROUP BY nc.category
-        ORDER BY count DESC
-    </select>
-
-    <!-- 按状态统计小说数量（完结/连载） -->
-    <select id="countNovelsByStatus" resultType="java.util.LinkedHashMap">
-        SELECT 
-            CASE is_finished
-                WHEN 1 THEN '完结'
-                WHEN 0 THEN '连载'
-            END AS name,
-            COUNT(*) AS count
-        FROM novel
-        WHERE if_del = 0
-        GROUP BY is_finished
-        ORDER BY is_finished DESC
-    </select>
-
-    <!-- 按热门状态统计小说数量 -->
-    <select id="countNovelsByHot" resultType="java.util.LinkedHashMap">
-        SELECT 
-            CASE is_hot
-                WHEN 1 THEN '热门'
-                WHEN 0 THEN '普通'
-            END AS name,
-            COUNT(*) AS count
-        FROM novel
-        WHERE if_del = 0
-        GROUP BY is_hot
-        ORDER BY is_hot DESC
+        AND n.is_del = 0
     </select>
 
 </mapper>

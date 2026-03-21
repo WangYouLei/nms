@@ -52,9 +52,13 @@ public interface NovelChapterService {
     Result deleteChapter(Integer id);
 
     /**
-     * 更新章节信息
-     * @param chapterDTO 章节信息
-     * @return 操作结果
+     * 更新章节信息（包括章节内容）
+     * @param id 章节id
+     * @param title 章节标题
+     * @param chapterOrder 章节顺序
+     * @param oldFileUrl 旧文件路径
+     * @param file 新文件
+     * @return
      */
-    Result updateChapter(NovelChapterDTO chapterDTO);
+    Result updateChapter(Integer id,String title,Integer chapterOrder,String oldFileUrl,MultipartFile file);
 }

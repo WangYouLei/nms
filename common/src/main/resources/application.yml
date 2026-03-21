@@ -2,9 +2,6 @@ spring:
   application:
     name: common
 
-JWT:
-  SECRET: wangwangwangwangwangwangwangwangwangwangwangwang
-
 # 默认小说封面地址、默认作者头像地址、默认用户头像地址
 default:
   authorAvatarUrl: https://nms.oss-cn-beijing.aliyuncs.com/authorAvatar/default.png

@@ -321,11 +321,11 @@ public class DashboardServiceImpl implements DashboardService {
         if (value == null) {
             return false;
         }
-        if (value instanceof Boolean) {
-            return (Boolean) value;
+        if (value instanceof Boolean b) {
+            return b;
         }
-        if (value instanceof Number) {
-            return ((Number) value).intValue() == 1;
+        if (value instanceof Number num) {
+            return num.intValue() == 1;
         }
         return false;
     }

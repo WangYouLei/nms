@@ -1,10 +1,10 @@
 package com.wang.novel.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.wang.common.utils.UserContextUtil;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.FileUploadTypeEnum;
 import com.wang.common.enums.UserRole;
-import com.wang.common.interceptor.LoginInterceptor;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.commonserver.service.FileService;
@@ -16,9 +16,10 @@ import com.wang.pojo.entity.Novel;
 import com.wang.pojo.entity.NovelChapter;
 import com.wang.pojo.vo.NovelChapterVO;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
+import com.wang.common.utils.CopyPropertiesUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
@@ -50,8 +51,6 @@ public class NovelChapterServiceImpl implements NovelChapterService {
 
     @Override
     public Result getChapterList(Integer novelId) {
-        log.info("[Common] 查询章节列表：小说ID={}", novelId);
-
         LambdaQueryWrapper<NovelChapter> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(NovelChapter::getNovelId, novelId)
                 .orderByAsc(NovelChapter::getChapterOrder);
@@ -61,13 +60,14 @@ public class NovelChapterServiceImpl implements NovelChapterService {
                 .map(this::convertToVO)
                 .collect(Collectors.toList());
 
+        if(voList.isEmpty()){
+            return Result.error("该小说暂无章节");
+        }
         return Result.success(voList);
     }
 
     @Override
     public Result getChapterDetail(Integer chapterId) {
-        log.info("[Common] 获取章节详情：章节ID={}", chapterId);
-
         NovelChapter chapter = novelChapterMapper.selectById(chapterId);
         if (chapter == null) {
             return Result.buildResult(BizCodeEnum.NOVEL_CHAPTER_NOT_FOUND);
@@ -78,8 +78,6 @@ public class NovelChapterServiceImpl implements NovelChapterService {
 
     @Override
     public Result getChapterContent(Integer chapterId) {
-        log.info("[Common] 获取章节内容：章节ID={}", chapterId);
-
         NovelChapter chapter = novelChapterMapper.selectById(chapterId);
         if (chapter == null) {
             return Result.buildResult(BizCodeEnum.NOVEL_CHAPTER_NOT_FOUND);
@@ -102,8 +100,6 @@ public class NovelChapterServiceImpl implements NovelChapterService {
     @Transactional
     public Result uploadChapter(Integer novelId, String title, MultipartFile file) {
         LoginUser loginUser = getLoginUser();
-        log.info("[Author] 上传新章节：小说ID={}, 新章节标题={}, 用户ID={}", novelId, title, loginUser.getId());
-
         // 权限校验：只有作者可以上传章节
         if (!UserRole.AUTHOR.equals(loginUser.getRole())) {
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
@@ -147,7 +143,6 @@ public class NovelChapterServiceImpl implements NovelChapterService {
     @Transactional
     public Result deleteChapter(Integer id) {
         LoginUser loginUser = getLoginUser();
-        log.info("[Author/Manager] 删除章节：章节ID={}, 用户ID={}", id, loginUser.getId());
 
         // 权限校验：作者只能删除自己的章节
         boolean isAuthor = UserRole.AUTHOR.equals(loginUser.getRole());
@@ -182,33 +177,52 @@ public class NovelChapterServiceImpl implements NovelChapterService {
 
     @Override
     @Transactional
-    public Result updateChapter(NovelChapterDTO chapterDTO) {
+    public Result updateChapter(Integer id, String title, Integer chapterOrder, String oldFileUrl, MultipartFile file) {
         LoginUser loginUser = getLoginUser();
-        log.info("[Author] 更新章节：章节ID={}", chapterDTO.getId());
-
-        // 权限校验：只有作者可以更新章节
-        if (!UserRole.AUTHOR.equals(loginUser.getRole())) {
-            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
-        }
 
         // 权限校验：检查章节所有权
-        NovelChapter chapter = checkChapterOwnership(chapterDTO.getId(), loginUser.getId());
+        NovelChapter chapter = checkChapterOwnership(id, loginUser.getId());
         if (chapter == null) {
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }
 
         // 更新标题
-        String newTitle = chapterDTO.getTitle();
-        if (newTitle != null && !newTitle.equals(chapter.getTitle())) {
-            if (isTitleExists(chapter.getNovelId(), newTitle, chapterDTO.getId())) {
+        if (StringUtils.hasText(title) && !title.equals(chapter.getTitle())) {
+            // 检查标题是否重复
+            if (isTitleExists(chapter.getNovelId(), title, id)) {
                 return Result.error("章节标题已存在");
             }
-            chapter.setTitle(newTitle);
+            chapter.setTitle(title);
         }
 
         // 更新排序
-        if (chapterDTO.getChapterOrder() != null) {
-            chapter.setChapterOrder(chapterDTO.getChapterOrder());
+        if (chapterOrder != null && chapterOrder > 0) {
+            chapter.setChapterOrder(chapterOrder);
+        }
+
+        // 更新章节内容文件（如果提供了新文件）
+        if (file != null && !file.isEmpty()) {
+            try {
+                // 上传新文件
+                Result uploadResult = fileService.uploadFile(
+                        file,
+                        FileUploadTypeEnum.NOVEL_CHAPTER.getCode(),
+                        chapter.getNovelId(),
+                        // 传入旧文件URL，由 FileService 处理删除
+                        oldFileUrl
+                );
+
+                if (!"success".equals(uploadResult.getMsg())) {
+                    return Result.error("更新章节文件失败");
+                }
+
+                // 更新内容URL
+                String newContentUrl = (String) uploadResult.getData();
+                chapter.setContentUrl(newContentUrl);
+            } catch (Exception e) {
+                log.error("更新章节文件异常：{}", e.getMessage());
+                return Result.error("更新章节文件失败：" + e.getMessage());
+            }
         }
 
         // 更新时间
@@ -231,7 +245,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
      * 获取当前登录用户
      */
     private LoginUser getLoginUser() {
-        return LoginInterceptor.THREAD_LOCAL.get();
+        return UserContextUtil.getCurrentUser();
     }
 
     /**
@@ -336,7 +350,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
      */
     private NovelChapterVO convertToVO(NovelChapter chapter) {
         NovelChapterVO vo = new NovelChapterVO();
-        BeanUtils.copyProperties(chapter, vo);
+        CopyPropertiesUtil.copyNonNullProperties(chapter, vo);
         return vo;
     }
 }

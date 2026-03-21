@@ -1,14 +1,14 @@
 package com.wang.visitor.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
-import com.wang.common.untils.Argon2idUtil;
-import com.wang.common.untils.CopyPropertiesUtil;
-import com.wang.common.untils.JWTUtil;
+import com.wang.common.utils.Argon2idUtil;
+import com.wang.common.utils.CopyPropertiesUtil;
+import com.wang.common.utils.JWTUtil;
 import com.wang.commonserver.service.CaptchaService;
 import com.wang.commonserver.service.EmailService;
 import com.wang.visitor.mapper.VisitorMapper;
@@ -20,7 +20,7 @@ import com.wang.pojo.dto.VisitorRegisterDTO;
 import com.wang.pojo.entity.Visitor;
 import com.wang.pojo.vo.VisitorVO;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
+
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -86,7 +86,7 @@ public class VisitorServiceImpl implements VisitorService {
             if (result == 1) {
                 log.info("访客注册成功：ID={}", visitor.getId());
                 VisitorVO vo = new VisitorVO();
-                BeanUtils.copyProperties(visitor, vo);
+                CopyPropertiesUtil.copyNonNullProperties(visitor, vo);
                 vo.setVipLevelName(getVipLevelName(visitor.getVipLevel()));
                 return Result.success(vo);
             } else {
@@ -112,12 +112,12 @@ public class VisitorServiceImpl implements VisitorService {
         log.info("访客登录：账号={}", account);
 
         //查询访客信息
-        QueryWrapper<Visitor> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("account", account);
+        LambdaQueryWrapper<Visitor> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Visitor::getAccount, account);
         Visitor visitor = visitorMapper.selectOne(queryWrapper);
 
         //判断访客是否存在
-        if (visitor == null) {
+        if (visitor == null || Boolean.TRUE.equals(visitor.getIsDel())) {
             log.warn("访客不存在：账号={}", account);
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
@@ -160,7 +160,7 @@ public class VisitorServiceImpl implements VisitorService {
         }
 
         VisitorVO vo = new VisitorVO();
-        BeanUtils.copyProperties(visitor, vo);
+        CopyPropertiesUtil.copyNonNullProperties(visitor, vo);
         vo.setVipLevelName(getVipLevelName(visitor.getVipLevel()));
         return Result.success(vo);
     }

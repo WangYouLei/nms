@@ -47,10 +47,14 @@ public class FileServiceImpl implements FileService {
         if (novelId != null) {
             typeName = typeName + "/" + novelId;
         }
-        String newFileName = typeName + "/"
-                + UUID.randomUUID()
-                + file.getOriginalFilename()
-                .substring(file.getOriginalFilename().lastIndexOf("."));
+
+        // 安全获取文件扩展名
+        String originalFilename = file.getOriginalFilename();
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String newFileName = typeName + "/" + UUID.randomUUID() + extension;
 
         try {
             ObjectWriteResponse response = minioClient.putObject(PutObjectArgs.builder()
@@ -185,45 +189,36 @@ public class FileServiceImpl implements FileService {
             return;
         }
 
-        InputStream inputStream = null;
         try {
             String objectName = extractObjectName(fileUrl);
 
-            // 获取文件流
-            inputStream = minioClient.getObject(
+            // 使用try-with-resources自动关闭资源
+            try (InputStream inputStream = minioClient.getObject(
                     GetObjectArgs.builder()
                             .bucket(minioInfo.getBucketName())
                             .object(objectName)
                             .build()
-            );
+            )) {
+                // 获取文件名
+                String fileName = objectName.substring(objectName.lastIndexOf("/") + 1);
 
-            // 获取文件名
-            String fileName = objectName.substring(objectName.lastIndexOf("/") + 1);
+                // 设置响应头
+                response.setContentType("application/octet-stream");
+                response.setHeader("Content-Disposition", "attachment; filename=" +
+                        URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()));
 
-            // 设置响应头
-            response.setContentType("application/octet-stream");
-            response.setHeader("Content-Disposition", "attachment; filename=" +
-                    URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()));
+                // 写入响应流
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    response.getOutputStream().write(buffer, 0, bytesRead);
+                }
 
-            // 写入响应流
-            byte[] buffer = new byte[8192];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                response.getOutputStream().write(buffer, 0, bytesRead);
+                response.getOutputStream().flush();
+                log.info("文件下载成功: {}", objectName);
             }
-
-            response.getOutputStream().flush();
-            log.info("文件下载成功: {}", objectName);
         } catch (Exception e) {
             log.error("下载文件失败: {}", e.getMessage(), e);
-        } finally {
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (Exception e) {
-                    log.error("关闭输入流失败", e);
-                }
-            }
         }
     }
 

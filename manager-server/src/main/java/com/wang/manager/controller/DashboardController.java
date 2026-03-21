@@ -84,6 +84,13 @@ public class DashboardController {
 
     // ==================== 趋势统计 ====================
 
+    /**
+     * 小说趋势统计
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param type 统计粒度：day(按天)/week(按周)/month(按月)/year(按年)（时间范围内的数据如何分组）
+     * @return 趋势统计数据
+     */
     @GetMapping("/statistics/novel/trend")
     @ApiOperation("小说趋势统计")
     public Result getNovelTrend(
@@ -94,6 +101,13 @@ public class DashboardController {
         return dashboardService.getNovelTrend(startDate, endDate, type);
     }
 
+    /**
+     * 作者注册趋势统计
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param type 统计粒度：day(按天)/week(按周)/month(按月)/year(按年)（时间范围内的数据如何分组）
+     * @return 趋势统计数据
+     */
     @GetMapping("/statistics/author/register")
     @ApiOperation("作者注册趋势统计")
     public Result getAuthorTrend(
@@ -104,6 +118,13 @@ public class DashboardController {
         return dashboardService.getAuthorTrend(startDate, endDate, type);
     }
 
+    /**
+     * 用户注册趋势统计
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param type 统计粒度：day(按天)/week(按周)/month(按月)/year(按年)（时间范围内的数据如何分组）
+     * @return 趋势统计数据
+     */
     @GetMapping("/statistics/visitor/register")
     @ApiOperation("用户注册趋势统计")
     public Result getVisitorTrend(

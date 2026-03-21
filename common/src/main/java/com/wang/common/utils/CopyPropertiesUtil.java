@@ -1,4 +1,4 @@
-package com.wang.common.untils;
+package com.wang.common.utils;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeanWrapper;

@@ -1,42 +1,34 @@
 package com.wang.pojo.dto;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 @Data
+@ApiModel("小说搜索DTO")
 public class NovelSearchDTO {
 
-    /**
-     * 小说名称
-     */
+    @ApiModelProperty("搜索关键词（模糊匹配名称、副名称、标签）")
+    private String keyword;
+
+    @ApiModelProperty("小说名称")
     private String name;
 
-    /**
-     * 小说副名称
-     */
+    @ApiModelProperty("小说副名称")
     private String subName;
 
-    /**
-     * 是否删除
-     */
-    private Boolean ifDel;
+    @ApiModelProperty("是否删除")
+    private Boolean isDel;
 
-    /**
-     * 是否热门
-     */
+    @ApiModelProperty("是否热门")
     private Boolean isHot;
 
-    /**
-     * 是否完结
-     */
+    @ApiModelProperty("是否完结")
     private Boolean isFinished;
 
-    /**
-     * 页码
-     */
+    @ApiModelProperty("页码")
     private Integer pageNum;
 
-    /**
-     * 每页数量
-     */
+    @ApiModelProperty("每页数量")
     private Integer pageSize;
 }

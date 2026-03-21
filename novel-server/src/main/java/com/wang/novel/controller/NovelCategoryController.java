@@ -97,10 +97,12 @@ public class NovelCategoryController {
         return novelCategoryService.getCategoryList(pageNum, pageSize, type, category);
     }
 
-    @PostMapping("/manager/category/relation/set")
-    @ApiOperation("[Manager] 设置小说分类")
+    // ==================== Author - 作者端接口 ====================
+
+    @PostMapping("/author/category/relation/set")
+    @ApiOperation("[Author] 设置小说分类（支持多分类）")
     public Result setNovelCategory(@RequestBody NovelCategoryRelationDTO dto) {
-        log.info("[Manager] 设置小说分类：小说ID={}, 分类ID={}", dto.getNovelId(), dto.getCategoryId());
+        log.info("[Author] 设置小说分类：小说ID={}, 分类ID列表={}", dto.getNovelId(), dto.getCategoryIds());
         return novelCategoryService.setNovelCategory(dto);
     }
 }
