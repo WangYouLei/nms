@@ -29,15 +29,6 @@ public interface FileService {
      */
     String getFileContent(String fileUrl);
 
-    /**
-     * 重命名文件
-     * @param oldFileUrl 旧文件URL
-     * @param code 文件类型编码
-     * @param novelId 小说ID
-     * @param newFileName 新文件名（不含扩展名）
-     * @return 新文件URL
-     */
-    Result renameFile(String oldFileUrl, Integer code, Integer novelId, String newFileName);
 
     /**
      * 删除文件
@@ -66,5 +57,13 @@ public interface FileService {
      * @return 完整URL
      */
     String buildFileUrl(String objectName);
+
+    /**
+     * 获取预签名URL（用于前端直接访问私有bucket中的文件）
+     * @param fileUrl 文件完整URL
+     * @param expireSeconds 过期时间（秒），默认1小时
+     * @return 预签名URL
+     */
+    String getPresignedUrl(String fileUrl, Integer expireSeconds);
 
 }

@@ -29,7 +29,7 @@ public class FileController {
             @ApiParam(value = "上传文件类型", required = true)
             @RequestParam
             Integer code,
-            @ApiParam(value = "如果是上传小说章节、作者头像、用户头像，就需要上传id")
+            @ApiParam(value = "如果是上传小说章节，就需要上传小说id")
             @RequestParam(required = false)
             Integer novelId,
             @ApiParam(value = "如果是修改操作，需要上传原文件地址")
@@ -51,6 +51,24 @@ public class FileController {
     ) {
         log.info("下载文件，文件地址：{}", fileUrl);
         fileServer.downloadFile(fileUrl, response);
+    }
+
+    @GetMapping("/presigned-url")
+    @ApiOperation("获取预签名URL（用于前端直接访问私有bucket中的文件）")
+    public Result getPresignedUrl(
+            @ApiParam(value = "文件URL", required = true)
+            @RequestParam
+            String fileUrl,
+            @ApiParam(value = "过期时间（秒），默认1小时")
+            @RequestParam(required = false, defaultValue = "3600")
+            Integer expireSeconds
+    ) {
+        log.info("获取预签名URL，文件地址：{}", fileUrl);
+        String presignedUrl = fileServer.getPresignedUrl(fileUrl, expireSeconds);
+        if (presignedUrl != null) {
+            return Result.success(presignedUrl);
+        }
+        return Result.error("获取预签名URL失败");
     }
 
     @DeleteMapping("/delete")

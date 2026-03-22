@@ -1,8 +1,12 @@
 package com.wang.commonserver.service.impl;
 
 import com.wang.common.config.DefaultUrlConfig;
+import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.FileUploadTypeEnum;
+import com.wang.common.interceptor.RoleInterceptor;
+import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
+import com.wang.common.utils.UserContextUtil;
 import com.wang.commonserver.config.MinioInfo;
 import com.wang.commonserver.service.FileService;
 import io.minio.*;
@@ -29,9 +33,6 @@ public class FileServiceImpl implements FileService {
     private final MinioClient minioClient;
     private final DefaultUrlConfig defaultUrlConfig;
 
-    private static final String CHAPTER_EXTENSION = ".md";
-    private static final String CHAPTER_CONTENT_TYPE = "text/markdown";
-
     public FileServiceImpl(MinioInfo minioInfo, MinioClient minioClient, DefaultUrlConfig defaultUrlConfig) {
         this.minioInfo = minioInfo;
         this.minioClient = minioClient;
@@ -44,6 +45,7 @@ public class FileServiceImpl implements FileService {
         if (!StringUtils.hasText(typeName)) {
             return Result.error("上传文件类型错误");
         }
+
         if (novelId != null) {
             typeName = typeName + "/" + novelId;
         }
@@ -102,56 +104,6 @@ public class FileServiceImpl implements FileService {
         } catch (Exception e) {
             log.error("获取文件内容失败: {}", fileUrl, e);
             return null;
-        }
-    }
-
-    @Override
-    public Result renameFile(String oldFileUrl, Integer code, Integer novelId, String newFileName) {
-        if (!StringUtils.hasText(oldFileUrl)) {
-            return Result.error("旧文件URL不能为空");
-        }
-
-        FileUploadTypeEnum typeEnum = FileUploadTypeEnum.getMessageByCode(code);
-        if (typeEnum == null) {
-            return Result.error("文件类型错误");
-        }
-
-        try {
-            String oldObjectName = extractObjectName(oldFileUrl);
-            String typeName = typeEnum.name();
-            if (novelId != null) {
-                typeName = typeName + "/" + novelId;
-            }
-
-            String safeFileName = sanitizeFileName(newFileName);
-            String newObjectName = typeName + "/" + safeFileName + CHAPTER_EXTENSION;
-
-            // 复制到新路径
-            minioClient.copyObject(
-                    CopyObjectArgs.builder()
-                            .bucket(minioInfo.getBucketName())
-                            .object(newObjectName)
-                            .source(CopySource.builder()
-                                    .bucket(minioInfo.getBucketName())
-                                    .object(oldObjectName)
-                                    .build())
-                            .build()
-            );
-
-            // 删除旧文件
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(minioInfo.getBucketName())
-                            .object(oldObjectName)
-                            .build()
-            );
-
-            String newUrl = buildFileUrl(newObjectName);
-            log.info("重命名文件成功: {} -> {}", oldFileUrl, newUrl);
-            return Result.success(newUrl);
-        } catch (Exception e) {
-            log.error("重命名文件失败: {}", oldFileUrl, e);
-            return Result.error("重命名文件失败: " + e.getMessage());
         }
     }
 
@@ -244,6 +196,36 @@ public class FileServiceImpl implements FileService {
     @Override
     public String buildFileUrl(String objectName) {
         return minioInfo.getEndpoint() + "/" + minioInfo.getBucketName() + "/" + objectName;
+    }
+
+    @Override
+    public String getPresignedUrl(String fileUrl, Integer expireSeconds) {
+        if (!StringUtils.hasText(fileUrl)) {
+            return null;
+        }
+
+        try {
+            String objectName = extractObjectName(fileUrl);
+            
+            // 默认过期时间1小时
+            int expiry = (expireSeconds != null && expireSeconds > 0) ? expireSeconds : 3600;
+            
+            // 生成预签名URL
+            String presignedUrl = minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(io.minio.http.Method.GET)
+                            .bucket(minioInfo.getBucketName())
+                            .object(objectName)
+                            .expiry(expiry)
+                            .build()
+            );
+            
+            log.debug("生成预签名URL成功: {}", presignedUrl);
+            return presignedUrl;
+        } catch (Exception e) {
+            log.error("生成预签名URL失败: {}", fileUrl, e);
+            return null;
+        }
     }
 
     /**
