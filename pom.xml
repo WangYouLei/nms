@@ -25,6 +25,7 @@
         <module>common-server</module>
         <module>novel-server</module>
         <module>manager-server</module>
+        <module>comment-server</module>
     </modules>
     
     <properties>

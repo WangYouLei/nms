@@ -13,9 +13,9 @@ public enum FileUploadTypeEnum {
     AUTHOR_AVATAR(0, "作者头像上传"),
 
     /**
-     * 用户头像上传
+     * 访客头像上传
      */
-    USER_AVATAR(1, "用户头像上传"),
+    VISITOR_AVATAR(1, "访客头像上传"),
 
     /**
      * 管理员头像上传

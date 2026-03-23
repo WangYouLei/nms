@@ -60,13 +60,17 @@
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
         </dependency>
         
-        <!-- 测试依赖 -->
+         <!--测试依赖-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
+            <version>1.0.0.2</version>
+        </dependency>
     </dependencies>
-    
-    <!-- 不需要 spring-boot-maven-plugin，因为 common-server 是库模块，不是独立应用 -->
 </project>

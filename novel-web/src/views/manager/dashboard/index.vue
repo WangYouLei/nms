@@ -1,0 +1,273 @@
+<template>
+  <div class="manager-dashboard space-y-6">
+    <!-- 页面标题 -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">数据概览</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">平台运营数据一览</p>
+      </div>
+      <el-button @click="fetchData">
+        <el-icon class="mr-2"><Refresh /></el-icon>
+        刷新数据
+      </el-button>
+    </div>
+    
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <StatisticsCard 
+        title="小说总数" 
+        :value="overview.novelCount" 
+        :icon="Reading"
+        icon-color="#409eff"
+        icon-bg-class="bg-primary/10"
+        :show-decor="true"
+        :glass-effect="true"
+      />
+      <StatisticsCard 
+        title="作者总数" 
+        :value="overview.authorCount" 
+        :icon="User"
+        icon-color="#67c23a"
+        icon-bg-class="bg-green-500/10"
+        :show-decor="true"
+        :glass-effect="true"
+      />
+      <StatisticsCard 
+        title="用户总数" 
+        :value="overview.visitorCount" 
+        :icon="Avatar"
+        icon-color="#e6a23c"
+        icon-bg-class="bg-yellow-500/10"
+        :show-decor="true"
+        :glass-effect="true"
+      />
+      <StatisticsCard 
+        title="分类总数" 
+        :value="overview.categoryCount" 
+        :icon="Folder"
+        icon-color="#f56c6c"
+        icon-bg-class="bg-red-500/10"
+        :show-decor="true"
+        :glass-effect="true"
+      />
+    </div>
+    
+    <!-- 今日数据 -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
+      <h3 class="font-bold text-gray-800 dark:text-gray-200 mb-5 flex items-center gap-2">
+        <el-icon class="text-primary" :size="18"><Calendar /></el-icon>
+        今日数据
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="relative overflow-hidden rounded-xl bg-gradient-primary p-5 text-white">
+          <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+          <p class="text-3xl font-bold">{{ overview.todayNewNovels }}</p>
+          <p class="text-white/80 mt-1">新增小说</p>
+        </div>
+        <div class="relative overflow-hidden rounded-xl bg-gradient-cool p-5 text-white">
+          <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+          <p class="text-3xl font-bold">{{ overview.todayNewAuthors }}</p>
+          <p class="text-white/80 mt-1">新增作者</p>
+        </div>
+        <div class="relative overflow-hidden rounded-xl bg-gradient-warm p-5 text-white">
+          <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+          <p class="text-3xl font-bold">{{ overview.todayNewVisitors }}</p>
+          <p class="text-white/80 mt-1">新增用户</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 排行榜 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- 连载榜 -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+            <el-icon class="text-orange-500" :size="18"><TrendCharts /></el-icon>
+            连载榜
+          </h3>
+          <span class="text-xs text-gray-400">TOP 10</span>
+        </div>
+        
+        <div v-if="ongoingRanking.length === 0" class="text-center py-8 text-gray-400">
+          暂无数据
+        </div>
+        <div v-else class="space-y-2">
+          <div 
+            v-for="(novel, index) in ongoingRanking" 
+            :key="novel.novelId"
+            class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <span 
+              class="w-7 h-7 flex items-center justify-center rounded-lg text-sm font-bold flex-shrink-0"
+              :class="{
+                'bg-yellow-400 text-white': index === 0,
+                'bg-gray-300 text-white': index === 1,
+                'bg-amber-600 text-white': index === 2,
+                'bg-gray-100 dark:bg-gray-700 text-gray-500': index > 2
+              }"
+            >
+              {{ index + 1 }}
+            </span>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-gray-800 dark:text-gray-200 truncate">{{ novel.novelName }}</p>
+              <p class="text-sm text-gray-500">{{ novel.authorName }}</p>
+            </div>
+            <span class="text-sm text-gray-400 flex-shrink-0">{{ novel.chapterCount }}章</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 作者高产榜 -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+            <el-icon class="text-green-500" :size="18"><Medal /></el-icon>
+            作者高产榜
+          </h3>
+          <span class="text-xs text-gray-400">TOP 10</span>
+        </div>
+        
+        <div v-if="authorRanking.length === 0" class="text-center py-8 text-gray-400">
+          暂无数据
+        </div>
+        <div v-else class="space-y-2">
+          <div 
+            v-for="(author, index) in authorRanking" 
+            :key="author.authorId"
+            class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <span 
+              class="w-7 h-7 flex items-center justify-center rounded-lg text-sm font-bold flex-shrink-0"
+              :class="{
+                'bg-yellow-400 text-white': index === 0,
+                'bg-gray-300 text-white': index === 1,
+                'bg-amber-600 text-white': index === 2,
+                'bg-gray-100 dark:bg-gray-700 text-gray-500': index > 2
+              }"
+            >
+              {{ index + 1 }}
+            </span>
+            <div class="flex-1">
+              <p class="font-medium text-gray-800 dark:text-gray-200">{{ author.authorName }}</p>
+            </div>
+            <span class="text-sm text-gray-400 flex-shrink-0">{{ author.novelCount }}部作品</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 平台统计 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- 小说状态 -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
+        <h3 class="font-bold text-gray-800 dark:text-gray-200 mb-5 flex items-center gap-2">
+          <el-icon class="text-primary" :size="18"><DataAnalysis /></el-icon>
+          小说状态分布
+        </h3>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="text-center p-4 rounded-xl bg-green-50 dark:bg-green-900/20">
+            <p class="text-3xl font-bold text-green-600">{{ overview.finishedNovelCount }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">已完结</p>
+          </div>
+          <div class="text-center p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20">
+            <p class="text-3xl font-bold text-blue-600">{{ overview.novelCount - overview.finishedNovelCount }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">连载中</p>
+          </div>
+          <div class="text-center p-4 rounded-xl bg-red-50 dark:bg-red-900/20">
+            <p class="text-3xl font-bold text-red-600">{{ overview.hotNovelCount }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">热门小说</p>
+          </div>
+          <div class="text-center p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20">
+            <p class="text-3xl font-bold text-purple-600">{{ overview.categoryCount }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">小说分类</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 快捷入口 -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
+        <h3 class="font-bold text-gray-800 dark:text-gray-200 mb-5 flex items-center gap-2">
+          <el-icon class="text-primary" :size="18"><Operation /></el-icon>
+          快捷入口
+        </h3>
+        <div class="grid grid-cols-2 gap-3">
+          <router-link 
+            to="/manager/novels"
+            class="flex items-center gap-3 p-4 rounded-xl bg-primary/5 hover:bg-primary/10 text-primary transition-colors"
+          >
+            <el-icon :size="24"><Document /></el-icon>
+            <span class="font-medium">小说管理</span>
+          </router-link>
+          <router-link 
+            to="/manager/authors"
+            class="flex items-center gap-3 p-4 rounded-xl bg-green-500/5 hover:bg-green-500/10 text-green-600 transition-colors"
+          >
+            <el-icon :size="24"><User /></el-icon>
+            <span class="font-medium">作者管理</span>
+          </router-link>
+          <router-link 
+            to="/manager/visitors"
+            class="flex items-center gap-3 p-4 rounded-xl bg-yellow-500/5 hover:bg-yellow-500/10 text-yellow-600 transition-colors"
+          >
+            <el-icon :size="24"><Avatar /></el-icon>
+            <span class="font-medium">访客管理</span>
+          </router-link>
+          <router-link 
+            to="/manager/categories"
+            class="flex items-center gap-3 p-4 rounded-xl bg-red-500/5 hover:bg-red-500/10 text-red-600 transition-colors"
+          >
+            <el-icon :size="24"><List /></el-icon>
+            <span class="font-medium">分类管理</span>
+          </router-link>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { reactive, ref, onMounted } from 'vue'
+import { 
+  Reading, User, Avatar, Folder, Refresh, Calendar, 
+  TrendCharts, Medal, DataAnalysis, Operation, Document, List
+} from '@element-plus/icons-vue'
+import StatisticsCard from '@/components/business/statistics-card.vue'
+import { getDashboardOverview, getNovelOngoingRanking, getAuthorProductiveRanking } from '@/api'
+import type { DashboardOverviewVO, NovelRankingVO, AuthorRankingVO } from '@/types'
+
+const overview = reactive<DashboardOverviewVO>({
+  novelCount: 0,
+  authorCount: 0,
+  visitorCount: 0,
+  categoryCount: 0,
+  todayNewNovels: 0,
+  todayNewAuthors: 0,
+  todayNewVisitors: 0,
+  hotNovelCount: 0,
+  finishedNovelCount: 0
+})
+
+const ongoingRanking = ref<NovelRankingVO[]>([])
+const authorRanking = ref<AuthorRankingVO[]>([])
+
+const fetchData = async () => {
+  try {
+    const [overviewRes, novelRes, authorRes] = await Promise.all([
+      getDashboardOverview(),
+      getNovelOngoingRanking(10),
+      getAuthorProductiveRanking(10)
+    ])
+    
+    Object.assign(overview, overviewRes.data)
+    ongoingRanking.value = novelRes.data || []
+    authorRanking.value = authorRes.data || []
+  } catch (error) {
+    console.error('Failed to fetch data:', error)
+  }
+}
+
+onMounted(() => {
+  fetchData()
+})
+</script>

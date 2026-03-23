@@ -43,6 +43,7 @@ public class FileServiceImpl implements FileService {
     public Result uploadFile(MultipartFile file, Integer code, Integer novelId, String oldFileUrl) {
         String typeName = FileUploadTypeEnum.getMessageByCode(code).name();
         if (!StringUtils.hasText(typeName)) {
+            log.info("无效的类型:code={}",code);
             return Result.error("上传文件类型错误");
         }
 

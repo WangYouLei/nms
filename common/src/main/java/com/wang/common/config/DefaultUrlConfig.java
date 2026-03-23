@@ -34,7 +34,7 @@ public class DefaultUrlConfig {
     public void init() {
         novelType = Map.of(
                 FileUploadTypeEnum.AUTHOR_AVATAR.getCode(), authorAvatarUrl,
-                FileUploadTypeEnum.USER_AVATAR.getCode(), visitorAvatarUrl,
+                FileUploadTypeEnum.VISITOR_AVATAR.getCode(), visitorAvatarUrl,
                 FileUploadTypeEnum.NOVEL_COVER.getCode(), novelCoverUrl
         );
     }
