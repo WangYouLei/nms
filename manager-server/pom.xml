@@ -15,18 +15,10 @@
     <packaging>jar</packaging>
 
     <dependencies>
-        <!-- 依赖common模块 -->
         <dependency>
             <groupId>com.wang</groupId>
-            <artifactId>common</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <!-- 依赖pojo模块 -->
-        <dependency>
-            <groupId>com.wang</groupId>
-            <artifactId>pojo</artifactId>
-            <version>${project.version}</version>
+            <artifactId>common-server</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
         </dependency>
 
         <!-- MySQL驱动 -->

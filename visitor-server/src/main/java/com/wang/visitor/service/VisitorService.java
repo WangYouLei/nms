@@ -61,4 +61,11 @@ public interface VisitorService {
      * @return 删除结果
      */
     Result deleteVisitor(VisitorDeleteDTO dto);
+
+    /**
+     * 获取访客名称和头像
+     * @param visitorId 访客ID
+     * @return 名称和头像
+     */
+    Result getNameAndAvatar(Integer visitorId);
 }

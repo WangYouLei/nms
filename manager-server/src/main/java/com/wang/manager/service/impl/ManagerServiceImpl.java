@@ -3,7 +3,7 @@ package com.wang.manager.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.config.DefaultUrlConfig;
-import com.wang.common.utils.UserContextUtil;
+import com.wang.common.utils.RoleContextUtil;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
@@ -24,7 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -70,6 +72,7 @@ public class ManagerServiceImpl implements ManagerService {
         LoginUser loginUser = LoginUser.builder()
                 .id(manager.getId().intValue())
                 .name(manager.getName())
+                .avatar(manager.getAvatar())
                 .account(manager.getAccount())
                 .role(UserRole.MANAGER)
                 .build();
@@ -84,7 +87,7 @@ public class ManagerServiceImpl implements ManagerService {
     @Override
     public Result addManager(ManagerDTO managerDTO) {
         // 获取当前登录用户
-        LoginUser loginUser = UserContextUtil.getCurrentUser();
+        LoginUser loginUser = RoleContextUtil.getCurrentUser();
 
         // 验证是否登录
         if (loginUser == null) {
@@ -153,7 +156,7 @@ public class ManagerServiceImpl implements ManagerService {
             return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
 
-        LoginUser loginUser = UserContextUtil.getCurrentUser();
+        LoginUser loginUser = RoleContextUtil.getCurrentUser();
         // 执行删除
         int result = managerMapper.deleteById(id);
         if (result == 1) {
@@ -300,7 +303,7 @@ public class ManagerServiceImpl implements ManagerService {
         // 加密新密码
         String hashedPassword = Argon2idUtil.hash(newPassword);
         manager.setPassword(hashedPassword);
-        LoginUser loginUser = UserContextUtil.getCurrentUser();
+        LoginUser loginUser = RoleContextUtil.getCurrentUser();
 
         int result = managerMapper.updateById(manager);
         if (result == 1) {
@@ -310,5 +313,19 @@ public class ManagerServiceImpl implements ManagerService {
             log.error("修改管理员密码失败：ID={}", id);
             return Result.error("密码修改失败");
         }
+    }
+
+    @Override
+    public Result getNameAndAvatar(Long id) {
+        log.info("获取管理员名称和头像：ID={}", id);
+        Map<String, String> map = new HashMap<>();
+        Manager manager = managerMapper.selectById(id);
+        if (manager == null) {
+            log.warn("管理员不存在：ID={}", id);
+            return Result.error("管理员不存在");
+        }
+        map.put("name", manager.getName());
+        map.put("avatar", manager.getAvatar());
+        return Result.success(map);
     }
 }

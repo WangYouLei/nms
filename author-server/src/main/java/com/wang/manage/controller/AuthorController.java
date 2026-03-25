@@ -46,6 +46,12 @@ public class AuthorController {
         log.info("获取作者信息请求：ID={}", id);
         return authorService.getAuthorInfo(id);
     }
+    @GetMapping("getNameAndAvatar/{id}")
+    @ApiOperation("获取作者公开信息（访客端）")
+    public Result getNameAndAvatar(@PathVariable Integer id){
+        log.info("获取作者公开信息请求：ID={}", id);
+        return authorService.getNameAndAvatar(id);
+    }
 
 
     @PostMapping("register")

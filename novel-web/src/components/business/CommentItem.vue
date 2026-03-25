@@ -2,7 +2,14 @@
   <div class="comment-item group">
     <!-- 用户头像 -->
     <div class="flex-shrink-0">
-      <div 
+      <img
+        v-if="avatarUrl && avatarUrl !== '/default-avatar.png'"
+        :src="avatarUrl"
+        :alt="comment.userName"
+        class="w-10 h-10 rounded-full object-cover"
+      />
+      <div
+        v-else
         class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
         :class="isOfficial ? 'bg-gradient-warm' : 'bg-gradient-primary'"
       >
@@ -47,18 +54,6 @@
 
       <!-- 操作按钮 -->
       <div class="flex items-center gap-4 mt-2 text-sm text-gray-400">
-        <!-- 点赞 -->
-        <button 
-          class="flex items-center gap-1 hover:text-primary transition-colors"
-          :class="{ 'text-red-500': comment.isLiked }"
-          @click="$emit('like', comment)"
-        >
-          <el-icon :size="16">
-            <component :is="comment.isLiked ? 'StarFilled' : 'Star'" />
-          </el-icon>
-          <span>{{ comment.likeCount || 0 }}</span>
-        </button>
-
         <!-- 回复 -->
         <button 
           class="flex items-center gap-1 hover:text-primary transition-colors"
@@ -77,26 +72,71 @@
           <el-icon :size="16"><Delete /></el-icon>
           <span>删除</span>
         </button>
+
+        <!-- 展开回复 -->
+        <button 
+          v-if="comment.replyCount > 0 && !isReply"
+          class="flex items-center gap-1 hover:text-primary transition-colors text-primary"
+          @click="toggleReplies"
+        >
+          <el-icon :size="16"><ChatLineRound /></el-icon>
+          <span>{{ showReplies ? '收起' : `${comment.replyCount}条回复` }}</span>
+        </button>
+      </div>
+
+      <!-- 子评论列表 -->
+      <div v-if="showReplies && replies.length > 0" class="mt-3 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
+        <CommentItem
+          v-for="reply in replies"
+          :key="reply.id"
+          :comment="reply"
+          :is-reply="true"
+          @reply="$emit('reply', $event)"
+          @delete="$emit('delete', $event)"
+        />
+        
+        <!-- 加载更多回复 -->
+        <div v-if="hasMoreReplies" class="py-2">
+          <button 
+            v-if="!loadingReplies"
+            class="text-sm text-primary hover:underline"
+            @click="loadMoreReplies"
+          >
+            加载更多回复...
+          </button>
+          <el-icon v-else class="is-loading text-primary" :size="16">
+            <Loading />
+          </el-icon>
+        </div>
+      </div>
+
+      <!-- 加载回复中 -->
+      <div v-if="loadingReplies && replies.length === 0" class="mt-3 pl-4">
+        <el-icon class="is-loading text-gray-400" :size="16"><Loading /></el-icon>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { ChatDotRound, Delete } from '@element-plus/icons-vue'
+import { ref, computed } from 'vue'
+import { ChatDotRound, Delete, ChatLineRound, Loading } from '@element-plus/icons-vue'
 import type { CommentVO } from '@/types/comment'
 import { formatRelativeTime } from '@/utils/format'
 import { useUserStore } from '@/stores'
+import { useImageUrl } from '@/utils/file-url'
+import { getReplies } from '@/api/comment'
 
 interface Props {
   comment: CommentVO
+  isReply?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  isReply: false
+})
 
 defineEmits<{
-  (e: 'like', comment: CommentVO): void
   (e: 'reply', comment: CommentVO): void
   (e: 'delete', comment: CommentVO): void
 }>()
@@ -109,11 +149,60 @@ const canDelete = computed(() => {
   return props.comment.userId === userStore.userId
 })
 
+// 使用响应式头像URL（自动处理预签名）
+const avatarUrl = useImageUrl(props.comment.userAvatar, '/default-avatar.png')
+
 const formatTime = formatRelativeTime
 
 const previewImage = (url: string) => {
-  // 简单实现，可以用更复杂的图片预览组件
   window.open(url, '_blank')
+}
+
+// 子评论相关
+const showReplies = ref(false)
+const loadingReplies = ref(false)
+const replies = ref<CommentVO[]>(props.comment.replies || [])
+const replyPage = ref(1)
+const replyPageSize = 5
+const hasMoreReplies = computed(() => replies.value.length < props.comment.replyCount)
+
+const toggleReplies = async () => {
+  showReplies.value = !showReplies.value
+  if (showReplies.value && replies.value.length === 0 && props.comment.replyCount > 0) {
+    await loadReplies()
+  }
+}
+
+const loadReplies = async () => {
+  if (!props.comment.id) return
+  
+  loadingReplies.value = true
+  try {
+    const res = await getReplies(props.comment.id, 1, replyPageSize)
+    replies.value = res.data?.list || []
+    replyPage.value = 1
+  } catch (error) {
+    console.error('Failed to load replies:', error)
+  } finally {
+    loadingReplies.value = false
+  }
+}
+
+const loadMoreReplies = async () => {
+  if (!props.comment.id) return
+  
+  loadingReplies.value = true
+  try {
+    replyPage.value++
+    const res = await getReplies(props.comment.id, replyPage.value, replyPageSize)
+    const newReplies = res.data?.list || []
+    replies.value = [...replies.value, ...newReplies]
+  } catch (error) {
+    console.error('Failed to load more replies:', error)
+    replyPage.value--
+  } finally {
+    loadingReplies.value = false
+  }
 }
 </script>
 

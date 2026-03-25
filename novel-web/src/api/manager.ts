@@ -1,5 +1,6 @@
 import request from '@/utils/request'
 import type { PageResult, ManagerVO, ManagerDTO, ManagerQueryDTO, DashboardOverviewVO, TrendVO, NovelRankingVO, AuthorRankingVO, NovelStatisticsVO, AuthorStatisticsVO, VisitorStatisticsVO } from '@/types'
+import type { ManualAuditVO, ManualAuditQueryDTO, AiAuditResult } from '@/types/comment'
 
 // ==================== 管理员认证 ====================
 
@@ -60,6 +61,13 @@ export function getManagerPage(params: { pageNum?: number; pageSize?: number }) 
  */
 export function updateManagerPassword(id: number, newPassword: string) {
   return request.postWithParams('/manager-server/manager/updatePassword', { id, newPassword })
+}
+
+/**
+ * 获取管理员名称和头像
+ */
+export function getManagerNameAndAvatar(id: number) {
+  return request.get<{ name: string; avatar: string }>(`/manager-server/manager/getNameAndAvatar/${id}`)
 }
 
 // ==================== 数据统计 ====================
@@ -125,4 +133,133 @@ export function getAuthorTrend(params: { startDate: string; endDate: string; typ
  */
 export function getVisitorTrend(params: { startDate: string; endDate: string; type?: string }) {
   return request.get<TrendVO[]>('/manager-server/manager/dashboard/statistics/visitor/register', params)
+}
+
+// ==================== 人工审核 ====================
+
+/**
+ * 获取待审核记录列表
+ */
+export function getPendingAuditList(pageNum: number = 1, pageSize: number = 10) {
+  return request.get<PageResult<ManualAuditVO>>('/api/manager-server/manual-audit/pending', {
+    pageNum,
+    pageSize
+  })
+}
+
+/**
+ * 获取审核记录列表（分页查询）
+ */
+export function getManualAuditList(data: ManualAuditQueryDTO) {
+  return request.post<PageResult<ManualAuditVO>>('/api/manager-server/manual-audit/list', data)
+}
+
+/**
+ * 获取审核记录详情
+ */
+export function getManualAuditDetail(id: number) {
+  return request.get<ManualAuditVO>(`/api/manager-server/manual-audit/detail/${id}`)
+}
+
+/**
+ * 审核通过
+ */
+export function approveAudit(id: number, managerId: number, managerName: string) {
+  return request.put(`/api/manager-server/manual-audit/approve/${id}`, {}, {
+    params: {
+      managerId,
+      managerName
+    }
+  })
+}
+
+/**
+ * 审核拒绝
+ */
+export function rejectAudit(id: number, refusalReason: string, managerId: number, managerName: string) {
+  return request.put(`/api/manager-server/manual-audit/reject/${id}`, {}, {
+    params: {
+      refusalReason,
+      managerId,
+      managerName
+    }
+  })
+}
+
+/**
+ * 执行审核（通过/拒绝）
+ */
+export function executeAudit(
+  id: number, 
+  result: number, 
+  refusalReason: string | null, 
+  managerId: number, 
+  managerName: string
+) {
+  return request.put('/api/manager-server/manual-audit/execute', {}, {
+    params: {
+      id,
+      result,
+      refusalReason,
+      managerId,
+      managerName
+    }
+  })
+}
+
+/**
+ * 批量审核通过
+ */
+export function batchApproveAudit(ids: number[], managerId: number, managerName: string) {
+  return request.put('/api/manager-server/manual-audit/batch-approve', ids, {
+    params: {
+      managerId,
+      managerName
+    }
+  })
+}
+
+/**
+ * 批量审核拒绝
+ */
+export function batchRejectAudit(ids: number[], refusalReason: string, managerId: number, managerName: string) {
+  return request.put('/api/manager-server/manual-audit/batch-reject', ids, {
+    params: {
+      refusalReason,
+      managerId,
+      managerName
+    }
+  })
+}
+
+/**
+ * 获取审核统计信息
+ */
+export function getAuditStatistics() {
+  return request.get<{
+    total: number
+    pending: number
+    approved: number
+    rejected: number
+  }>('/api/manager-server/manual-audit/statistics')
+}
+
+/**
+ * 删除审核记录
+ */
+export function deleteAuditRecord(id: number) {
+  return request.delete(`/api/manager-server/manual-audit/delete/${id}`)
+}
+
+// ==================== AI审核 ====================
+
+/**
+ * AI审核文本内容
+ */
+export function aiAuditContent(content: string, aimId: number, aimType: number) {
+  return request.post<AiAuditResult>('/api/common-server/aiAudit/audit', {
+    content,
+    aimId,
+    aimType
+  })
 }

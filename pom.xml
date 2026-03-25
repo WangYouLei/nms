@@ -103,11 +103,12 @@
                 <version>1.6.2</version>
             </dependency>
 
-            <!-- Jakarta Validation API -->
+            <!-- Jakarta Validation API - 由Spring Boot管理版本 -->
+            <!-- Hibernate Validator 8.x 支持 Jakarta Validation API 3.x -->
             <dependency>
-                <groupId>jakarta.validation</groupId>
-                <artifactId>jakarta.validation-api</artifactId>
-                <version>3.0.2</version>
+                <groupId>org.hibernate.validator</groupId>
+                <artifactId>hibernate-validator</artifactId>
+                <version>8.0.1.Final</version>
             </dependency>
 
             <!--添加密码加密argon2依赖-->
@@ -117,12 +118,6 @@
                 <version>2.11</version>
             </dependency>
 
-            <!-- Hibernate Validator -->
-            <dependency>
-                <groupId>org.hibernate.validator</groupId>
-                <artifactId>hibernate-validator</artifactId>
-                <version>6.2.0.Final</version>
-            </dependency>
             <dependency>
                 <groupId>cn.hutool</groupId>
                 <artifactId>hutool-all</artifactId>

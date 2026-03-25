@@ -17,6 +17,9 @@ public class NovelSearchDTO {
     @ApiModelProperty("小说副名称")
     private String subName;
 
+    @ApiModelProperty("作者ID")
+    private Integer authorId;
+
     @ApiModelProperty("是否删除")
     private Boolean isDel;
 

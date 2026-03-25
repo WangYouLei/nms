@@ -2,6 +2,11 @@ spring:
   application:
     name: common
 
+  # DashScope AI 配置
+  ai:
+    dashscope:
+      api-key: ${Spring_ai_alibaba}
+
 # 默认小说封面地址、默认作者头像地址、默认用户头像地址
 default:
   authorAvatarUrl: http://127.0.0.1:9000/nms/AUTHOR_AVATAR/5c347d6e-8d91-496f-857d-af9b45cdb480.jpg

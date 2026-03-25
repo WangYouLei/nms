@@ -33,6 +33,9 @@ public class NovelRankingVO implements Serializable {
         @ApiModelProperty("作者名称")
         private String authorName;
 
+        @ApiModelProperty("作者头像")
+        private String authorAvatar;
+
         @ApiModelProperty("章节数")
         private Integer chapterCount;
 

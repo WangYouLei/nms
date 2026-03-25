@@ -62,13 +62,18 @@ public class Author implements Serializable {
     @ApiModelProperty("邮箱")
     @Length(max= 50,message="编码长度不能超过50")
     private String email;
-    /**
-    * 作者头像地址
-    */
+/**
+     * 作者头像地址
+     */
     @Size(max= 255,message="编码长度不能超过255")
     @ApiModelProperty("作者头像地址")
     @Length(max= 255,message="编码长度不能超过255")
     private String avatar;
+    /**
+     * 作者简介
+     */
+    @ApiModelProperty("作者简介")
+    private String introduction;
 /**
      * 等级：1-执笔者，2-织梦师，3-造界者，4-渡舟人，5-燃灯者
      */

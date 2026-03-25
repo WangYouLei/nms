@@ -16,7 +16,7 @@ public class InterceptorConfig implements WebMvcConfigurer {
         // 添加角色拦截器，只允许 MANAGER 角色访问
         registry.addInterceptor(new RoleInterceptor("manager-server", UserRole.MANAGER))
                 .addPathPatterns("/manager/*/**")
-                // 登录、登出接口不拦截
-                .excludePathPatterns("/manager/login", "/manager/logout");
+                // 登录、登出、获取名称和头像接口不拦截
+                .excludePathPatterns("/manager/login", "/manager/logout", "/manager/getNameAndAvatar/*");
     }
 }

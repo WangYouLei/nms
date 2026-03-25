@@ -70,7 +70,6 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="likeCount" label="点赞" width="80" />
         <el-table-column prop="createTime" label="时间" width="160" />
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">

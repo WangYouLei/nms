@@ -6,14 +6,14 @@ import com.wang.common.model.LoginUser;
  * 用户上下文工具类
  * 用于在请求线程中存储和获取当前登录用户信息
  */
-public class UserContextUtil {
+public class RoleContextUtil {
     
     private static final ThreadLocal<LoginUser> THREAD_LOCAL = new ThreadLocal<>();
 
     /**
      * 私有构造方法，工具类不能实例化
      */
-    private UserContextUtil() {
+    private RoleContextUtil() {
         throw new UnsupportedOperationException("工具类不能被实例化");
     }
 

@@ -18,5 +18,9 @@ public class CommonInterceptorConfig implements WebMvcConfigurer {
                 .addPathPatterns("/file/**")
                 // 获取预签名URL接口不拦截（用于前端显示图片）
                 .excludePathPatterns("/file/presigned-url");
+
+        registry.addInterceptor(new RoleInterceptor("sensitiveWord",UserRole.MANAGER))
+                .addPathPatterns("/sensitiveWord/**")
+                .excludePathPatterns("/sensitiveWord/list","/sensitiveWord/detect");
     }
 }

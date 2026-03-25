@@ -115,7 +115,17 @@ public enum BizCodeEnum {
     /**
      * 访客账号已存在
      */
-    VISITOR_ACCOUNT_EXIST(40002, "访客账号已存在");
+    VISITOR_ACCOUNT_EXIST(40002, "访客账号已存在"),
+
+    // =================== 访客相关状态码 ===================
+    /**
+     * 涉及敏感词
+     */
+    SENSITIVE_WORD(50003, "涉及敏感词"),
+    /**
+     * 涉及高危敏感次，禁止发布
+     */
+    HIGH_RISK_SENSITIVE_WORD(50004, "涉及高危敏感次，禁止发布");
 
 
     /**

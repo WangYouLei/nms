@@ -61,3 +61,10 @@ export function updateVisitorPasswordByEmail(data: PasswordUpdateEmailDTO) {
 export function deleteVisitor(data: VisitorDeleteDTO) {
   return request.post('/visitor-server/visitor/delete', data)
 }
+
+/**
+ * 获取访客名称和头像
+ */
+export function getVisitorNameAndAvatar(visitorId: number) {
+  return request.get<{ name: string; avatar: string }>(`/visitor-server/visitor/getNameAndAvatar/${visitorId}`)
+}

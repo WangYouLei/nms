@@ -56,6 +56,13 @@ public class VisitorController {
         return visitorService.getVisitorInfo(visitorId);
     }
 
+    @GetMapping("/getNameAndAvatar/{visitorId}")
+    @ApiOperation("获取访客名称和头像")
+    public Result getNameAndAvatar(@PathVariable Integer visitorId) {
+        log.info("获取访客名称和头像请求：ID={}", visitorId);
+        return visitorService.getNameAndAvatar(visitorId);
+    }
+
 
     @PutMapping("/update")
     @ApiOperation("修改访客信息（不包括密码）")

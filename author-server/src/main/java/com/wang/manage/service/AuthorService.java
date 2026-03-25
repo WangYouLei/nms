@@ -60,4 +60,11 @@ public interface AuthorService {
      * @return
      */
     Result updatePasswordByEmail(PasswordUpdateEmailDTO dto);
+
+    /**
+     * 获取作者名称和头像
+     * @param id 作者ID
+     * @return 名称和头像
+     */
+    Result getNameAndAvatar(Integer id);
 }

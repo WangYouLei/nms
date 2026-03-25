@@ -32,6 +32,9 @@ public class NovelListVO {
     @ApiModelProperty("作者名称")
     private String authorName;
 
+    @ApiModelProperty("作者头像")
+    private String authorAvatar;
+
     @ApiModelProperty("小说章节")
     private Integer chapterCount;
     

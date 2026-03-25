@@ -55,11 +55,14 @@
             </p>
             
             <!-- 作者信息 -->
-            <div class="flex items-center justify-center md:justify-start gap-3 mt-4">
-              <div class="w-8 h-8 rounded-full bg-gradient-primary flex items-center justify-center text-white text-sm">
-                {{ novel.authorName?.charAt(0) }}
-              </div>
-              <span class="text-gray-700 dark:text-gray-300 font-medium">{{ novel.authorName }}</span>
+            <div 
+              class="flex items-center justify-center md:justify-start gap-3 mt-4 cursor-pointer hover:opacity-80 transition-opacity"
+              @click="goToAuthor"
+            >
+              <el-avatar :size="32" :src="getImageUrl(author?.avatar || novel?.authorAvatar)">
+                {{ (author?.name || novel?.authorName)?.charAt(0) }}
+              </el-avatar>
+              <span class="text-gray-700 dark:text-gray-300 font-medium">{{ author?.name || novel?.authorName }}</span>
             </div>
             
             <!-- 数据统计 -->
@@ -154,19 +157,21 @@
               <div class="flex items-center gap-2">
                 <div class="w-1 h-5 bg-gradient-cool rounded-full"></div>
                 <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200">章节目录</h3>
+                <el-divider direction="vertical"></el-divider>
                 <span class="text-sm text-gray-400">共{{ chapters.length }}章</span>
               </div>
-              <el-input 
-                v-model="chapterSearch"
-                placeholder="搜索章节"
-                class="w-48"
-                size="small"
-                clearable
+              <div><el-input
+                  v-model="chapterSearch"
+                  placeholder="搜索章节"
+                  class="w-48"
+                  size="small"
+                  clearable
               >
                 <template #prefix>
                   <el-icon><Search /></el-icon>
                 </template>
-              </el-input>
+              </el-input></div>
+
             </div>
             
             <div v-if="filteredChapters.length === 0" class="text-center py-8 text-gray-400">
@@ -212,19 +217,22 @@
         <!-- 右侧边栏 -->
         <div class="space-y-6">
           <!-- 作者信息卡 -->
-          <section class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-5">
+          <section 
+            class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-5 cursor-pointer hover:shadow-lg transition-shadow"
+            @click="goToAuthor"
+          >
             <div class="flex items-center gap-4">
-              <div class="w-14 h-14 rounded-full bg-gradient-primary flex items-center justify-center text-white text-xl font-bold">
-                {{ novel.authorName?.charAt(0) }}
-              </div>
+              <el-avatar :size="56" :src="getImageUrl(author?.avatar || novel?.authorAvatar)">
+                {{ (author?.name || novel?.authorName)?.charAt(0) }}
+              </el-avatar>
               <div>
-                <p class="font-bold text-gray-800 dark:text-gray-200">{{ novel.authorName }}</p>
+                <p class="font-bold text-gray-800 dark:text-gray-200">{{ author?.name || novel?.authorName }}</p>
                 <p class="text-sm text-gray-500">作者</p>
               </div>
             </div>
             <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
               <p class="text-sm text-gray-500">
-                <span class="text-primary font-medium">{{ novel.chapterCount }}</span> 篇作品
+                <span class="text-primary font-medium">{{ author?.novelCount || 0 }}</span> 篇作品
               </p>
             </div>
           </section>
@@ -269,20 +277,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { 
   Loading, Reading, Document, Clock, FolderAdd, Search, 
   StarFilled, Warning 
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getNovelDetail, getChapterList, getHotNovels } from '@/api'
+import { getNovelDetail, getChapterList, getHotNovels, getAuthorPublicInfo } from '@/api'
 import { useNovelStore } from '@/stores'
 import { getImageUrl } from '@/utils/file-url'
 import { formatRelativeTime } from '@/utils/format'
 import CommentList from '@/components/business/CommentList.vue'
 import { CommentTargetType } from '@/types/comment'
-import type { NovelDetailVO, NovelChapterVO, NovelListVO } from '@/types'
+import type { NovelDetailVO, NovelChapterVO, NovelListVO, VisitorAuthorVO } from '@/types'
 
 const router = useRouter()
 const route = useRoute()
@@ -292,6 +300,7 @@ const loading = ref(true)
 const novel = ref<NovelDetailVO | null>(null)
 const chapters = ref<NovelChapterVO[]>([])
 const recommendNovels = ref<NovelListVO[]>([])
+const author = ref<VisitorAuthorVO | null>(null)
 const showFullIntro = ref(false)
 const chapterSearch = ref('')
 const chapterPage = ref(1)
@@ -331,6 +340,16 @@ const fetchData = async () => {
     
     if (novel.value) {
       novelStore.setCurrentNovel(novel.value)
+      
+      // 获取作者公开信息（包含作品数量）
+      if (novel.value.authorId) {
+        try {
+          const authorRes = await getAuthorPublicInfo(novel.value.authorId)
+          author.value = authorRes.data
+        } catch (error) {
+          console.error('Failed to fetch author info:', error)
+        }
+      }
     }
   } catch (error) {
     console.error('Failed to fetch novel:', error)
@@ -359,6 +378,22 @@ const handleChapterSelect = (chapter: NovelChapterVO) => {
 const handleNovelClick = (item: NovelListVO) => {
   router.push(`/novel/${item.id}`)
 }
+
+const goToAuthor = () => {
+  const authorId = novel.value?.authorId
+  if (authorId) {
+    router.push(`/author/${authorId}`)
+  } else {
+    ElMessage.warning('作者信息不存在')
+  }
+}
+
+// 监听路由变化，当小说ID变化时重新获取数据
+watch(() => route.params.id, (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    fetchData()
+  }
+})
 
 onMounted(() => {
   fetchData()

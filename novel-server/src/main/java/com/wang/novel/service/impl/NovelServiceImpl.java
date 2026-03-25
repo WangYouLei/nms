@@ -3,13 +3,14 @@ package com.wang.novel.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.config.DefaultUrlConfig;
-import com.wang.common.utils.UserContextUtil;
+import com.wang.common.utils.RoleContextUtil;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.common.utils.CopyPropertiesUtil;
+import com.wang.novel.mapper.AuthorMapper;
 import com.wang.novel.mapper.NovelCategoryMapper;
 import com.wang.novel.mapper.NovelCategoryRelationMapper;
 import com.wang.novel.mapper.NovelMapper;
@@ -47,6 +48,7 @@ public class NovelServiceImpl implements NovelService {
     private final NovelMapper novelMapper;
     private final NovelCategoryMapper novelCategoryMapper;
     private final NovelCategoryRelationMapper novelCategoryRelationMapper;
+    private final AuthorMapper authorMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final DefaultUrlConfig defaultUrlConfig;
 
@@ -67,11 +69,13 @@ public class NovelServiceImpl implements NovelService {
     public NovelServiceImpl(NovelMapper novelMapper,
                             NovelCategoryMapper novelCategoryMapper,
                             NovelCategoryRelationMapper novelCategoryRelationMapper,
+                            AuthorMapper authorMapper,
                             RedisTemplate<String, Object> redisTemplate,
                             DefaultUrlConfig defaultUrlConfig) {
         this.novelMapper = novelMapper;
         this.novelCategoryMapper = novelCategoryMapper;
         this.novelCategoryRelationMapper = novelCategoryRelationMapper;
+        this.authorMapper = authorMapper;
         this.redisTemplate = redisTemplate;
         this.defaultUrlConfig = defaultUrlConfig;
     }
@@ -144,10 +148,11 @@ public class NovelServiceImpl implements NovelService {
      * 统一搜索小说列表
      * 权限控制：
      * - Author: 只能搜索自己的小说
-     * - Manager/Visitor: 可以搜索所有小说
+     * - Manager/Visitor: 可以搜索所有小说，支持按authorId筛选
      * 搜索条件：
      * - keyword: 关键词搜索（模糊匹配名称、副名称、标签）
      * - name/subName/isHot/isFinished: 精确条件筛选
+     * - authorId: 按作者ID筛选（仅Manager/Visitor可用）
      */
     @Override
     public Result searchNovels(NovelSearchDTO dto) {
@@ -168,14 +173,20 @@ public class NovelServiceImpl implements NovelService {
         LambdaQueryWrapper<Novel> queryWrapper = new LambdaQueryWrapper<>();
 
         // 获取当前登录用户（可能为空，Visitor无需登录）
-        LoginUser loginUser = UserContextUtil.getCurrentUser();
+        LoginUser loginUser = RoleContextUtil.getCurrentUser();
 
         // 权限过滤：Author只能搜索自己的小说，Manager/Visitor可以搜索所有小说
         if (loginUser != null && UserRole.AUTHOR.equals(loginUser.getRole())) {
             queryWrapper.eq(Novel::getAuthorId, loginUser.getId());
             log.info("[Author] 搜索小说：作者ID={}", loginUser.getId());
         } else {
-            log.info("[Manager/Visitor] 搜索小说：查询全部");
+            // Manager/Visitor 可以按 authorId 筛选
+            if (dto.getAuthorId() != null) {
+                queryWrapper.eq(Novel::getAuthorId, dto.getAuthorId());
+                log.info("[Manager/Visitor] 搜索小说：按作者ID={}筛选", dto.getAuthorId());
+            } else {
+                log.info("[Manager/Visitor] 搜索小说：查询全部");
+            }
         }
 
         // 关键词搜索（模糊匹配名称、副名称、标签）
@@ -229,7 +240,7 @@ public class NovelServiceImpl implements NovelService {
     @Override
     public Result addNovel(NovelDTO novelDTO) {
         // 获取当前登录用户信息
-        LoginUser loginUser = UserContextUtil.getCurrentUser();
+        LoginUser loginUser = RoleContextUtil.getCurrentUser();
 
 
         Novel novel = new Novel();
@@ -241,6 +252,8 @@ public class NovelServiceImpl implements NovelService {
         novel.setAuthorId(loginUser.getId());
         // 设置作者名称为当前登录用户的名称（冗余字段）
         novel.setAuthorName(loginUser.getName());
+        // 设置作者头像为当前登录用户的头像（冗余字段）
+        novel.setAuthorAvatar(loginUser.getAvatar());
 
         // 设置小说信息
         novel.setIsHot(false);
@@ -276,7 +289,7 @@ public class NovelServiceImpl implements NovelService {
     @Override
     public Result deleteNovel(Integer id) {
         // 获取当前登录用户信息
-        LoginUser loginUser = UserContextUtil.getCurrentUser();
+        LoginUser loginUser = RoleContextUtil.getCurrentUser();
 
         // 检查小说是否存在
         Novel novel = novelMapper.selectById(id);
@@ -310,7 +323,7 @@ public class NovelServiceImpl implements NovelService {
     @Override
     public Result updateNovel(NovelDTO novelDTO) {
         // 获取当前登录用户信息
-        LoginUser loginUser = UserContextUtil.getCurrentUser();
+        LoginUser loginUser = RoleContextUtil.getCurrentUser();
 
 
         // 检查小说是否存在
@@ -464,6 +477,20 @@ public class NovelServiceImpl implements NovelService {
         NovelDetailVO vo = new NovelDetailVO();
         CopyPropertiesUtil.copyNonNullProperties(novel, vo);
         vo.setCategories(categories);
+        
+        // 设置作者ID
+        vo.setAuthorId(novel.getAuthorId());
+        
+        // 设置作者头像：优先使用冗余字段，为空时从author表查询
+        if (StringUtils.hasText(novel.getAuthorAvatar())) {
+            vo.setAuthorAvatar(novel.getAuthorAvatar());
+        } else if (novel.getAuthorId() != null) {
+            String avatar = authorMapper.selectAvatarById(novel.getAuthorId());
+            vo.setAuthorAvatar(avatar != null ? avatar : defaultUrlConfig.getAuthorAvatarUrl());
+        } else {
+            vo.setAuthorAvatar(defaultUrlConfig.getAuthorAvatarUrl());
+        }
+        
         return vo;
     }
 

@@ -78,6 +78,12 @@ const routes: RouteRecordRaw[] = [
         name: 'VisitorComments',
         component: () => import('@/views/visitor/comment/index.vue'),
         meta: { title: '我的评论', requiresAuth: true, role: 'VISITOR' }
+      },
+      {
+        path: 'author/:id',
+        name: 'VisitorAuthor',
+        component: () => import('@/views/visitor/author/index.vue'),
+        meta: { title: '作者主页' }
       }
     ]
   },
@@ -139,6 +145,18 @@ const routes: RouteRecordRaw[] = [
         name: 'AuthorChapters',
         component: () => import('@/views/author/chapter/list.vue'),
         meta: { title: '章节管理' }
+      },
+      {
+        path: 'novel/:novelId/chapter/create',
+        name: 'AuthorChapterCreate',
+        component: () => import('@/views/author/chapter/create.vue'),
+        meta: { title: '新建章节' }
+      },
+      {
+        path: 'novel/:novelId/chapter/:chapterId/edit',
+        name: 'AuthorChapterEdit',
+        component: () => import('@/views/author/chapter/edit.vue'),
+        meta: { title: '编辑章节' }
       },
       {
         path: 'comments',

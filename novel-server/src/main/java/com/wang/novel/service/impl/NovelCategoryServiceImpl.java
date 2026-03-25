@@ -2,7 +2,7 @@ package com.wang.novel.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.wang.common.utils.UserContextUtil;
+import com.wang.common.utils.RoleContextUtil;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
@@ -18,7 +18,6 @@ import com.wang.pojo.entity.Novel;
 import com.wang.pojo.entity.NovelCategory;
 import com.wang.pojo.entity.NovelCategoryRelation;
 import com.wang.pojo.vo.NovelCategoryVO;
-import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import com.wang.common.utils.CopyPropertiesUtil;
 import org.springframework.stereotype.Service;
@@ -90,7 +89,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     @Override
     public Result addCategory(NovelCategoryDTO dto) {
         // 权限校验：只有管理员可以添加分类
-        LoginUser loginUser = UserContextUtil.getCurrentUser();
+        LoginUser loginUser = RoleContextUtil.getCurrentUser();
         if (loginUser == null || !UserRole.MANAGER.equals(loginUser.getRole())) {
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }
@@ -113,7 +112,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     @Override
     public Result updateCategory(NovelCategoryDTO dto) {
         // 权限校验：只有管理员可以修改分类
-        LoginUser loginUser = UserContextUtil.getCurrentUser();
+        LoginUser loginUser = RoleContextUtil.getCurrentUser();
         if (loginUser == null || !UserRole.MANAGER.equals(loginUser.getRole())) {
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }
@@ -143,7 +142,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     @Transactional
     public Result deleteCategory(Integer id) {
         // 权限校验：只有管理员可以删除分类
-        LoginUser loginUser = UserContextUtil.getCurrentUser();
+        LoginUser loginUser = RoleContextUtil.getCurrentUser();
         if (loginUser == null || !UserRole.MANAGER.equals(loginUser.getRole())) {
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }
@@ -204,7 +203,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
         }
 
         // 权限校验：只有作者可以设置自己小说的分类
-        LoginUser loginUser = UserContextUtil.getCurrentUser();
+        LoginUser loginUser = RoleContextUtil.getCurrentUser();
         if (loginUser == null || !UserRole.AUTHOR.equals(loginUser.getRole())) {
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }

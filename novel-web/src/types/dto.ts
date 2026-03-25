@@ -36,6 +36,8 @@ export interface NovelSearchDTO extends PaginationParams {
   name?: string
   /** 小说副名称 */
   subName?: string
+  /** 作者ID */
+  authorId?: number
   /** 是否删除 */
   isDel?: boolean
   /** 是否热门 */

@@ -91,6 +91,17 @@ export function getNovelsByCategory(categoryId: number, params: { pageNum?: numb
   return request.get<PageResult<NovelListVO>>(`/novel-server/visitor/novel/category/${categoryId}`, params)
 }
 
+/**
+ * 按作者查询小说（使用通用搜索接口）
+ */
+export function getNovelsByAuthor(authorId: number, params?: { pageNum?: number; pageSize?: number }) {
+  return request.post<PageResult<NovelListVO>>('/novel-server/common/novel/search', {
+    authorId,
+    pageNum: params?.pageNum ?? 1,
+    pageSize: params?.pageSize ?? 10
+  })
+}
+
 // ==================== 作者端接口 ====================
 
 /**

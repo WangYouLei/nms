@@ -1,7 +1,7 @@
 package com.wang.common.interceptor;
 
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
-import com.wang.common.utils.UserContextUtil;
+import com.wang.common.utils.RoleContextUtil;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
@@ -21,7 +21,7 @@ import java.util.Set;
 /**
  * 角色拦截器
  * 通过构造函数指定允许访问的角色列表
- * 使用 UserContextUtil 存储用户信息，服务层可通过 UserContextUtil.getCurrentUser() 获取
+ * 使用 RoleContextUtil 存储用户信息，服务层可通过 RoleContextUtil.getCurrentUser() 获取
  */
 @Slf4j
 public class RoleInterceptor implements HandlerInterceptor {
@@ -79,8 +79,8 @@ public class RoleInterceptor implements HandlerInterceptor {
                         .role(role)
                         .build();
 
-                // 用户信息存储到 UserContextUtil，服务层可通过 UserContextUtil.getCurrentUser() 获取
-                UserContextUtil.setCurrentUser(loginUser);
+                // 用户信息存储到 RoleContextUtil，服务层可通过 RoleContextUtil.getCurrentUser() 获取
+                RoleContextUtil.setCurrentUser(loginUser);
                 return true;
             }
 
@@ -95,6 +95,6 @@ public class RoleInterceptor implements HandlerInterceptor {
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
         // 线程变量销毁，防止内存泄漏
-        UserContextUtil.clear();
+        RoleContextUtil.clear();
     }
 }

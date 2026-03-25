@@ -51,7 +51,6 @@
         v-for="comment in comments" 
         :key="comment.id"
         :comment="comment"
-        @like="handleLike"
         @reply="handleReply"
         @delete="handleDelete"
       />
@@ -77,7 +76,7 @@ import { Loading, ChatDotRound } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import CommentForm from './CommentForm.vue'
 import CommentItem from './CommentItem.vue'
-import { getCommentsByTarget, addComment, toggleLike, deleteComment } from '@/api/comment'
+import { getCommentsByTarget, addComment, deleteComment } from '@/api/comment'
 import type { CommentVO, CommentDTO, CommentTargetType } from '@/types/comment'
 import { useUserStore } from '@/stores'
 
@@ -128,6 +127,7 @@ const handleCommentSubmit = async (content: string) => {
       userId: userStore.userId!,
       userType: userStore.role === 'VISITOR' ? 1 : userStore.role === 'AUTHOR' ? 2 : 3,
       userName: userStore.userName!,
+      userAvatar: userStore.userInfo?.avatar || undefined,
       targetType: props.targetType,
       targetId: props.targetId,
       novelId: props.novelId,
@@ -155,25 +155,6 @@ const handleCommentSubmit = async (content: string) => {
     } else {
       ElMessage.error(errorMessage)
     }
-  }
-}
-
-const handleLike = async (comment: CommentVO) => {
-  if (!userStore.isLoggedIn) {
-    ElMessage.warning('请先登录')
-    return
-  }
-
-  try {
-    const res = await toggleLike(
-      comment.id,
-      userStore.userId!,
-      userStore.role === 'VISITOR' ? 1 : userStore.role === 'AUTHOR' ? 2 : 3
-    )
-    comment.isLiked = res.data?.liked
-    comment.likeCount += res.data?.liked ? 1 : -1
-  } catch (error) {
-    console.error('Failed to toggle like:', error)
   }
 }
 

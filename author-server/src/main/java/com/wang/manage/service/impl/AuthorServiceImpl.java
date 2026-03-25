@@ -18,11 +18,14 @@ import com.wang.pojo.dto.AuthorRegisterDTO;
 import com.wang.pojo.dto.PasswordUpdateEmailDTO;
 import com.wang.pojo.entity.Author;
 import com.wang.pojo.vo.AuthorVO;
+import com.wang.pojo.vo.VisitorAuthorVO;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 作者服务实现类
@@ -286,5 +289,23 @@ public class AuthorServiceImpl implements AuthorService {
             log.info("修改作者密码成功：ID={}", passwordUpdateEmailDTO.getId());
             return Result.success("作者密码修改成功");
         }
+    }
+
+    @Override
+    public Result getNameAndAvatar(Integer id) {
+        Author author = authorMapper.selectById(id);
+        if (author == null || author.getIsDel()) {
+            return Result.error("作者不存在");
+        }
+
+        VisitorAuthorVO vo = new VisitorAuthorVO();
+        vo.setId(author.getId());
+        vo.setName(author.getName());
+        vo.setAvatar(author.getAvatar());
+        vo.setRank(author.getRank());
+        vo.setIntroduction(author.getIntroduction());
+        vo.setNovelCount(author.getNovelCount() != null ? author.getNovelCount() : 0);
+        
+        return Result.success(vo);
     }
 }

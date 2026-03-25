@@ -8,7 +8,7 @@
           <el-form :model="userInfo" label-width="100px" class="max-w-md">
             <el-form-item label="头像">
               <div class="flex items-center gap-4">
-                <el-avatar :size="64" :src="userInfo.avatar" />
+                <el-avatar :size="64" :src="avatarUrl" />
                 <el-upload
                   :show-file-list="false"
                   :before-upload="beforeAvatarUpload"
@@ -53,12 +53,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getAuthorInfo, updateAuthor, updateAuthorPassword, uploadFile } from '@/api'
 import { useUserStore } from '@/stores'
 import { FileUploadType } from '@/enums'
 import { validateImageFile } from '@/utils/file-validator'
+import { getImageUrl } from '@/utils/file-url'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
 
 const userStore = useUserStore()
@@ -72,6 +73,9 @@ const userInfo = reactive({
   email: '',
   avatar: ''
 })
+
+// 计算头像URL
+const avatarUrl = computed(() => getImageUrl(userInfo.avatar, '/default-avatar.png'))
 
 const passwordFormRef = ref<FormInstance>()
 const passwordForm = reactive({

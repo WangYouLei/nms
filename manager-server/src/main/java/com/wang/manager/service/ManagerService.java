@@ -57,4 +57,11 @@ public interface ManagerService {
      * @return 修改结果
      */
     Result updatePassword(Long id, String newPassword);
+
+    /**
+     * 获取管理员名称和头像
+     * @param id 管理员ID
+     * @return 名称和头像
+     */
+    Result getNameAndAvatar(Long id);
 }

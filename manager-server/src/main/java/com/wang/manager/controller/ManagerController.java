@@ -85,4 +85,11 @@ public class ManagerController {
         log.info("管理员登出");
         return Result.success("登出成功");
     }
+
+    @GetMapping("/getNameAndAvatar/{id}")
+    @ApiOperation("获取管理员名称和头像")
+    public Result getNameAndAvatar(@PathVariable Long id) {
+        log.info("获取管理员名称和头像请求：ID={}", id);
+        return managerService.getNameAndAvatar(id);
+    }
 }

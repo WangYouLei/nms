@@ -1,7 +1,7 @@
 package com.wang.novel.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.wang.common.utils.UserContextUtil;
+import com.wang.common.utils.RoleContextUtil;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.FileUploadTypeEnum;
 import com.wang.common.enums.UserRole;
@@ -11,7 +11,6 @@ import com.wang.commonserver.service.FileService;
 import com.wang.novel.mapper.NovelChapterMapper;
 import com.wang.novel.mapper.NovelMapper;
 import com.wang.novel.service.NovelChapterService;
-import com.wang.pojo.dto.NovelChapterDTO;
 import com.wang.pojo.entity.Novel;
 import com.wang.pojo.entity.NovelChapter;
 import com.wang.pojo.vo.NovelChapterVO;
@@ -245,7 +244,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
      * 获取当前登录用户
      */
     private LoginUser getLoginUser() {
-        return UserContextUtil.getCurrentUser();
+        return RoleContextUtil.getCurrentUser();
     }
 
     /**

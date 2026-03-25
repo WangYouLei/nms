@@ -16,6 +16,6 @@ public class InterceptorConfig implements WebMvcConfigurer {
         registry.addInterceptor(new RoleInterceptor("author-server", UserRole.AUTHOR))
                 .addPathPatterns("/author/*/**")
                 // 登录、登出、注册接口不拦截
-                .excludePathPatterns("/author/login", "/author/logout", "/author/register");
+                .excludePathPatterns("/author/login", "/author/logout", "/author/register","/author/getNameAndAvatar/{id}");
     }
 }

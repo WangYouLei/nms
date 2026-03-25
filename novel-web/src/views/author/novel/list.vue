@@ -48,10 +48,19 @@
             <span>更新于 {{ formatTime(novel.updateTime) }}</span>
           </div>
         </div>
-        <div class="flex flex-col gap-2">
-          <el-button size="small" @click="router.push(`/author/novel/edit/${novel.id}`)">编辑</el-button>
-          <el-button size="small" @click="router.push(`/author/novel/${novel.id}/chapters`)">章节管理</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(novel.id)">删除</el-button>
+        <div class="flex flex-col gap-2 justify-center">
+          <el-button size="small" class="w-24" @click="router.push(`/author/novel/edit/${novel.id}`)">
+            <el-icon class="mr-1"><Edit /></el-icon>编辑
+          </el-button>
+          <el-button size="small" class="w-24" @click="router.push(`/author/novel/${novel.id}/chapters`)">
+            <el-icon class="mr-1"><List /></el-icon>章节管理
+          </el-button>
+          <el-button size="small" type="primary" class="w-24" @click="router.push(`/author/novel/${novel.id}/chapter/create`)">
+            <el-icon class="mr-1"><Plus /></el-icon>添加章节
+          </el-button>
+          <el-button size="small" type="danger" class="w-24" @click="handleDelete(novel.id)">
+            <el-icon class="mr-1"><Delete /></el-icon>删除
+          </el-button>
         </div>
       </div>
     </div>
@@ -61,7 +70,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus, Loading } from '@element-plus/icons-vue'
+import { Plus, Loading, Edit, List, Delete } from '@element-plus/icons-vue'
 import { searchNovels, deleteNovelAuthor } from '@/api'
 import { formatRelativeTime } from '@/utils/format'
 import { getImageUrl } from '@/utils/file-url'

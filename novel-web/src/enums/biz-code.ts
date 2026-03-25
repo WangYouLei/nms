@@ -1,13 +1,12 @@
 /**
  * 业务状态码枚举
- * 注意：后端 Result.success() 返回 code = 1，不是 10000
  */
 export enum BizCode {
   // 通用状态码
-  /** 成功 - 后端 Result.success() 硬编码为 1 */
-  SUCCESS = 1,
-  /** 失败 - 后端 Result.error() 返回 0 */
-  FAIL = 0,
+  /** 成功 */
+  SUCCESS = 10000,
+  /** 失败 */
+  FAIL = 10001,
   PARAM_INVALID = 10002,
   SYSTEM_ERROR = 10003,
   FILE_UPLOAD_FAIL = 10004,

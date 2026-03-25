@@ -3,8 +3,22 @@
     <!-- 页面标题 -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">评论审核</h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-1">审核用户评论内容</p>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">人工审核</h1>
+        <p class="text-gray-500 dark:text-gray-400 mt-1">审核AI审核后的内容</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 text-sm">
+          <span class="text-gray-500">待审核:</span>
+          <el-tag type="warning">{{ statistics.pending }}</el-tag>
+        </div>
+        <div class="flex items-center gap-2 text-sm">
+          <span class="text-gray-500">已通过:</span>
+          <el-tag type="success">{{ statistics.approved }}</el-tag>
+        </div>
+        <div class="flex items-center gap-2 text-sm">
+          <span class="text-gray-500">已拒绝:</span>
+          <el-tag type="danger">{{ statistics.rejected }}</el-tag>
+        </div>
       </div>
     </div>
 
@@ -17,66 +31,82 @@
           @click="activeTab = 'pending'; fetchList()"
         >
           待审核
-          <span v-if="pendingCount > 0" class="ml-1 px-1.5 py-0.5 bg-white/20 rounded-full text-xs">
-            {{ pendingCount }}
+          <span v-if="statistics.pending > 0" class="ml-1 px-1.5 py-0.5 bg-white/20 rounded-full text-xs">
+            {{ statistics.pending }}
           </span>
+        </button>
+        <button 
+          class="px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          :class="activeTab === 'approved' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'"
+          @click="activeTab = 'approved'; fetchList()"
+        >
+          已通过
+        </button>
+        <button 
+          class="px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          :class="activeTab === 'rejected' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'"
+          @click="activeTab = 'rejected'; fetchList()"
+        >
+          已拒绝
         </button>
         <button 
           class="px-4 py-2 rounded-xl text-sm font-medium transition-colors"
           :class="activeTab === 'all' ? 'bg-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'"
           @click="activeTab = 'all'; fetchList()"
         >
-          全部评论
+          全部记录
         </button>
       </div>
     </div>
 
     <!-- 列表 -->
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card overflow-hidden">
-      <el-table :data="commentList" v-loading="loading" stripe>
-        <el-table-column label="评论者" width="150">
+      <el-table :data="auditList" v-loading="loading" stripe>
+        <el-table-column label="审核对象" width="120">
           <template #default="{ row }">
-            <div class="flex items-center gap-2">
-              <div 
-                class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                :class="row.userType === 3 ? 'bg-gradient-warm' : 'bg-gradient-primary'"
-              >
-                {{ row.userName?.charAt(0) }}
-              </div>
-              <div>
-                <p class="font-medium text-gray-800 dark:text-gray-200">{{ row.userName }}</p>
-                <p class="text-xs text-gray-400">{{ getUserType(row.userType) }}</p>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="content" label="评论内容" min-width="300">
-          <template #default="{ row }">
-            <p class="text-gray-700 dark:text-gray-300 line-clamp-2">{{ row.content }}</p>
-            <!-- 敏感词命中提示 -->
-            <div v-if="row.status === 3 && row.sensitiveWords" class="mt-1">
-              <el-tag type="warning" size="small">命中敏感词</el-tag>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="评论对象" width="120">
-          <template #default="{ row }">
-            <span class="text-gray-600 dark:text-gray-400">
-              {{ row.targetType === 1 ? '小说' : '章节' }}
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)">
-              {{ getStatusText(row.status) }}
+            <el-tag :type="getOrderTypeTag(row.aimType)">
+              {{ row.aimTypeName }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="提交时间" width="180" />
+        <el-table-column prop="aimId" label="对象ID" width="100" />
+        <el-table-column label="AI审核意见" min-width="300">
+          <template #default="{ row }">
+            <div v-if="row.aiResult" class="text-sm">
+              <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ row.aiResult }}</p>
+            </div>
+            <span v-else class="text-gray-400">无AI审核记录</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="resultName" label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getResultType(row.result)">
+              {{ row.resultName }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="refusalReason" label="拒绝理由" width="150">
+          <template #default="{ row }">
+            <span v-if="row.refusalReason">{{ row.refusalReason }}</span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="managerName" label="审核人" width="120">
+          <template #default="{ row }">
+            <span v-if="row.managerName">{{ row.managerName }}</span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="180" />
+        <el-table-column prop="firstAuditTime" label="审核时间" width="180">
+          <template #default="{ row }">
+            <span v-if="row.firstAuditTime">{{ row.firstAuditTime }}</span>
+            <span v-else class="text-gray-400">-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <template v-if="row.status === 3">
+            <template v-if="row.result === 0">
               <el-button type="success" size="small" @click="handleAudit(row, true)">
                 通过
               </el-button>
@@ -107,11 +137,19 @@
     </div>
 
     <!-- 审核对话框 -->
-    <el-dialog v-model="showAuditDialog" title="审核评论" width="500px">
+    <el-dialog v-model="showAuditDialog" title="审核" width="500px">
       <div class="space-y-4">
         <div>
-          <p class="text-sm text-gray-500">评论内容</p>
-          <p class="mt-1 text-gray-800 dark:text-gray-200">{{ currentComment?.content }}</p>
+          <p class="text-sm text-gray-500">审核对象</p>
+          <p class="mt-1 text-gray-800 dark:text-gray-200">
+            {{ currentAudit?.aimTypeName }} (ID: {{ currentAudit?.aimId }})
+          </p>
+        </div>
+        <div v-if="currentAudit?.aiResult">
+          <p class="text-sm text-gray-500">AI审核意见</p>
+          <p class="mt-1 text-gray-800 dark:text-gray-200 whitespace-pre-wrap bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+            {{ currentAudit?.aiResult }}
+          </p>
         </div>
         <el-input
           v-model="auditReason"
@@ -126,6 +164,7 @@
           v-if="auditApproved === false"
           type="danger" 
           :disabled="!auditReason"
+          :loading="submitting"
           @click="submitAudit"
         >
           确认拒绝
@@ -133,6 +172,7 @@
         <el-button 
           v-else
           type="success"
+          :loading="submitting"
           @click="submitAudit"
         >
           确认通过
@@ -145,66 +185,82 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getPendingComments, auditComment, managerDeleteComment } from '@/api/comment'
-import type { CommentVO } from '@/types/comment'
+import { 
+  getPendingAuditList, 
+  getManualAuditList, 
+  approveAudit, 
+  rejectAudit, 
+  deleteAuditRecord,
+  getAuditStatistics
+} from '@/api/manager'
+import type { ManualAuditVO } from '@/types/comment'
 import { useUserStore } from '@/stores'
 
 const userStore = useUserStore()
 
 const loading = ref(false)
-const commentList = ref<CommentVO[]>([])
+const submitting = ref(false)
+const auditList = ref<ManualAuditVO[]>([])
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
 const activeTab = ref('pending')
-const pendingCount = ref(0)
+
+const statistics = ref({
+  total: 0,
+  pending: 0,
+  approved: 0,
+  rejected: 0
+})
+
 const showAuditDialog = ref(false)
-const currentComment = ref<CommentVO | null>(null)
+const currentAudit = ref<ManualAuditVO | null>(null)
 const auditApproved = ref(false)
 const auditReason = ref('')
 
-const getUserType = (type: number) => {
-  const types: Record<number, string> = {
-    1: '访客',
-    2: '作者',
-    3: '管理员'
+const getOrderTypeTag = (type: number): 'primary' | 'success' | 'warning' => {
+  const types: Record<number, 'primary' | 'success' | 'warning'> = {
+    1: 'primary',
+    2: 'success',
+    3: 'warning'
   }
-  return types[type] || '未知'
+  return types[type] || 'primary'
 }
 
-const getStatusType = (status: number): 'warning' | 'success' | 'danger' | 'info' => {
+const getResultType = (result: number): 'warning' | 'success' | 'danger' | 'info' => {
   const types: Record<number, 'warning' | 'success' | 'danger' | 'info'> = {
     0: 'warning',
     1: 'success',
-    2: 'danger',
-    3: 'warning'
+    2: 'danger'
   }
-  return types[status] || 'info'
+  return types[result] || 'info'
 }
 
-const getStatusText = (status: number) => {
-  const texts: Record<number, string> = {
-    0: '待审核',
-    1: '已通过',
-    2: '已拒绝',
-    3: '待人工审核'
+const fetchStatistics = async () => {
+  try {
+    const res = await getAuditStatistics()
+    statistics.value = res.data || { total: 0, pending: 0, approved: 0, rejected: 0 }
+  } catch (error) {
+    console.error('Failed to fetch statistics:', error)
   }
-  return texts[status] || '未知'
 }
 
 const fetchList = async () => {
   loading.value = true
   try {
+    let result
     if (activeTab.value === 'pending') {
-      const res = await getPendingComments(currentPage.value, pageSize.value)
-      commentList.value = res.data?.list || []
-      total.value = res.data?.total || 0
-      pendingCount.value = total.value
+      result = await getPendingAuditList(currentPage.value, pageSize.value)
     } else {
-      // TODO: 获取全部评论的接口
-      commentList.value = []
-      total.value = 0
+      const resultValue = activeTab.value === 'approved' ? 1 : activeTab.value === 'rejected' ? 2 : undefined
+      result = await getManualAuditList({
+        pageNum: currentPage.value,
+        pageSize: pageSize.value,
+        result: resultValue
+      })
     }
+    auditList.value = result.data?.list || []
+    total.value = result.data?.total || 0
   } catch (error) {
     console.error('Failed to fetch list:', error)
   } finally {
@@ -212,44 +268,56 @@ const fetchList = async () => {
   }
 }
 
-const handleAudit = (comment: CommentVO, approved: boolean) => {
-  currentComment.value = comment
+const handleAudit = (audit: ManualAuditVO, approved: boolean) => {
+  currentAudit.value = audit
   auditApproved.value = approved
   auditReason.value = ''
   showAuditDialog.value = true
 }
 
 const submitAudit = async () => {
-  if (!currentComment.value) return
+  if (!currentAudit.value) return
 
+  submitting.value = true
   try {
-    await auditComment(
-      currentComment.value.id,
-      auditApproved.value,
-      auditReason.value,
-      userStore.userId!,
-      userStore.userName!
-    )
+    if (auditApproved.value) {
+      await approveAudit(
+        currentAudit.value.id,
+        userStore.userId!,
+        userStore.userName!
+      )
+    } else {
+      await rejectAudit(
+        currentAudit.value.id,
+        auditReason.value,
+        userStore.userId!,
+        userStore.userName!
+      )
+    }
     
     ElMessage.success(auditApproved.value ? '审核通过' : '审核拒绝')
     showAuditDialog.value = false
     fetchList()
+    fetchStatistics()
   } catch (error) {
     console.error('Failed to audit:', error)
+  } finally {
+    submitting.value = false
   }
 }
 
-const handleDelete = async (row: CommentVO) => {
+const handleDelete = async (row: ManualAuditVO) => {
   try {
-    await ElMessageBox.confirm('确定要删除这条评论吗？', '提示', {
+    await ElMessageBox.confirm('确定要删除这条审核记录吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
 
-    await managerDeleteComment(row.id)
+    await deleteAuditRecord(row.id)
     ElMessage.success('删除成功')
     fetchList()
+    fetchStatistics()
   } catch (error) {
     // 用户取消
   }
@@ -257,14 +325,13 @@ const handleDelete = async (row: CommentVO) => {
 
 onMounted(() => {
   fetchList()
+  fetchStatistics()
 })
 </script>
 
 <style scoped>
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.whitespace-pre-wrap {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>

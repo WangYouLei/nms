@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import type { AuthorVO, AuthorDTO, AuthorRegisterDTO, PasswordUpdateEmailDTO } from '@/types'
+import type { AuthorVO, AuthorDTO, AuthorRegisterDTO, PasswordUpdateEmailDTO, VisitorAuthorVO } from '@/types'
 
 // ==================== 作者认证 ====================
 
@@ -32,6 +32,14 @@ export function authorRegister(data: AuthorRegisterDTO) {
  */
 export function getAuthorInfo(id: number) {
   return request.get<AuthorVO>(`/author-server/author/info/${id}`)
+}
+
+/**
+ * 获取作者公开信息（访客端使用）
+ * 不包含敏感信息（账号、邮箱等）
+ */
+export function getAuthorPublicInfo(id: number) {
+  return request.get<VisitorAuthorVO>(`/author-server/author/getNameAndAvatar/${id}`)
 }
 
 /**

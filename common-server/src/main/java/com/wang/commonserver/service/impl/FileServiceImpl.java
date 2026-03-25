@@ -1,12 +1,8 @@
 package com.wang.commonserver.service.impl;
 
 import com.wang.common.config.DefaultUrlConfig;
-import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.FileUploadTypeEnum;
-import com.wang.common.interceptor.RoleInterceptor;
-import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
-import com.wang.common.utils.UserContextUtil;
 import com.wang.commonserver.config.MinioInfo;
 import com.wang.commonserver.service.FileService;
 import io.minio.*;
@@ -15,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-import java.io.ByteArrayInputStream;
+
 import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;

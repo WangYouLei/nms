@@ -21,9 +21,12 @@ import com.wang.pojo.entity.Visitor;
 import com.wang.pojo.vo.VisitorVO;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 访客服务实现类
@@ -184,7 +187,6 @@ public class VisitorServiceImpl implements VisitorService {
 
         // 使用工具类复制非空属性，忽略 password、id、createTime、vipLevel
         CopyPropertiesUtil.copyNonNullProperties(visitorDTO, existingVisitor, "password", "id", "createTime", "vipLevel");
-        
         // 设置更新时间
         existingVisitor.setUpdateTime(LocalDateTime.now());
 
@@ -317,5 +319,19 @@ public class VisitorServiceImpl implements VisitorService {
             case 4 -> "金主";
             default -> "普通用户";
         };
+    }
+
+    @Override
+    public Result getNameAndAvatar(Integer visitorId) {
+        log.info("获取访客名称和头像：ID={}", visitorId);
+        Map<String, String> map = new HashMap<>();
+        Visitor visitor = visitorMapper.selectById(visitorId);
+        if (visitor == null) {
+            log.warn("访客不存在：ID={}", visitorId);
+            return Result.error("访客不存在");
+        }
+        map.put("name", visitor.getName());
+        map.put("avatar", visitor.getAvatar());
+        return Result.success(map);
     }
 }

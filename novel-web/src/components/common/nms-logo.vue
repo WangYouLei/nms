@@ -50,7 +50,7 @@ const titleClass = computed(() => {
   const variantMap = {
     default: 'text-gray-800 dark:text-white',
     light: 'text-white',
-    dark: 'text-gray-800'
+    dark: 'text-gray-800 dark:text-white'
   }
   return variantMap[props.variant]
 })

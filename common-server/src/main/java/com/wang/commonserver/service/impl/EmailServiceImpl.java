@@ -4,6 +4,7 @@ import com.wang.common.result.Result;
 import com.wang.commonserver.service.EmailService;
 import com.wang.common.utils.CommonUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
@@ -14,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
+@ConditionalOnProperty(name = "spring.mail.host")
 public class EmailServiceImpl implements EmailService {
     
     private final JavaMailSender mailSender;

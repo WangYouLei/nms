@@ -37,6 +37,11 @@ spring:
             enable: true
             required: true
 
+  # DashScope AI 配置
+  ai:
+    dashscope:
+      api-key: ${Spring_ai_alibaba}
+
 server:
   port: 5250
   servlet:
@@ -63,10 +68,15 @@ logging:
   level:
     root: info
 
-
 # 默认小说封面地址、默认作者头像地址、默认用户头像地址
 default:
   authorAvatarUrl: http://127.0.0.1:9000/nms/AUTHOR_AVATAR/5c347d6e-8d91-496f-857d-af9b45cdb480.jpg
   visitorAvatarUrl:  http://127.0.0.1:9000/nms/VISITOR_AVATAR/ea59d798-2f32-43b8-bd96-cb70d9b9d054.jpg
   novelCoverUrl: http://127.0.0.1:9000/nms/NOVEL_COVER/88e08331-0134-43f3-ae66-1f81c4ca191e.jpg
   managerAvatarUrl: http://127.0.0.1:9000/nms/MANAGER_AVATAR/5bdfcbb8-9b29-4c2d-873a-6a4539714653.jpg
+
+# 模型选择（后期可以再下面添加新的模型，这不是官方配置的形式）
+model:
+  api-key: ${Spring_ai_alibaba}
+  text1: tongyi-xiaomi-analysis-pro
+  voice1: qwen3-tts-vd-2026-01-26

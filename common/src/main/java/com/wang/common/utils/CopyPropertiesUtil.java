@@ -25,11 +25,6 @@ public class CopyPropertiesUtil {
 
     /**
      * 将 source 中非 null 的属性复制到 target，忽略指定字段
-     * <p>
-     * 使用示例：
-     * <pre>
-     * CopyPropertiesUtil.copyNonNullProperties(dto, entity, "password", "createTime", "id");
-     * </pre>
      *
      * @param source           源对象（通常是 DTO）
      * @param target           目标对象（通常是 Entity）

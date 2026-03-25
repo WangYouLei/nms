@@ -42,10 +42,6 @@
               <span>{{ formatTime(comment.createTime) }}</span>
             </div>
             <div class="flex items-center gap-3">
-              <span class="flex items-center gap-1 text-gray-400">
-                <el-icon :size="14"><Star /></el-icon>
-                {{ comment.likeCount || 0 }}
-              </span>
               <el-button 
                 type="danger" 
                 text 
@@ -77,7 +73,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Loading, ChatDotRound, Star } from '@element-plus/icons-vue'
+import { ArrowLeft, Loading, ChatDotRound } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getMyComments, deleteComment } from '@/api/comment'
 import { useUserStore } from '@/stores'

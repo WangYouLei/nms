@@ -16,8 +16,12 @@ export interface NovelDetailVO {
   introduction?: string
   /** 封面图片 */
   url?: string
+  /** 作者ID */
+  authorId?: number
   /** 作者名称 */
   authorName: string
+  /** 作者头像 */
+  authorAvatar?: string
   /** 小说章节数 */
   chapterCount: number
   /** 是否完结 */
@@ -48,6 +52,8 @@ export interface NovelListVO {
   url?: string
   /** 作者名称 */
   authorName: string
+  /** 作者头像 */
+  authorAvatar?: string
   /** 小说章节数 */
   chapterCount: number
   /** 是否完结 */
@@ -103,10 +109,33 @@ export interface AuthorVO {
   avatar?: string
   /** 等级 */
   rank: number
+  /** 简介 */
+  introduction?: string
   /** 作品数量 */
   novelCount: number
+  /** 章节数量 */
+  chapterCount?: number
   /** 创建时间 */
   createTime: string
+}
+
+/**
+ * 作者公开信息VO（访客端）
+ * 不包含敏感信息
+ */
+export interface VisitorAuthorVO {
+  /** 作者ID */
+  id: number
+  /** 作者昵称 */
+  name: string
+  /** 作者头像 */
+  avatar?: string
+  /** 等级 */
+  rank: number
+  /** 作品简介 */
+  introduction?: string
+  /** 作品数量 */
+  novelCount: number
 }
 
 /**

@@ -37,6 +37,11 @@ public class NovelDTO implements Serializable {
     private String authorName;
 
     /**
+     * 作者头像地址（冗余字段）
+     */
+    private String authorAvatar;
+
+    /**
      * 作者ID（关联管理人表）
      */
     private Integer authorId;

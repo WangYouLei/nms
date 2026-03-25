@@ -62,16 +62,23 @@ public class Novel implements Serializable {
     @NotNull(message="[作者ID（关联管理人表）]不能为空")
     @ApiModelProperty("作者ID（关联管理人表）")
     private Integer authorId;
-    /**
-    * 作者名称（冗余字段）
-    */
+/**
+     * 作者名称（冗余字段）
+     */
     @Size(max= 20,message="编码长度不能超过20")
     @ApiModelProperty("作者名称（冗余字段）")
     @Length(max= 20,message="编码长度不能超过20")
     private String authorName;
     /**
-    * 图片路径
-    */
+     * 作者头像地址（冗余字段）
+     */
+    @Size(max= 255,message="编码长度不能超过255")
+    @ApiModelProperty("作者头像地址（冗余字段）")
+    @Length(max= 255,message="编码长度不能超过255")
+    private String authorAvatar;
+    /**
+     * 图片路径
+     */
     @Size(max= 255,message="编码长度不能超过255")
     @ApiModelProperty("图片路径")
     @Length(max= 255,message="编码长度不能超过255")

@@ -36,6 +36,11 @@ spring:
             enable: true
             required: true
 
+  # DashScope AI 配置
+  ai:
+    dashscope:
+      api-key: ${Spring_ai_alibaba}
+
 server:
   port: 5200
   servlet:
@@ -50,7 +55,6 @@ minio:
   accessKey: minioadmin
   secretKey: minioadmin
   bucketName: nms
-
 
 #配置plus打印sql日志
 mybatis-plus:
@@ -70,3 +74,9 @@ default:
   visitorAvatarUrl:  http://127.0.0.1:9000/nms/VISITOR_AVATAR/ea59d798-2f32-43b8-bd96-cb70d9b9d054.jpg
   novelCoverUrl: http://127.0.0.1:9000/nms/NOVEL_COVER/88e08331-0134-43f3-ae66-1f81c4ca191e.jpg
   managerAvatarUrl: http://127.0.0.1:9000/nms/MANAGER_AVATAR/5bdfcbb8-9b29-4c2d-873a-6a4539714653.jpg
+
+# 模型选择（后期可以再下面添加新的模型，这不是官方配置的形式）
+model:
+  api-key: ${Spring_ai_alibaba}
+  text1: tongyi-xiaomi-analysis-pro
+  voice1: qwen3-tts-vd-2026-01-26
