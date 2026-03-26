@@ -28,7 +28,7 @@ public class Manager implements Serializable {
     @NotNull(message = "[主键ID]不能为空")
     @ApiModelProperty("主键ID")
     @TableId(value = "id", type = IdType.AUTO)
-    private Long id;
+    private Integer id;
 
     /**
      * 昵称
@@ -69,7 +69,7 @@ public class Manager implements Serializable {
      */
     @NotNull(message = "[创建者ID]不能为空")
     @ApiModelProperty("创建者ID")
-    private Long createId;
+    private Integer createId;
 
     /**
      * 创建时间

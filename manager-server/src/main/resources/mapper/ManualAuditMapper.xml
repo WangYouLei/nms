@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wang.manager.mapper.ManualAuditMapper">
+
+    <!-- 动态更新审核记录，只更新非 null 且非空的字段 -->
+    <update id="update" parameterType="com.wang.pojo.entity.ManualAudit">
+        UPDATE manual_audit
+        <set>
+            <if test="result != null">
+                result = #{result},
+            </if>
+            <if test="refusalReason != null and refusalReason != ''">
+                refusal_reason = #{refusalReason},
+            </if>
+            <if test="managerId != null">
+                manager_id = #{managerId},
+            </if>
+            <if test="managerName != null and managerName != ''">
+                manager_name = #{managerName},
+            </if>
+            <if test="firstAuditTime != null">
+                first_audit_time = #{firstAuditTime},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+</mapper>

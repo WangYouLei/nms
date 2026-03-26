@@ -1,6 +1,7 @@
 package com.wang.novel.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.utils.RoleContextUtil;
 import com.wang.common.enums.BizCodeEnum;
@@ -19,7 +20,7 @@ import com.wang.pojo.entity.NovelCategory;
 import com.wang.pojo.entity.NovelCategoryRelation;
 import com.wang.pojo.vo.NovelCategoryVO;
 import lombok.extern.slf4j.Slf4j;
-import com.wang.common.utils.CopyPropertiesUtil;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -103,7 +104,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
         }
 
         NovelCategory entity = new NovelCategory();
-        CopyPropertiesUtil.copyNonNullProperties(dto, entity);
+        BeanUtils.copyProperties(dto, entity);
         entity.setIsHot(dto.getIsHot() != null ? dto.getIsHot() : 0);
         categoryMapper.insert(entity);
         return Result.success(convertToVO(entity));
@@ -133,8 +134,8 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
             }
         }
 
-        CopyPropertiesUtil.copyNonNullProperties(dto, entity);
-        categoryMapper.updateById(entity);
+        BeanUtils.copyProperties(dto, entity);
+        categoryMapper.update(entity);
         return Result.success(convertToVO(entity));
     }
 
@@ -261,7 +262,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
      */
     private NovelCategoryVO convertToVO(NovelCategory entity) {
         NovelCategoryVO vo = new NovelCategoryVO();
-        CopyPropertiesUtil.copyNonNullProperties(entity, vo);
+        BeanUtils.copyProperties(entity, vo);
         vo.setCategoryName(entity.getCategory() == 1 ? "男频" : "女频");
         return vo;
     }

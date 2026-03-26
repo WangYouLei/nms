@@ -28,6 +28,9 @@ public class NovelChapterVO {
     @ApiModelProperty("章节内容")
     private String content;
 
+    @ApiModelProperty("章节字数")
+    private Integer wordCount;
+
     @ApiModelProperty("章节顺序")
     private Integer chapterOrder;
 

@@ -29,6 +29,9 @@ public class NovelSearchDTO {
     @ApiModelProperty("是否完结")
     private Boolean isFinished;
 
+    @ApiModelProperty("排序方式：update-最新更新，collect-收藏最多，word-字数最多")
+    private String sortBy;
+
     @ApiModelProperty("页码")
     private Integer pageNum;
 

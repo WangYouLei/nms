@@ -22,8 +22,14 @@ export interface NovelDetailVO {
   authorName: string
   /** 作者头像 */
   authorAvatar?: string
+  /** 作者等级 */
+  authorRank?: number
+  /** 作者作品数量 */
+  authorNovelCount?: number
   /** 小说章节数 */
   chapterCount: number
+  /** 总字数 */
+  allWordCount?: number
   /** 是否完结 */
   isFinished: boolean
   /** 是否热门 */
@@ -54,8 +60,14 @@ export interface NovelListVO {
   authorName: string
   /** 作者头像 */
   authorAvatar?: string
+  /** 作者等级 */
+  authorRank?: number
   /** 小说章节数 */
   chapterCount: number
+  /** 总字数 */
+  allWordCount?: number
+  /** 收藏数量 */
+  collectCount?: number
   /** 是否完结 */
   isFinished: boolean
   /** 是否热门 */
@@ -80,6 +92,8 @@ export interface NovelChapterVO {
   contentUrl: string
   /** 章节内容（仅在获取章节内容时返回） */
   content?: string
+  /** 章节字数 */
+  wordCount?: number
   /** 章节顺序 */
   chapterOrder: number
   /** 创建时间 */
@@ -136,6 +150,29 @@ export interface VisitorAuthorVO {
   introduction?: string
   /** 作品数量 */
   novelCount: number
+}
+
+/**
+ * 作者详情VO（访客端）
+ * 用于作者详情页，包含作者信息和作品列表
+ */
+export interface AuthorDetailVO {
+  /** 作者ID */
+  id: number
+  /** 作者昵称 */
+  name: string
+  /** 作者头像 */
+  avatar?: string
+  /** 等级 */
+  rank: number
+  /** 等级名称 */
+  rankName: string
+  /** 作者简介 */
+  introduction?: string
+  /** 作品数量 */
+  novelCount: number
+  /** 作者的作品列表 */
+  novels: NovelListVO[]
 }
 
 /**
@@ -272,4 +309,52 @@ export interface NovelStatisticsVO {
   name: string
   /** 数量 */
   count: number
+}
+
+/**
+ * 收藏小说VO
+ */
+export interface VisitorCollectVO {
+  /** 收藏记录ID */
+  id: number
+  /** 小说ID */
+  novelId: number
+  /** 小说名称 */
+  novelName: string
+  /** 小说封面地址 */
+  novelUrl?: string
+  /** 作者名称 */
+  authorName?: string
+  /** 作者头像 */
+  authorAvatar?: string
+  /** 作者等级 */
+  authorRank?: number
+  /** 收藏时间 */
+  createTime: string
+}
+
+/**
+ * 访客关注作者VO
+ */
+export interface VisitorFollowVO {
+  /** 关注记录ID */
+  id: number
+  /** 访客ID */
+  visitorId: number
+  /** 作者ID */
+  authorId: number
+  /** 作者名称 */
+  authorName: string
+  /** 作者头像URL */
+  authorAvatar?: string
+  /** 作者等级（1-执笔者，2-织梦师，3-造界者，4-渡舟人，5-燃灯者） */
+  authorRank?: number
+  /** 作者等级名称 */
+  authorRankName?: string
+  /** 作者作品数量 */
+  novelCount?: number
+  /** 作者简介 */
+  authorIntroduction?: string
+  /** 关注时间 */
+  createTime: string
 }

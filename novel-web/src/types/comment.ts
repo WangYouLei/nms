@@ -8,6 +8,8 @@ export interface CommentVO {
   userId: number
   /** 用户类型：1-访客，2-作者，3-管理员 */
   userType: number
+  /** 用户类型名称 */
+  userTypeName?: string
   /** 用户昵称 */
   userName: string
   /** 用户头像URL */
@@ -16,10 +18,14 @@ export interface CommentVO {
   isOfficial: boolean
   /** 评论对象类型：1-小说，2-章节 */
   targetType: number
+  /** 评论对象类型名称 */
+  targetTypeName?: string
   /** 评论对象ID */
   targetId: number
   /** 小说ID */
   novelId: number
+  /** 小说作者ID（用于判断评论者是否是该小说的作者） */
+  novelAuthorId?: number
   /** 评论内容 */
   content: string
   /** 评论图片URL列表 */
@@ -40,8 +46,12 @@ export interface CommentVO {
   status: number
   /** 审核层级：0-未审核，1-本地过滤通过，2-人工审核通过 */
   auditLevel?: number
+  /** 审核层级名称 */
+  auditLevelName?: string
   /** 创建时间 */
   createTime: string
+  /** 更新时间 */
+  updateTime?: string
   /** 子评论列表 */
   replies?: CommentVO[]
 }
@@ -98,6 +108,10 @@ export interface CommentQueryDTO {
   userId?: number
   /** 用户类型 */
   userType?: number
+  /** 用户昵称（模糊查询） */
+  userName?: string
+  /** 评论内容（模糊查询） */
+  content?: string
   /** 审核状态 */
   status?: number
   /** 审核层级：0-未审核，1-本地过滤通过，2-人工审核通过 */

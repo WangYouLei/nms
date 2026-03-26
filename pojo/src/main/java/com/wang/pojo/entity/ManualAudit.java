@@ -68,7 +68,7 @@ public class ManualAudit implements Serializable {
      * 初审核的管理员ID
      */
     @ApiModelProperty("初审核的管理员ID")
-    private Long managerId;
+    private Integer managerId;
 
     /**
      * 初审核的管理员昵称

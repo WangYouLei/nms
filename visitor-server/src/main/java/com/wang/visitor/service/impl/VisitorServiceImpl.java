@@ -1,13 +1,14 @@
 package com.wang.visitor.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.utils.Argon2idUtil;
-import com.wang.common.utils.CopyPropertiesUtil;
+
 import com.wang.common.utils.JWTUtil;
 import com.wang.commonserver.service.CaptchaService;
 import com.wang.commonserver.service.EmailService;
@@ -89,7 +90,7 @@ public class VisitorServiceImpl implements VisitorService {
             if (result == 1) {
                 log.info("访客注册成功：ID={}", visitor.getId());
                 VisitorVO vo = new VisitorVO();
-                CopyPropertiesUtil.copyNonNullProperties(visitor, vo);
+                BeanUtils.copyProperties(visitor, vo);
                 vo.setVipLevelName(getVipLevelName(visitor.getVipLevel()));
                 return Result.success(vo);
             } else {
@@ -163,7 +164,7 @@ public class VisitorServiceImpl implements VisitorService {
         }
 
         VisitorVO vo = new VisitorVO();
-        CopyPropertiesUtil.copyNonNullProperties(visitor, vo);
+        BeanUtils.copyProperties(visitor, vo);
         vo.setVipLevelName(getVipLevelName(visitor.getVipLevel()));
         return Result.success(vo);
     }
@@ -186,11 +187,11 @@ public class VisitorServiceImpl implements VisitorService {
         }
 
         // 使用工具类复制非空属性，忽略 password、id、createTime、vipLevel
-        CopyPropertiesUtil.copyNonNullProperties(visitorDTO, existingVisitor, "password", "id", "createTime", "vipLevel");
+        BeanUtils.copyProperties(visitorDTO, existingVisitor, "password", "id", "createTime", "vipLevel");
         // 设置更新时间
         existingVisitor.setUpdateTime(LocalDateTime.now());
 
-        int result = visitorMapper.updateById(existingVisitor);
+        int result = visitorMapper.update(existingVisitor);
         if (result == 1) {
             log.info("修改访客信息成功：ID={}", existingVisitor.getId());
             return Result.success("修改成功");
@@ -232,7 +233,7 @@ public class VisitorServiceImpl implements VisitorService {
         visitor.setPassword(hashedPassword);
         visitor.setUpdateTime(LocalDateTime.now());
 
-        int result = visitorMapper.updateById(visitor);
+        int result = visitorMapper.update(visitor);
         if (result == 1) {
             log.info("修改访客密码成功：ID={}", visitorId);
             return Result.success("密码修改成功");
@@ -244,22 +245,48 @@ public class VisitorServiceImpl implements VisitorService {
 
     @Override
     public Result updatePasswordByEmail(PasswordUpdateEmailDTO passwordUpdateEmailDTO) {
+        // 验证邮箱验证码
         Result result = emailService.verifyCode(passwordUpdateEmailDTO.getEmail(), passwordUpdateEmailDTO.getCode());
         if(!"success".equals(result.getMsg())){
             return result;
         }
+        
+        // 获取用户ID：优先使用ID，否则通过账号查询
+        Integer userId = passwordUpdateEmailDTO.getId();
+        if (userId == null && passwordUpdateEmailDTO.getAccount() != null) {
+            // 忘记密码场景：通过账号查找用户
+            LambdaQueryWrapper<Visitor> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(Visitor::getAccount, passwordUpdateEmailDTO.getAccount());
+            Visitor visitor = visitorMapper.selectOne(queryWrapper);
+            if (visitor == null) {
+                log.warn("账号不存在：account={}", passwordUpdateEmailDTO.getAccount());
+                return Result.error("账号不存在");
+            }
+            // 验证邮箱是否匹配
+            if (!passwordUpdateEmailDTO.getEmail().equals(visitor.getEmail())) {
+                log.warn("邮箱与账号不匹配：account={}", passwordUpdateEmailDTO.getAccount());
+                return Result.error("邮箱与账号不匹配");
+            }
+            userId = visitor.getId();
+        }
+        
+        if (userId == null) {
+            log.warn("缺少用户ID或账号");
+            return Result.error("缺少用户信息");
+        }
+        
         Visitor visitor = new Visitor();
-        visitor.setId(passwordUpdateEmailDTO.getId());
+        visitor.setId(userId);
         visitor.setPassword(Argon2idUtil.hash(passwordUpdateEmailDTO.getNewPassword()));
         visitor.setUpdateTime(LocalDateTime.now());
 
-        int number = visitorMapper.updateById(visitor);
+        int number = visitorMapper.update(visitor);
 
         if(number != 1){
-            log.info("访客密码修改失败，id={}", passwordUpdateEmailDTO.getId());
+            log.info("访客密码修改失败，id={}", userId);
             return Result.error("密码修改失败");
         }else{
-            log.info("修改访客密码成功：ID={}", passwordUpdateEmailDTO.getId());
+            log.info("修改访客密码成功：ID={}", userId);
             return Result.success("访客密码修改成功");
         }
     }

@@ -50,4 +50,66 @@
         AND n.is_del = 0
     </select>
 
+    <!-- 动态更新小说信息，只更新非 null 且非空的字段 -->
+    <update id="update" parameterType="com.wang.pojo.entity.Novel">
+        UPDATE novel
+        <set>
+            <if test="name != null and name != ''">
+                name = #{name},
+            </if>
+            <if test="subName != null and subName != ''">
+                sub_name = #{subName},
+            </if>
+            <if test="tags != null and tags != ''">
+                tags = #{tags},
+            </if>
+            <if test="introduction != null">
+                introduction = #{introduction},
+            </if>
+            <if test="url != null and url != ''">
+                url = #{url},
+            </if>
+            <if test="chapterCount != null">
+                chapter_count = #{chapterCount},
+            </if>
+            <if test="allWordCount != null">
+                all_word_count = #{allWordCount},
+            </if>
+            <if test="isFinished != null">
+                is_finished = #{isFinished},
+            </if>
+            <if test="isHot != null">
+                is_hot = #{isHot},
+            </if>
+            <if test="isDel != null">
+                is_del = #{isDel},
+            </if>
+            <if test="authorRank != null">
+                author_rank = #{authorRank},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据作者ID分页查询作品列表 -->
+    <select id="selectNovelsByAuthorId" resultType="com.wang.pojo.entity.Novel">
+        SELECT *
+        FROM novel
+        WHERE author_id = #{authorId}
+        AND is_del = 0
+        ORDER BY update_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 统计作者作品总数 -->
+    <select id="countNovelsByAuthorIdInNovel" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM novel
+        WHERE author_id = #{authorId}
+        AND is_del = 0
+    </select>
+
 </mapper>

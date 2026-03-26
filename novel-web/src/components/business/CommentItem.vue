@@ -3,8 +3,8 @@
     <!-- 用户头像 -->
     <div class="flex-shrink-0">
       <img
-        v-if="avatarUrl && avatarUrl !== '/default-avatar.png'"
-        :src="avatarUrl"
+        v-if="comment.userAvatar"
+        :src="getAvatarUrl(comment.userAvatar)"
         :alt="comment.userName"
         class="w-10 h-10 rounded-full object-cover"
       />
@@ -27,6 +27,12 @@
           class="px-2 py-0.5 text-xs font-medium bg-gradient-warm text-white rounded-full"
         >
           官方
+        </span>
+        <span 
+          v-if="isNovelAuthor" 
+          class="px-2 py-0.5 text-xs font-medium bg-gradient-primary text-white rounded-full"
+        >
+          作者
         </span>
         <span class="text-xs text-gray-400">{{ formatTime(comment.createTime) }}</span>
       </div>
@@ -124,7 +130,7 @@ import { ChatDotRound, Delete, ChatLineRound, Loading } from '@element-plus/icon
 import type { CommentVO } from '@/types/comment'
 import { formatRelativeTime } from '@/utils/format'
 import { useUserStore } from '@/stores'
-import { useImageUrl } from '@/utils/file-url'
+import { getAvatarUrl } from '@/utils/file-url'
 import { getReplies } from '@/api/comment'
 
 interface Props {
@@ -144,13 +150,15 @@ defineEmits<{
 const userStore = useUserStore()
 
 const isOfficial = computed(() => props.comment.userType === 3)
+    
+    const isNovelAuthor = computed(() => {
+      // 判断评论者是否是该小说的作者
+      return props.comment.novelAuthorId && props.comment.userId === props.comment.novelAuthorId
+    })
 
 const canDelete = computed(() => {
   return props.comment.userId === userStore.userId
 })
-
-// 使用响应式头像URL（自动处理预签名）
-const avatarUrl = useImageUrl(props.comment.userAvatar, '/default-avatar.png')
 
 const formatTime = formatRelativeTime
 

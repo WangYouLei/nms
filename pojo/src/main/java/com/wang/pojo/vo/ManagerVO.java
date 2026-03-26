@@ -15,7 +15,7 @@ public class ManagerVO implements Serializable {
     /**
      * 主键ID
      */
-    private Long id;
+    private Integer id;
 
     /**
      * 昵称
@@ -30,7 +30,7 @@ public class ManagerVO implements Serializable {
     /**
      * 创建者ID
      */
-    private Long createId;
+    private Integer createId;
 
     /**
      * 头像

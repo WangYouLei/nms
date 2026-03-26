@@ -68,6 +68,13 @@
               登录
             </el-button>
           </el-form-item>
+          
+          <!-- 忘记密码链接 -->
+          <div class="text-center">
+            <router-link to="/forgot-password" class="text-white/70 hover:text-white text-sm">
+              忘记密码？
+            </router-link>
+          </div>
         </el-form>
         
          <!-- 注册链接 -->

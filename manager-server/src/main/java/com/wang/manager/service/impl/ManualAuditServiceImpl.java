@@ -1,13 +1,14 @@
 package com.wang.manager.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.enums.AuditAimTypeEnum;
 import com.wang.common.enums.AuditResultEnum;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
-import com.wang.common.utils.CopyPropertiesUtil;
+import org.springframework.beans.BeanUtils;
 import com.wang.manager.mapper.ManualAuditMapper;
 import com.wang.manager.service.ManualAuditService;
 import com.wang.pojo.dto.ManualAuditDTO;
@@ -68,7 +69,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
 
     @Override
     @Transactional
-    public Result executeAudit(Long id, Integer result, String refusalReason, Long managerId, String managerName) {
+    public Result executeAudit(Long id, Integer result, String refusalReason, Integer managerId, String managerName) {
         log.info("执行审核：id={}, result={}, managerId={}", id, result, managerId);
 
         ManualAudit entity = manualAuditMapper.selectById(id);
@@ -99,7 +100,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
         entity.setFirstAuditTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
 
-        int updateResult = manualAuditMapper.updateById(entity);
+        int updateResult = manualAuditMapper.update(entity);
         if (updateResult == 1) {
             log.info("审核执行成功：id={}, result={}", id, result);
             return Result.success(convertToVO(entity));
@@ -111,7 +112,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
 
     @Override
     @Transactional
-    public Result batchApprove(List<Long> ids, Long managerId, String managerName) {
+    public Result batchApprove(List<Long> ids, Integer managerId, String managerName) {
         log.info("批量审核通过：ids={}, managerId={}", ids, managerId);
 
         int successCount = 0;
@@ -130,7 +131,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
             entity.setFirstAuditTime(LocalDateTime.now());
             entity.setUpdateTime(LocalDateTime.now());
 
-            int result = manualAuditMapper.updateById(entity);
+            int result = manualAuditMapper.update(entity);
             if (result == 1) {
                 successCount++;
             }
@@ -145,7 +146,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
 
     @Override
     @Transactional
-    public Result batchReject(List<Long> ids, String refusalReason, Long managerId, String managerName) {
+    public Result batchReject(List<Long> ids, String refusalReason, Integer managerId, String managerName) {
         log.info("批量审核拒绝：ids={}, managerId={}", ids, managerId);
 
         if (refusalReason == null || refusalReason.trim().isEmpty()) {
@@ -169,7 +170,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
             entity.setFirstAuditTime(LocalDateTime.now());
             entity.setUpdateTime(LocalDateTime.now());
 
-            int result = manualAuditMapper.updateById(entity);
+            int result = manualAuditMapper.update(entity);
             if (result == 1) {
                 successCount++;
             }
@@ -261,7 +262,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
     }
 
     @Override
-    public Result getAuditByManagerId(Long managerId, Integer pageNum, Integer pageSize) {
+    public Result getAuditByManagerId(Integer managerId, Integer pageNum, Integer pageSize) {
         log.info("获取管理员的审核记录：managerId={}", managerId);
 
         LambdaQueryWrapper<ManualAudit> queryWrapper = new LambdaQueryWrapper<>();
@@ -336,7 +337,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
      */
     private ManualAuditVO convertToVO(ManualAudit entity) {
         ManualAuditVO vo = new ManualAuditVO();
-        CopyPropertiesUtil.copyNonNullProperties(entity, vo);
+        BeanUtils.copyProperties(entity, vo);
         vo.setAimTypeName(AuditAimTypeEnum.getDescription(entity.getAimType()));
         vo.setResultName(AuditResultEnum.getDescription(entity.getResult()));
         return vo;

@@ -16,4 +16,16 @@ public interface AuthorMapper extends BaseMapper<Author> {
      */
     @Select("SELECT avatar FROM author WHERE id = #{authorId}")
     String selectAvatarById(Integer authorId);
+
+    /**
+     * 根据作者ID查询作品数量
+     */
+    @Select("SELECT COUNT(*) FROM novel WHERE author_id = #{authorId} AND is_del = 0")
+    Integer countNovelsByAuthorId(Integer authorId);
+
+    /**
+     * 根据作者ID查询作者基本信息
+     */
+    @Select("SELECT id, name, avatar, introduction, rank, novel_count FROM author WHERE id = #{authorId} AND is_del = 0")
+    Author selectAuthorBasicInfo(Integer authorId);
 }

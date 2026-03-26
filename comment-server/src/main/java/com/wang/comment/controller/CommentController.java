@@ -103,4 +103,15 @@ public class CommentController {
         log.info("审核评论请求：commentId={}, auditLevel={}", commentId, auditLevel);
         return commentService.auditComment(commentId, auditLevel);
     }
+
+    @GetMapping("/tree/{novelId}")
+    @ApiOperation("获取小说的评论树（包含所有回复）")
+    public Result getNovelCommentTree(
+            @PathVariable @ApiParam("小说ID") Long novelId,
+            @RequestParam(required = false) @ApiParam("评论对象类型：1-小说，2-章节，不传则查询全部") Integer targetType,
+            @RequestParam(defaultValue = "1") @ApiParam("页码") Integer pageNum,
+            @RequestParam(defaultValue = "10") @ApiParam("每页数量") Integer pageSize) {
+        log.info("获取小说评论树请求：novelId={}, targetType={}", novelId, targetType);
+        return commentService.getNovelCommentTree(novelId, targetType, pageNum, pageSize);
+    }
 }

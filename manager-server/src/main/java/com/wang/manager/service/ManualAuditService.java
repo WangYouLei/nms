@@ -27,7 +27,7 @@ public interface ManualAuditService {
      * @param managerName 审核管理员昵称
      * @return 审核结果
      */
-    Result executeAudit(Long id, Integer result, String refusalReason, Long managerId, String managerName);
+    Result executeAudit(Long id, Integer result, String refusalReason, Integer managerId, String managerName);
 
     /**
      * 批量审核通过
@@ -36,7 +36,7 @@ public interface ManualAuditService {
      * @param managerName 审核管理员昵称
      * @return 审核结果
      */
-    Result batchApprove(java.util.List<Long> ids, Long managerId, String managerName);
+    Result batchApprove(java.util.List<Long> ids, Integer managerId, String managerName);
 
     /**
      * 批量审核拒绝
@@ -46,7 +46,7 @@ public interface ManualAuditService {
      * @param managerName 审核管理员昵称
      * @return 审核结果
      */
-    Result batchReject(java.util.List<Long> ids, String refusalReason, Long managerId, String managerName);
+    Result batchReject(java.util.List<Long> ids, String refusalReason, Integer managerId, String managerName);
 
     /**
      * 获取审核记录详情
@@ -77,7 +77,7 @@ public interface ManualAuditService {
      * @param pageSize 每页数量
      * @return 审核记录列表
      */
-    Result getAuditByManagerId(Long managerId, Integer pageNum, Integer pageSize);
+    Result getAuditByManagerId(Integer managerId, Integer pageNum, Integer pageSize);
 
     /**
      * 获取审核统计信息

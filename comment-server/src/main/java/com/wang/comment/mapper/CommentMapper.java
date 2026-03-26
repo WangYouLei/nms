@@ -13,6 +13,13 @@ import org.apache.ibatis.annotations.Update;
 public interface CommentMapper extends BaseMapper<Comment> {
 
     /**
+     * 动态更新评论信息，只更新非 null 的字段
+     * @param comment 评论信息
+     * @return 影响行数
+     */
+    int update(Comment comment);
+
+    /**
      * 增加回复数
      * @param commentId 评论ID
      * @return 影响行数

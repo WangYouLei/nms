@@ -26,7 +26,7 @@ public interface ManagerService {
      * @param id 管理员ID
      * @return 删除结果
      */
-    Result deleteManager(Long id);
+    Result deleteManager(Integer id);
 
     /**
      * 修改管理员信息
@@ -56,12 +56,12 @@ public interface ManagerService {
      * @param newPassword 新密码
      * @return 修改结果
      */
-    Result updatePassword(Long id, String newPassword);
+    Result updatePassword(Integer id, String newPassword);
 
     /**
      * 获取管理员名称和头像
      * @param id 管理员ID
      * @return 名称和头像
      */
-    Result getNameAndAvatar(Long id);
+    Result getNameAndAvatar(Integer id);
 }

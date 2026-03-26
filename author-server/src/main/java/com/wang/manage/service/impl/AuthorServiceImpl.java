@@ -1,13 +1,14 @@
 package com.wang.manage.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.utils.Argon2idUtil;
-import com.wang.common.utils.CopyPropertiesUtil;
+import org.springframework.beans.BeanUtils;
 import com.wang.common.utils.JWTUtil;
 import com.wang.commonserver.service.CaptchaService;
 import com.wang.commonserver.service.EmailService;
@@ -88,7 +89,7 @@ public class AuthorServiceImpl implements AuthorService {
             if (result == 1) {
                 log.info("作者注册成功：ID={}", author.getId());
                 AuthorVO vo = new AuthorVO();
-                CopyPropertiesUtil.copyNonNullProperties(author, vo);
+                BeanUtils.copyProperties(author, vo);
                 return Result.success(vo);
             } else {
                 return Result.buildResult(BizCodeEnum.FAIL);
@@ -161,7 +162,7 @@ public class AuthorServiceImpl implements AuthorService {
         }
 
         AuthorVO vo = new AuthorVO();
-        CopyPropertiesUtil.copyNonNullProperties(author, vo);
+        BeanUtils.copyProperties(author, vo);
         return Result.success(vo);
     }
 
@@ -185,7 +186,7 @@ public class AuthorServiceImpl implements AuthorService {
 
         //执行逻辑删除操作
         author.setIsDel(true);
-        int result = authorMapper.updateById(author);
+        int result = authorMapper.update(author);
         if (result == 1) {
             log.info("删除作者成功：ID={}, 姓名={}", id, author.getName());
             return Result.success("删除成功");
@@ -213,11 +214,11 @@ public class AuthorServiceImpl implements AuthorService {
         }
 
         // 使用工具类复制非空属性，忽略 password、id、createTime、isDel、email
-        CopyPropertiesUtil.copyNonNullProperties(authorDTO, author, "password", "id", "createTime", "isDel", "email");
+        BeanUtils.copyProperties(authorDTO, author, "password", "id", "createTime", "isDel", "email");
         // 设置更新时间
         author.setUpdateTime(LocalDateTime.now());
 
-        int result = authorMapper.updateById(author);
+        int result = authorMapper.update(author);
         if (result == 1) {
             log.info("修改作者信息成功：ID={}", author.getId());
             return Result.success("修改成功");
@@ -259,7 +260,7 @@ public class AuthorServiceImpl implements AuthorService {
         author.setPassword(hashedPassword);
         author.setUpdateTime(LocalDateTime.now());
 
-        int result = authorMapper.updateById(author);
+        int result = authorMapper.update(author);
         if (result == 1) {
             log.info("修改作者密码成功：ID={}", id);
             return Result.success("密码修改成功");
@@ -271,22 +272,48 @@ public class AuthorServiceImpl implements AuthorService {
 
     @Override
     public Result updatePasswordByEmail(PasswordUpdateEmailDTO passwordUpdateEmailDTO) {
+        // 验证邮箱验证码
         Result result = emailService.verifyCode(passwordUpdateEmailDTO.getEmail(), passwordUpdateEmailDTO.getCode());
         if(!"success".equals(result.getMsg())){
             return result;
         }
+        
+        // 获取用户ID：优先使用ID，否则通过账号查询
+        Integer userId = passwordUpdateEmailDTO.getId();
+        if (userId == null && passwordUpdateEmailDTO.getAccount() != null) {
+            // 忘记密码场景：通过账号查找用户
+            LambdaQueryWrapper<Author> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(Author::getAccount, passwordUpdateEmailDTO.getAccount());
+            Author author = authorMapper.selectOne(queryWrapper);
+            if (author == null) {
+                log.warn("账号不存在：account={}", passwordUpdateEmailDTO.getAccount());
+                return Result.error("账号不存在");
+            }
+            // 验证邮箱是否匹配
+            if (!passwordUpdateEmailDTO.getEmail().equals(author.getEmail())) {
+                log.warn("邮箱与账号不匹配：account={}", passwordUpdateEmailDTO.getAccount());
+                return Result.error("邮箱与账号不匹配");
+            }
+            userId = author.getId();
+        }
+        
+        if (userId == null) {
+            log.warn("缺少用户ID或账号");
+            return Result.error("缺少用户信息");
+        }
+        
         Author author = new Author();
-        author.setId(passwordUpdateEmailDTO.getId());
+        author.setId(userId);
         author.setPassword(Argon2idUtil.hash(passwordUpdateEmailDTO.getNewPassword()));
         author.setUpdateTime(LocalDateTime.now());
 
-        int number = authorMapper.updateById(author);
+        int number = authorMapper.update(author);
 
         if(number != 1){
-            log.info("作者密码修改失败，id={}",passwordUpdateEmailDTO.getId());
+            log.info("作者密码修改失败，id={}", userId);
             return Result.error("密码修改失败");
         }else{
-            log.info("修改作者密码成功：ID={}", passwordUpdateEmailDTO.getId());
+            log.info("修改作者密码成功：ID={}", userId);
             return Result.success("作者密码修改成功");
         }
     }

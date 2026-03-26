@@ -1,6 +1,6 @@
 import request from '@/utils/request'
 import type { PageResult } from '@/types'
-import type { NovelDetailVO, NovelListVO, NovelChapterVO, NovelCategoryVO, NovelDTO, NovelSearchDTO, NovelCategoryRelationDTO, NovelCategoryDTO } from '@/types'
+import type { NovelDetailVO, NovelListVO, NovelChapterVO, NovelCategoryVO, NovelDTO, NovelSearchDTO, NovelCategoryRelationDTO, NovelCategoryDTO, AuthorDetailVO } from '@/types'
 
 // ==================== 公共接口 ====================
 
@@ -87,7 +87,12 @@ export function getHotNovels(params: { pageNum?: number; pageSize?: number; cate
 /**
  * 按分类查询小说
  */
-export function getNovelsByCategory(categoryId: number, params: { pageNum?: number; pageSize?: number }) {
+export function getNovelsByCategory(categoryId: number, params: { 
+  pageNum?: number
+  pageSize?: number
+  sortBy?: string
+  isFinished?: boolean
+}) {
   return request.get<PageResult<NovelListVO>>(`/novel-server/visitor/novel/category/${categoryId}`, params)
 }
 
@@ -100,6 +105,14 @@ export function getNovelsByAuthor(authorId: number, params?: { pageNum?: number;
     pageNum: params?.pageNum ?? 1,
     pageSize: params?.pageSize ?? 10
   })
+}
+
+/**
+ * 获取作者详情（访客端）
+ * 包含作者信息和作品列表
+ */
+export function getAuthorDetail(authorId: number, params?: { pageNum?: number; pageSize?: number }) {
+  return request.get<AuthorDetailVO>(`/novel-server/visitor/author/${authorId}`, params)
 }
 
 // ==================== 作者端接口 ====================
@@ -131,12 +144,14 @@ export function updateNovel(data: NovelDTO) {
 export function uploadChapter(
   novelId: number,
   title: string,
+  wordCount: number,
   file: File,
   onProgress?: (progress: number) => void
 ) {
   const formData = new FormData()
   formData.append('novelId', String(novelId))
   formData.append('title', title)
+  formData.append('wordCount', String(wordCount))
   formData.append('file', file)
   
   return request.post('/novel-server/author/chapter/upload', formData, {
@@ -166,6 +181,7 @@ export function updateChapter(params: {
   id: number
   title: string
   chapterOrder?: number
+  wordCount?: number
   oldFileUrl?: string
   file?: File
 }) {
@@ -174,6 +190,9 @@ export function updateChapter(params: {
   formData.append('title', params.title)
   if (params.chapterOrder) {
     formData.append('chapterOrder', String(params.chapterOrder))
+  }
+  if (params.wordCount !== undefined) {
+    formData.append('wordCount', String(params.wordCount))
   }
   if (params.oldFileUrl) {
     formData.append('oldFileUrl', params.oldFileUrl)

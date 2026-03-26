@@ -45,6 +45,9 @@ public class CommentVO {
     @ApiModelProperty("小说ID")
     private Long novelId;
 
+    @ApiModelProperty("小说作者ID（用于判断评论者是否是该小说的作者）")
+    private Long novelAuthorId;
+
     @ApiModelProperty("评论内容")
     private String content;
 

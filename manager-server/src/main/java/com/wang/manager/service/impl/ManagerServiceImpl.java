@@ -1,6 +1,7 @@
 package com.wang.manager.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.utils.RoleContextUtil;
@@ -10,7 +11,7 @@ import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.common.utils.Argon2idUtil;
-import com.wang.common.utils.CopyPropertiesUtil;
+import org.springframework.beans.BeanUtils;
 import com.wang.common.utils.JWTUtil;
 import com.wang.manager.mapper.ManagerMapper;
 import com.wang.manager.service.ManagerService;
@@ -70,7 +71,7 @@ public class ManagerServiceImpl implements ManagerService {
 
         // 生成token
         LoginUser loginUser = LoginUser.builder()
-                .id(manager.getId().intValue())
+                .id(manager.getId())
                 .name(manager.getName())
                 .avatar(manager.getAvatar())
                 .account(manager.getAccount())
@@ -114,10 +115,10 @@ public class ManagerServiceImpl implements ManagerService {
 
         // 构建实体对象
         Manager manager = new Manager();
-        CopyPropertiesUtil.copyNonNullProperties(managerDTO, manager);
+        BeanUtils.copyProperties(managerDTO, manager);
         manager.setCreateTime(LocalDateTime.now());
         // 设置创建者为当前登录管理员的ID
-        manager.setCreateId(loginUser.getId().longValue());
+        manager.setCreateId(loginUser.getId());
         manager.setUpdateTime(LocalDateTime.now());
         manager.setAvatar(defaultUrlConfig.getManagerAvatarUrl());
 
@@ -131,7 +132,7 @@ public class ManagerServiceImpl implements ManagerService {
             if (result == 1) {
                 log.info("添加管理员成功：ID={}", manager.getId());
                 ManagerVO vo = new ManagerVO();
-                CopyPropertiesUtil.copyNonNullProperties(manager, vo);
+                BeanUtils.copyProperties(manager, vo);
                 return Result.success(vo);
             } else {
                 return Result.buildResult(BizCodeEnum.FAIL);
@@ -146,7 +147,7 @@ public class ManagerServiceImpl implements ManagerService {
      * 删除管理员
      */
     @Override
-    public Result deleteManager(Long id) {
+    public Result deleteManager(Integer id) {
         log.info("删除管理员：ID={}", id);
 
         // 检查管理员是否存在
@@ -183,16 +184,16 @@ public class ManagerServiceImpl implements ManagerService {
         }
 
         // 使用工具类复制非空属性，忽略 password、id、createTime、createId
-        CopyPropertiesUtil.copyNonNullProperties(managerDTO, existingManager, "password", "id", "createTime", "createId");
+        BeanUtils.copyProperties(managerDTO, existingManager, "password", "id", "createTime", "createId");
         
         // 设置更新时间
         existingManager.setUpdateTime(LocalDateTime.now());
 
-        int result = managerMapper.updateById(existingManager);
+        int result = managerMapper.update(existingManager);
         if (result == 1) {
             log.info("修改管理员信息成功：ID={}", existingManager.getId());
             ManagerVO vo = new ManagerVO();
-            CopyPropertiesUtil.copyNonNullProperties(existingManager, vo);
+            BeanUtils.copyProperties(existingManager, vo);
             return Result.success(vo);
         } else {
             log.error("修改管理员信息失败：ID={}", existingManager.getId());
@@ -282,7 +283,7 @@ public class ManagerServiceImpl implements ManagerService {
      */
     private ManagerVO convertToVO(Manager manager) {
         ManagerVO vo = new ManagerVO();
-        CopyPropertiesUtil.copyNonNullProperties(manager, vo);
+        BeanUtils.copyProperties(manager, vo);
         return vo;
     }
 
@@ -290,7 +291,7 @@ public class ManagerServiceImpl implements ManagerService {
      * 修改管理员密码
      */
     @Override
-    public Result updatePassword(Long id, String newPassword) {
+    public Result updatePassword(Integer id, String newPassword) {
         log.info("修改管理员密码：ID={}", id);
 
         // 检查管理员是否存在
@@ -305,7 +306,7 @@ public class ManagerServiceImpl implements ManagerService {
         manager.setPassword(hashedPassword);
         LoginUser loginUser = RoleContextUtil.getCurrentUser();
 
-        int result = managerMapper.updateById(manager);
+        int result = managerMapper.update(manager);
         if (result == 1) {
             log.info("修改管理员密码成功：被修改ID={}，修改者ID={}", id,loginUser.getId());
             return Result.success("密码修改成功");
@@ -316,7 +317,7 @@ public class ManagerServiceImpl implements ManagerService {
     }
 
     @Override
-    public Result getNameAndAvatar(Long id) {
+    public Result getNameAndAvatar(Integer id) {
         log.info("获取管理员名称和头像：ID={}", id);
         Map<String, String> map = new HashMap<>();
         Manager manager = managerMapper.selectById(id);

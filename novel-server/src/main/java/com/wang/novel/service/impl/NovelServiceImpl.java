@@ -1,6 +1,7 @@
 package com.wang.novel.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.utils.RoleContextUtil;
@@ -9,7 +10,7 @@ import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
-import com.wang.common.utils.CopyPropertiesUtil;
+import org.springframework.beans.BeanUtils;
 import com.wang.novel.mapper.AuthorMapper;
 import com.wang.novel.mapper.NovelCategoryMapper;
 import com.wang.novel.mapper.NovelCategoryRelationMapper;
@@ -20,6 +21,8 @@ import com.wang.pojo.dto.NovelSearchDTO;
 import com.wang.pojo.entity.Novel;
 import com.wang.pojo.entity.NovelCategory;
 import com.wang.pojo.entity.NovelCategoryRelation;
+import com.wang.pojo.entity.Author;
+import com.wang.pojo.vo.AuthorDetailVO;
 import com.wang.pojo.vo.NovelCategoryVO;
 import com.wang.pojo.vo.NovelDetailVO;
 import com.wang.pojo.vo.NovelListVO;
@@ -213,7 +216,27 @@ public class NovelServiceImpl implements NovelService {
             queryWrapper.eq(Novel::getIsFinished, dto.getIsFinished());
         }
 
-        queryWrapper.orderByDesc(Novel::getUpdateTime);
+        // 排序逻辑
+        if (StringUtils.hasText(dto.getSortBy())) {
+            switch (dto.getSortBy()) {
+                case "collect":
+                    // 按收藏数降序
+                    queryWrapper.orderByDesc(Novel::getCollectCount);
+                    break;
+                case "word":
+                    // 按字数降序
+                    queryWrapper.orderByDesc(Novel::getAllWordCount);
+                    break;
+                case "update":
+                default:
+                    // 按更新时间降序（默认）
+                    queryWrapper.orderByDesc(Novel::getUpdateTime);
+                    break;
+            }
+        } else {
+            // 默认按更新时间降序
+            queryWrapper.orderByDesc(Novel::getUpdateTime);
+        }
 
         // 执行分页查询
         Page<Novel> result = novelMapper.selectPage(page, queryWrapper);
@@ -246,7 +269,7 @@ public class NovelServiceImpl implements NovelService {
         Novel novel = new Novel();
 
         // 将DTO中的非空属性复制到实体对象中, 忽略空属性作者id，作者姓名，小说章节数
-        CopyPropertiesUtil.copyNonNullProperties(novelDTO, novel,"authorId","authorName","chapterCount");
+        BeanUtils.copyProperties(novelDTO, novel, "authorId", "authorName", "chapterCount");
 
         // 设置作者ID为当前登录用户的ID
         novel.setAuthorId(loginUser.getId());
@@ -254,6 +277,8 @@ public class NovelServiceImpl implements NovelService {
         novel.setAuthorName(loginUser.getName());
         // 设置作者头像为当前登录用户的头像（冗余字段）
         novel.setAuthorAvatar(loginUser.getAvatar());
+        // 设置作者等级，默认为1（执笔者）
+        novel.setAuthorRank(novelDTO.getAuthorRank() != null ? novelDTO.getAuthorRank() : 1);
 
         // 设置小说信息
         novel.setIsHot(false);
@@ -310,7 +335,7 @@ public class NovelServiceImpl implements NovelService {
 
         // 执行逻辑删除操作
         novel.setIsDel(true);
-        int result = novelMapper.updateById(novel);
+        int result = novelMapper.update(novel);
         if (result == 1) {
             log.info("{}的ID={}, 逻辑删除小说成功：小说ID={}", loginUser.getRole(),loginUser.getId(),id);
             return Result.success(BizCodeEnum.SUCCESS);
@@ -349,12 +374,12 @@ public class NovelServiceImpl implements NovelService {
         }
 
         Novel novel = new Novel();
-        CopyPropertiesUtil.copyNonNullProperties(novelDTO, novel);
+        BeanUtils.copyProperties(novelDTO, novel);
         // 更新修改时间
         novel.setUpdateTime(LocalDateTime.now());
 
         // 执行更新操作
-        int result = novelMapper.updateById(novel);
+        int result = novelMapper.update(novel);
         if (result == 1) {
             log.info("修改小说成功：ID={}", novel.getId());
             return Result.success(novel);
@@ -416,11 +441,12 @@ public class NovelServiceImpl implements NovelService {
         return Result.success(pageResult);
     }
 
-    @Override
-    public Result getNovelsByCategory(Integer pageNum, Integer pageSize, Integer categoryId) {
+@Override
+    public Result getNovelsByCategory(Integer pageNum, Integer pageSize, Integer categoryId, String sortBy, Boolean isFinished) {
         if (categoryId == null) {
             return Result.error("分类ID不能为空");
         }
+
 
         // 参数校验
         if (pageNum == null || pageNum < 1) {
@@ -433,28 +459,64 @@ public class NovelServiceImpl implements NovelService {
             pageSize = MAX_PAGE_SIZE;
         }
 
-        int offset = (pageNum - 1) * pageSize;
+        // 构建查询条件
+        LambdaQueryWrapper<NovelCategoryRelation> relationWrapper = new LambdaQueryWrapper<>();
+        relationWrapper.eq(NovelCategoryRelation::getCategoryId, categoryId);
+        List<NovelCategoryRelation> relations = novelCategoryRelationMapper.selectList(relationWrapper);
 
-        // SQL层面分页查询
-        List<Novel> novels = novelMapper.selectNovelsByCategoryId(categoryId, offset, pageSize);
-
-        // 查询总数
-        Integer total = novelMapper.countNovelsByCategoryId(categoryId);
-        if (total == null) {
-            total = 0;
-        }
-
-        // 空数据返回空列表，不是错误
-        if (novels.isEmpty()) {
+        if (relations.isEmpty()) {
             log.info("该分类下没有小说");
             return Result.success(PageResult.build(pageNum, pageSize, 0, Collections.emptyList()));
         }
 
-        List<NovelListVO> voList = novels.stream()
+        // 提取小说ID列表
+        List<Integer> novelIds = relations.stream()
+                .map(NovelCategoryRelation::getNovelId)
+                .collect(Collectors.toList());
+
+        // 构建小说查询条件
+        LambdaQueryWrapper<Novel> novelWrapper = new LambdaQueryWrapper<>();
+        novelWrapper.in(Novel::getId, novelIds)
+                .eq(Novel::getIsDel, false);
+
+        // 完结状态筛选
+        if (isFinished != null) {
+            novelWrapper.eq(Novel::getIsFinished, isFinished);
+        }
+
+        // 排序逻辑
+        if (sortBy != null) {
+            switch (sortBy) {
+                case "collect":
+                    novelWrapper.orderByDesc(Novel::getCollectCount);
+                    break;
+                case "word":
+                    novelWrapper.orderByDesc(Novel::getAllWordCount);
+                    break;
+                case "update":
+                default:
+                    novelWrapper.orderByDesc(Novel::getUpdateTime);
+                    break;
+            }
+        } else {
+            novelWrapper.orderByDesc(Novel::getUpdateTime);
+        }
+
+        // 分页查询
+        Page<Novel> page = new Page<>(pageNum, pageSize);
+        Page<Novel> result = novelMapper.selectPage(page, novelWrapper);
+
+        // 转换为VO
+        List<NovelListVO> voList = result.getRecords().stream()
                 .map(this::convertToListVO)
                 .collect(Collectors.toList());
 
-        PageResult<NovelListVO> pageResult = PageResult.build(pageNum, pageSize, total, voList);
+        PageResult<NovelListVO> pageResult = PageResult.build(
+                (int) result.getCurrent(),
+                (int) result.getSize(),
+                (int) result.getTotal(),
+                voList
+        );
 
         return Result.success(pageResult);
     }
@@ -466,7 +528,7 @@ public class NovelServiceImpl implements NovelService {
      */
     private NovelListVO convertToListVO(Novel novel) {
         NovelListVO vo = new NovelListVO();
-        CopyPropertiesUtil.copyNonNullProperties(novel, vo);
+        BeanUtils.copyProperties(novel, vo);
         return vo;
     }
 
@@ -475,7 +537,7 @@ public class NovelServiceImpl implements NovelService {
      */
     private NovelDetailVO convertToDetailVO(Novel novel, List<NovelCategoryVO> categories) {
         NovelDetailVO vo = new NovelDetailVO();
-        CopyPropertiesUtil.copyNonNullProperties(novel, vo);
+        BeanUtils.copyProperties(novel, vo);
         vo.setCategories(categories);
         
         // 设置作者ID
@@ -491,6 +553,14 @@ public class NovelServiceImpl implements NovelService {
             vo.setAuthorAvatar(defaultUrlConfig.getAuthorAvatarUrl());
         }
         
+        // 设置作者作品数量
+        if (novel.getAuthorId() != null) {
+            Integer novelCount = authorMapper.countNovelsByAuthorId(novel.getAuthorId());
+            vo.setAuthorNovelCount(novelCount != null ? novelCount : 0);
+        } else {
+            vo.setAuthorNovelCount(0);
+        }
+        
         return vo;
     }
 
@@ -499,8 +569,81 @@ public class NovelServiceImpl implements NovelService {
      */
     private NovelCategoryVO convertToCategoryVO(NovelCategory category) {
         NovelCategoryVO vo = new NovelCategoryVO();
-        CopyPropertiesUtil.copyNonNullProperties(category, vo, "category");
+        BeanUtils.copyProperties(category, vo, "category");
         vo.setCategoryName(category.getCategory() == 1 ? "男频" : "女频");
         return vo;
+    }
+
+    /**
+     * 获取等级名称
+     */
+    private String getRankName(Integer rank) {
+        if (rank == null) {
+            return "执笔者";
+        }
+        return switch (rank) {
+            case 1 -> "执笔者";
+            case 2 -> "织梦师";
+            case 3 -> "造界者";
+            case 4 -> "渡舟人";
+            case 5 -> "燃灯者";
+            default -> "执笔者";
+        };
+    }
+
+    // ==================== Visitor - 作者详情 ====================
+
+    @Override
+    public Result getAuthorDetail(Integer authorId, Integer pageNum, Integer pageSize) {
+        // 参数校验
+        if (authorId == null || authorId < 1) {
+            return Result.error("作者ID无效");
+        }
+
+        // 查询作者基本信息
+        Author author = authorMapper.selectAuthorBasicInfo(authorId);
+        if (author == null) {
+            log.warn("作者不存在：ID={}", authorId);
+            return Result.error("作者不存在");
+        }
+
+        // 分页参数校验
+        if (pageNum == null || pageNum < 1) {
+            pageNum = 1;
+        }
+        if (pageSize == null || pageSize < 1) {
+            pageSize = DEFAULT_PAGE_SIZE;
+        }
+        if (pageSize > MAX_PAGE_SIZE) {
+            pageSize = MAX_PAGE_SIZE;
+        }
+
+        int offset = (pageNum - 1) * pageSize;
+
+        // 查询作者作品列表
+        List<Novel> novels = novelMapper.selectNovelsByAuthorId(authorId, offset, pageSize);
+        Integer total = novelMapper.countNovelsByAuthorIdInNovel(authorId);
+        if (total == null) {
+            total = 0;
+        }
+
+        // 转换作品列表为VO
+        List<NovelListVO> novelVOList = novels.stream()
+                .map(this::convertToListVO)
+                .collect(Collectors.toList());
+
+        // 构建作者详情VO
+        AuthorDetailVO vo = new AuthorDetailVO();
+        vo.setId(author.getId());
+        vo.setName(author.getName());
+        vo.setAvatar(StringUtils.hasText(author.getAvatar()) ? author.getAvatar() : defaultUrlConfig.getAuthorAvatarUrl());
+        vo.setRank(author.getRank());
+        vo.setRankName(getRankName(author.getRank()));
+        vo.setIntroduction(author.getIntroduction());
+        vo.setNovelCount(total);
+        vo.setNovels(novelVOList);
+
+        log.info("获取作者详情成功：ID={}, 作品数={}", authorId, total);
+        return Result.success(vo);
     }
 }

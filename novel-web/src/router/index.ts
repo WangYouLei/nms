@@ -10,6 +10,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '登录' }
   },
   {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('@/views/forgot-password/index.vue'),
+    meta: { title: '找回密码' }
+  },
+  {
     path: '/404',
     name: 'NotFound',
     component: () => import('@/views/error/404.vue'),
@@ -78,6 +84,12 @@ const routes: RouteRecordRaw[] = [
         name: 'VisitorComments',
         component: () => import('@/views/visitor/comment/index.vue'),
         meta: { title: '我的评论', requiresAuth: true, role: 'VISITOR' }
+      },
+      {
+        path: 'favorite',
+        name: 'VisitorFavorite',
+        component: () => import('@/views/visitor/favorite/index.vue'),
+        meta: { title: '我的收藏', requiresAuth: true, role: 'VISITOR' }
       },
       {
         path: 'author/:id',
@@ -165,6 +177,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '评论管理' }
       },
       {
+        path: 'comments/novel/:id',
+        name: 'AuthorNovelComments',
+        component: () => import('@/views/author/comment/novel/[id].vue'),
+        meta: { title: '小说评论' }
+      },
+      {
         path: 'settings',
         name: 'AuthorSettings',
         component: () => import('@/views/author/settings/index.vue'),
@@ -205,7 +223,7 @@ const routes: RouteRecordRaw[] = [
         path: 'visitors',
         name: 'ManagerVisitors',
         component: () => import('@/views/manager/visitor/list.vue'),
-        meta: { title: '用户管理' }
+        meta: { title: '访客管理' }
       },
       {
         path: 'authors',
@@ -218,6 +236,24 @@ const routes: RouteRecordRaw[] = [
         name: 'ManagerCategories',
         component: () => import('@/views/manager/category/list.vue'),
         meta: { title: '分类管理' }
+      },
+      {
+        path: 'comments',
+        name: 'ManagerComments',
+        component: () => import('@/views/manager/comment-manage/index.vue'),
+        meta: { title: '评论管理' }
+      },
+      {
+        path: 'audit',
+        name: 'ManagerAudit',
+        component: () => import('@/views/manager/comment/index.vue'),
+        meta: { title: '人工审核' }
+      },
+      {
+        path: 'sensitive-words',
+        name: 'ManagerSensitiveWords',
+        component: () => import('@/views/manager/sensitive-word/index.vue'),
+        meta: { title: '敏感词管理' }
       },
       {
         path: 'administrators',

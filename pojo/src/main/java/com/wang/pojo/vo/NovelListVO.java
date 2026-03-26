@@ -35,8 +35,17 @@ public class NovelListVO {
     @ApiModelProperty("作者头像")
     private String authorAvatar;
 
+    @ApiModelProperty("作者等级（1-执笔者，2-织梦师，3-造界者，4-渡舟人，5-燃灯者）")
+    private Integer authorRank;
+
     @ApiModelProperty("小说章节")
     private Integer chapterCount;
+
+    @ApiModelProperty("总字数（所有章节字数之和）")
+    private Integer allWordCount;
+
+    @ApiModelProperty("收藏数量")
+    private Integer collectCount;
     
     @ApiModelProperty("是否完结（false未完结，true已完结）")
     private Boolean isFinished;

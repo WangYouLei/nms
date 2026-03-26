@@ -56,9 +56,10 @@ public class NovelChapterController {
     public Result authorUploadChapter(
             @RequestParam Integer novelId,
             @RequestParam String title,
+            @RequestParam Integer wordCount,
             @RequestParam("file") MultipartFile file) {
-        log.info("[Author] 上传新章节：小说ID={}, 新章节标题={}", novelId, title);
-        return novelChapterService.uploadChapter(novelId, title, file);
+        log.info("[Author] 上传新章节：小说ID={}, 新章节标题={}, 字数={}", novelId, title, wordCount);
+        return novelChapterService.uploadChapter(novelId, title, wordCount, file);
     }
 
     @DeleteMapping("/author/chapter/delete/{id}")
@@ -74,11 +75,12 @@ public class NovelChapterController {
             @RequestParam Integer id,
             @RequestParam String title,
             @RequestParam(required = false) Integer chapterOrder,
+            @RequestParam(required = false) Integer wordCount,
             @RequestParam(required = false) String oldFileUrl,
             @RequestParam(required = false) MultipartFile file
     ) {
-        log.info("[Author] 更新章节：章节ID={}, 标题={}, 顺序={}", id, title, chapterOrder);
-        return novelChapterService.updateChapter(id, title, chapterOrder, oldFileUrl, file);
+        log.info("[Author] 更新章节：章节ID={}, 标题={}, 顺序={}, 字数={}", id, title, chapterOrder, wordCount);
+        return novelChapterService.updateChapter(id, title, chapterOrder, wordCount, oldFileUrl, file);
     }
 
 }

@@ -9,4 +9,11 @@ import org.apache.ibatis.annotations.Mapper;
  */
 @Mapper
 public interface NovelChapterMapper extends BaseMapper<NovelChapter> {
+
+    /**
+     * 动态更新小说章节，只更新非 null 的字段
+     * @param novelChapter 章节信息
+     * @return 影响行数
+     */
+    int update(NovelChapter novelChapter);
 }

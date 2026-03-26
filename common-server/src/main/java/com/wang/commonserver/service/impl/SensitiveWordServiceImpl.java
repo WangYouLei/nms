@@ -1,6 +1,7 @@
 package com.wang.commonserver.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.DataSourceEnum;
@@ -9,7 +10,7 @@ import com.wang.common.enums.SensitiveCategoryEnum;
 import com.wang.common.enums.SensitiveLevelEnum;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
-import com.wang.common.utils.CopyPropertiesUtil;
+import org.springframework.beans.BeanUtils;
 import com.wang.common.utils.DFAUtil;
 import com.wang.commonserver.mapper.SensitiveWordMapper;
 import com.wang.commonserver.service.SensitiveWordService;
@@ -185,10 +186,10 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
             wordLevelMap.remove(existing.getWord());
         }
 
-        CopyPropertiesUtil.copyNonNullProperties(dto, existing, "id", "createTime", "source", "creatorId");
+        BeanUtils.copyProperties(dto, existing, "id", "createTime", "source", "creatorId");
         existing.setUpdateTime(LocalDateTime.now());
 
-        int result = sensitiveWordMapper.updateById(existing);
+        int result = sensitiveWordMapper.update(existing);
         if (result == 1) {
             // 更新DFA树
             dfaUtil.addWord(existing.getWord());
@@ -315,7 +316,7 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
         entity.setStatus(status);
         entity.setUpdateTime(LocalDateTime.now());
 
-        int result = sensitiveWordMapper.updateById(entity);
+        int result = sensitiveWordMapper.update(entity);
         if (result == 1) {
             // 刷新DFA树
             initDFA();
@@ -385,7 +386,7 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
      */
     private SensitiveWordVO convertToVO(SensitiveWord entity) {
         SensitiveWordVO vo = new SensitiveWordVO();
-        CopyPropertiesUtil.copyNonNullProperties(entity, vo);
+        BeanUtils.copyProperties(entity, vo);
         vo.setCategoryName(SensitiveCategoryEnum.getDescription(entity.getCategory()));
         vo.setLevelName(getLevelName(entity.getLevel()));
         vo.setStatusName(EnableStatusEnum.getDescription(entity.getStatus()));

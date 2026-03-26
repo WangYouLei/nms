@@ -154,8 +154,8 @@ const statusOptions = [
 
 const sortOptions = [
   { label: '最新更新', value: 'update' },
-  { label: '最受欢迎', value: 'hot' },
-  { label: '收藏最多', value: 'collect' }
+  { label: '收藏最多', value: 'collect' },
+  { label: '字数最多', value: 'word' }
 ]
 
 const fetchCategories = async () => {
@@ -172,11 +172,9 @@ const fetchNovels = async () => {
   try {
     const params: any = {
       pageNum: pageNum.value,
-      pageSize: pageSize.value
-    }
-    
-    if (filterStatus.value) {
-      params.isFinished = filterStatus.value === 'true'
+      pageSize: pageSize.value,
+      sortBy: sortBy.value,
+      isFinished: filterStatus.value === 'true' ? true : filterStatus.value === 'false' ? false : undefined
     }
     
     if (activeCategory.value) {

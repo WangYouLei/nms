@@ -41,7 +41,7 @@ public class ManualAuditController {
             @RequestParam @ApiParam("审核记录ID") Long id,
             @RequestParam @ApiParam("审核结果：1-通过，2-拒绝") Integer result,
             @RequestParam(required = false) @ApiParam("拒绝理由（拒绝时必填）") String refusalReason,
-            @RequestParam @ApiParam("审核管理员ID") Long managerId,
+            @RequestParam @ApiParam("审核管理员ID") Integer managerId,
             @RequestParam @ApiParam("审核管理员昵称") String managerName) {
         log.info("执行审核请求：id={}, result={}", id, result);
         return manualAuditService.executeAudit(id, result, refusalReason, managerId, managerName);
@@ -51,7 +51,7 @@ public class ManualAuditController {
     @ApiOperation("审核通过")
     public Result approve(
             @PathVariable @ApiParam("审核记录ID") Long id,
-            @RequestParam @ApiParam("审核管理员ID") Long managerId,
+            @RequestParam @ApiParam("审核管理员ID") Integer managerId,
             @RequestParam @ApiParam("审核管理员昵称") String managerName) {
         log.info("审核通过请求：id={}", id);
         return manualAuditService.executeAudit(id, AuditResultEnum.APPROVED.getValue(), null, managerId, managerName);
@@ -62,7 +62,7 @@ public class ManualAuditController {
     public Result reject(
             @PathVariable @ApiParam("审核记录ID") Long id,
             @RequestParam @ApiParam("拒绝理由") String refusalReason,
-            @RequestParam @ApiParam("审核管理员ID") Long managerId,
+            @RequestParam @ApiParam("审核管理员ID") Integer managerId,
             @RequestParam @ApiParam("审核管理员昵称") String managerName) {
         log.info("审核拒绝请求：id={}", id);
         return manualAuditService.executeAudit(id, AuditResultEnum.REJECTED.getValue(), refusalReason, managerId, managerName);
@@ -72,7 +72,7 @@ public class ManualAuditController {
     @ApiOperation("批量审核通过")
     public Result batchApprove(
             @RequestBody @ApiParam("审核记录ID列表") List<Long> ids,
-            @RequestParam @ApiParam("审核管理员ID") Long managerId,
+            @RequestParam @ApiParam("审核管理员ID") Integer managerId,
             @RequestParam @ApiParam("审核管理员昵称") String managerName) {
         log.info("批量审核通过请求：count={}", ids.size());
         return manualAuditService.batchApprove(ids, managerId, managerName);
@@ -83,7 +83,7 @@ public class ManualAuditController {
     public Result batchReject(
             @RequestBody @ApiParam("审核记录ID列表") List<Long> ids,
             @RequestParam @ApiParam("拒绝理由") String refusalReason,
-            @RequestParam @ApiParam("审核管理员ID") Long managerId,
+            @RequestParam @ApiParam("审核管理员ID") Integer managerId,
             @RequestParam @ApiParam("审核管理员昵称") String managerName) {
         log.info("批量审核拒绝请求：count={}", ids.size());
         return manualAuditService.batchReject(ids, refusalReason, managerId, managerName);
@@ -115,7 +115,7 @@ public class ManualAuditController {
     @GetMapping("/manager/{managerId}")
     @ApiOperation("获取指定管理员的审核记录")
     public Result getAuditByManagerId(
-            @PathVariable @ApiParam("管理员ID") Long managerId,
+            @PathVariable @ApiParam("管理员ID") Integer managerId,
             @RequestParam(defaultValue = "1") @ApiParam("页码") Integer pageNum,
             @RequestParam(defaultValue = "10") @ApiParam("每页数量") Integer pageSize) {
         log.info("获取管理员审核记录请求：managerId={}", managerId);

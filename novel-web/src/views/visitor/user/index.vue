@@ -62,12 +62,16 @@ const handleMenuClick = (menu: typeof menus[0]) => {
       ElMessage.success('已退出登录')
       router.push('/home')
     }).catch(() => {})
-  } else if (menu.path === 'settings') {
+  } else if (menu.path === 'favorite') {
+    router.push('/favorite')
+  } else if (menu.path === '/settings') {
     router.push('/settings')
   } else if (menu.path === '/comments') {
     router.push('/comments')
+  } else if (menu.path === 'history') {
+    // 阅读历史功能待开发
+    ElMessage.info('阅读历史功能开发中')
   } else {
-    // 其他功能待实现
     ElMessage.info('功能开发中')
   }
 }

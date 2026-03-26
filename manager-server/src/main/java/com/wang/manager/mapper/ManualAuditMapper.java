@@ -15,6 +15,13 @@ import java.util.List;
 public interface ManualAuditMapper extends BaseMapper<ManualAudit> {
 
     /**
+     * 动态更新审核记录，只更新非 null 的字段
+     * @param manualAudit 审核记录
+     * @return 影响行数
+     */
+    int update(ManualAudit manualAudit);
+
+    /**
      * 根据审核目标查询审核记录
      * @param aimId 审核目标对象ID
      * @param aimType 审核目标对象类型
@@ -44,5 +51,5 @@ public interface ManualAuditMapper extends BaseMapper<ManualAudit> {
      * @return 审核记录列表
      */
     @Select("SELECT * FROM manual_audit WHERE manager_id = #{managerId} ORDER BY create_time DESC")
-    List<ManualAudit> selectByManagerId(@Param("managerId") Long managerId);
+    List<ManualAudit> selectByManagerId(@Param("managerId") Integer managerId);
 }

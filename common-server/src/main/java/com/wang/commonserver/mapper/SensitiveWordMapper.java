@@ -15,6 +15,13 @@ import java.util.List;
 public interface SensitiveWordMapper extends BaseMapper<SensitiveWord> {
 
     /**
+     * 动态更新敏感词，只更新非 null 的字段
+     * @param sensitiveWord 敏感词信息
+     * @return 影响行数
+     */
+    int update(SensitiveWord sensitiveWord);
+
+    /**
      * 查询所有启用的敏感词
      * @return 敏感词列表
      */

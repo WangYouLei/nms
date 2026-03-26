@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wang.novel.mapper.NovelChapterMapper">
+
+    <!-- 动态更新小说章节，只更新非 null 且非空的字段 -->
+    <update id="update" parameterType="com.wang.pojo.entity.NovelChapter">
+        UPDATE novel_chapter
+        <set>
+            <if test="title != null and title != ''">
+                title = #{title},
+            </if>
+            <if test="contentUrl != null and contentUrl != ''">
+                content_url = #{contentUrl},
+            </if>
+            <if test="wordCount != null">
+                word_count = #{wordCount},
+            </if>
+            <if test="chapterOrder != null">
+                chapter_order = #{chapterOrder},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime},
+            </if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+</mapper>

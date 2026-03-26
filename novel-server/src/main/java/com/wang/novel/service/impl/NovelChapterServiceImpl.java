@@ -1,6 +1,7 @@
 package com.wang.novel.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.wang.common.utils.RoleContextUtil;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.FileUploadTypeEnum;
@@ -15,7 +16,7 @@ import com.wang.pojo.entity.Novel;
 import com.wang.pojo.entity.NovelChapter;
 import com.wang.pojo.vo.NovelChapterVO;
 import lombok.extern.slf4j.Slf4j;
-import com.wang.common.utils.CopyPropertiesUtil;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -97,7 +98,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
 
     @Override
     @Transactional
-    public Result uploadChapter(Integer novelId, String title, MultipartFile file) {
+    public Result uploadChapter(Integer novelId, String title, Integer wordCount, MultipartFile file) {
         LoginUser loginUser = getLoginUser();
         // 权限校验：只有作者可以上传章节
         if (!UserRole.AUTHOR.equals(loginUser.getRole())) {
@@ -131,7 +132,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
             String contentUrl = (String) uploadResult.getData();
 
             // 保存章节记录
-            return saveChapterRecord(novel, title, contentUrl, getNextChapterOrder(novelId));
+            return saveChapterRecord(novel, title, contentUrl, getNextChapterOrder(novelId), wordCount);
         } catch (Exception e) {
             log.error("上传新章节异常", e);
             return Result.error("上传新章节失败：" + e.getMessage());
@@ -165,7 +166,9 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         // 删除数据库记录
         int result = novelChapterMapper.deleteById(id);
         if (result == 1) {
+            // 更新小说章节数和总字数
             updateNovelChapterCount(novel, -1);
+            updateNovelAllWordCount(novel, -(chapter.getWordCount() != null ? chapter.getWordCount() : 0));
             log.info("删除章节成功：章节ID={}", id);
             return Result.success(BizCodeEnum.SUCCESS);
         } else {
@@ -174,9 +177,8 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         }
     }
 
-    @Override
-    @Transactional
-    public Result updateChapter(Integer id, String title, Integer chapterOrder, String oldFileUrl, MultipartFile file) {
+    // 更新章节信息（包括章节内容）
+    public Result updateChapter(Integer id, String title, Integer chapterOrder, Integer wordCount, String oldFileUrl, MultipartFile file) {
         LoginUser loginUser = getLoginUser();
 
         // 权限校验：检查章节所有权
@@ -184,6 +186,10 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         if (chapter == null) {
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }
+
+        // 保存旧字数用于计算差值
+        Integer oldWordCount = chapter.getWordCount() != null ? chapter.getWordCount() : 0;
+        boolean wordCountChanged = false;
 
         // 更新标题
         if (StringUtils.hasText(title) && !title.equals(chapter.getTitle())) {
@@ -197,6 +203,14 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         // 更新排序
         if (chapterOrder != null && chapterOrder > 0) {
             chapter.setChapterOrder(chapterOrder);
+        }
+
+        // 更新字数
+        if (wordCount != null && wordCount >= 0) {
+            if (!wordCount.equals(oldWordCount)) {
+                wordCountChanged = true;
+            }
+            chapter.setWordCount(wordCount);
         }
 
         // 更新章节内容文件（如果提供了新文件）
@@ -228,8 +242,14 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         chapter.setUpdateTime(LocalDateTime.now());
 
         // 更新数据库
-        int result = novelChapterMapper.updateById(chapter);
+        int result = novelChapterMapper.update(chapter);
         if (result == 1) {
+            // 如果字数有变化，更新小说总字数
+            if (wordCountChanged && wordCount != null) {
+                Novel novel = novelMapper.selectById(chapter.getNovelId());
+                int delta = wordCount - oldWordCount;
+                updateNovelAllWordCount(novel, delta);
+            }
             log.info("更新章节成功：章节ID={}", chapter.getId());
             return Result.success(convertToVO(chapter));
         } else {
@@ -309,22 +329,25 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         return (lastChapter == null) ? 1 : lastChapter.getChapterOrder() + 1;
     }
 
-    /**
+/**
      * 保存章节记录到数据库
      */
-    private Result saveChapterRecord(Novel novel, String title, String contentUrl, int order) {
+    private Result saveChapterRecord(Novel novel, String title, String contentUrl, int order, Integer wordCount) {
         NovelChapter chapter = new NovelChapter();
         chapter.setNovelId(novel.getId());
         chapter.setTitle(title);
         chapter.setContentUrl(contentUrl);
+        chapter.setWordCount(wordCount != null ? wordCount : 0);
         chapter.setChapterOrder(order);
         chapter.setCreateTime(LocalDateTime.now());
         chapter.setUpdateTime(LocalDateTime.now());
 
         int result = novelChapterMapper.insert(chapter);
         if (result == 1) {
+            // 更新小说章节数和总字数
             updateNovelChapterCount(novel, 1);
-            log.info("保存章节成功：章节ID={}", chapter.getId());
+            updateNovelAllWordCount(novel, wordCount != null ? wordCount : 0);
+            log.info("保存章节成功：章节ID={}, 字数={}", chapter.getId(), wordCount);
             return Result.success(chapter);
         } else {
             log.error("保存章节记录失败");
@@ -341,7 +364,20 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         int newCount = (novel.getChapterCount() == null ? 0 : novel.getChapterCount()) + delta;
         novel.setChapterCount(Math.max(0, newCount));
         novel.setUpdateTime(LocalDateTime.now());
-        novelMapper.updateById(novel);
+        novelMapper.update(novel);
+    }
+
+    /**
+     * 更新小说总字数
+     *
+     * @param delta 变化量（正数增加，负数减少）
+     */
+    private void updateNovelAllWordCount(Novel novel, int delta) {
+        int newWordCount = (novel.getAllWordCount() == null ? 0 : novel.getAllWordCount()) + delta;
+        novel.setAllWordCount(Math.max(0, newWordCount));
+        novel.setUpdateTime(LocalDateTime.now());
+        novelMapper.update(novel);
+        log.info("更新小说总字数：小说ID={}, 变化量={}, 新总字数={}", novel.getId(), delta, newWordCount);
     }
 
     /**
@@ -349,7 +385,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
      */
     private NovelChapterVO convertToVO(NovelChapter chapter) {
         NovelChapterVO vo = new NovelChapterVO();
-        CopyPropertiesUtil.copyNonNullProperties(chapter, vo);
+        BeanUtils.copyProperties(chapter, vo);
         return vo;
     }
 }

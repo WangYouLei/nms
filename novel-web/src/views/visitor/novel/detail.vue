@@ -59,10 +59,10 @@
               class="flex items-center justify-center md:justify-start gap-3 mt-4 cursor-pointer hover:opacity-80 transition-opacity"
               @click="goToAuthor"
             >
-              <el-avatar :size="32" :src="getImageUrl(author?.avatar || novel?.authorAvatar)">
-                {{ (author?.name || novel?.authorName)?.charAt(0) }}
+              <el-avatar :size="32" :src="getImageUrl(novel?.authorAvatar)">
+                {{ novel?.authorName?.charAt(0) }}
               </el-avatar>
-              <span class="text-gray-700 dark:text-gray-300 font-medium">{{ author?.name || novel?.authorName }}</span>
+              <span class="text-gray-700 dark:text-gray-300 font-medium">{{ novel?.authorName }}</span>
             </div>
             
             <!-- 数据统计 -->
@@ -70,6 +70,10 @@
               <span class="flex items-center gap-1">
                 <el-icon><Document /></el-icon>
                 {{ novel.chapterCount }} 章
+              </span>
+              <span class="flex items-center gap-1">
+                <el-icon><Notebook /></el-icon>
+                {{ formatWordCount(novel.allWordCount) }}
               </span>
               <span class="flex items-center gap-1">
                 <el-icon><Clock /></el-icon>
@@ -100,26 +104,37 @@
               </template>
             </div>
             
-            <!-- 操作按钮 -->
-            <div class="flex flex-wrap justify-center md:justify-start gap-3 mt-6">
-              <el-button 
-                type="primary" 
-                size="large"
-                class="rounded-xl px-8"
-                @click="startReading"
-              >
-                <el-icon class="mr-1"><Reading /></el-icon>
-                开始阅读
-              </el-button>
-              <el-button 
-                size="large"
-                class="rounded-xl"
-                @click="addToShelf"
-              >
-                <el-icon class="mr-1"><FolderAdd /></el-icon>
-                加入书架
-              </el-button>
-            </div>
+<!-- 操作按钮 -->
+             <div class="flex flex-wrap justify-center md:justify-start gap-3 mt-6">
+               <el-button 
+                 type="primary" 
+                 size="large"
+                 class="rounded-xl px-8"
+                 @click="startReading"
+               >
+                 <el-icon class="mr-1"><Reading /></el-icon>
+                 开始阅读
+               </el-button>
+               <el-button 
+                 size="large"
+                 class="rounded-xl"
+                 :type="isCollected ? 'warning' : 'default'"
+                 @click="toggleCollect"
+               >
+                 <el-icon class="mr-1"><Star /></el-icon>
+                 {{ isCollected ? '已收藏' : '收藏' }}
+               </el-button>
+               <el-button 
+                 size="large"
+                 class="rounded-xl"
+                 :type="isFollowing ? 'danger' : 'default'"
+                 :loading="followLoading"
+                 @click="toggleFollow"
+               >
+                 <el-icon class="mr-1"><Plus /></el-icon>
+                 {{ isFollowing ? '已关注' : '关注作者' }}
+               </el-button>
+             </div>
           </div>
         </div>
       </div>
@@ -222,17 +237,17 @@
             @click="goToAuthor"
           >
             <div class="flex items-center gap-4">
-              <el-avatar :size="56" :src="getImageUrl(author?.avatar || novel?.authorAvatar)">
-                {{ (author?.name || novel?.authorName)?.charAt(0) }}
+              <el-avatar :size="56" :src="getImageUrl(novel?.authorAvatar)">
+                {{ novel?.authorName?.charAt(0) }}
               </el-avatar>
               <div>
-                <p class="font-bold text-gray-800 dark:text-gray-200">{{ author?.name || novel?.authorName }}</p>
+                <p class="font-bold text-gray-800 dark:text-gray-200">{{ novel?.authorName }}</p>
                 <p class="text-sm text-gray-500">作者</p>
               </div>
             </div>
             <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
               <p class="text-sm text-gray-500">
-                <span class="text-primary font-medium">{{ author?.novelCount || 0 }}</span> 篇作品
+                <span class="text-primary font-medium">{{ novel?.authorNovelCount || 0 }}</span> 篇作品
               </p>
             </div>
           </section>
@@ -281,30 +296,35 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { 
   Loading, Reading, Document, Clock, FolderAdd, Search, 
-  StarFilled, Warning 
+  StarFilled, Warning, Star, Plus, Notebook 
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getNovelDetail, getChapterList, getHotNovels, getAuthorPublicInfo } from '@/api'
-import { useNovelStore } from '@/stores'
+import { getNovelDetail, getChapterList, getHotNovels } from '@/api'
+import { addCollect, removeCollect, checkCollect } from '@/api/collect'
+import { addFollow, removeFollow, checkFollow } from '@/api/follow'
+import { useNovelStore, useUserStore } from '@/stores'
 import { getImageUrl } from '@/utils/file-url'
 import { formatRelativeTime } from '@/utils/format'
 import CommentList from '@/components/business/CommentList.vue'
 import { CommentTargetType } from '@/types/comment'
-import type { NovelDetailVO, NovelChapterVO, NovelListVO, VisitorAuthorVO } from '@/types'
+import type { NovelDetailVO, NovelChapterVO, NovelListVO } from '@/types'
 
 const router = useRouter()
 const route = useRoute()
 const novelStore = useNovelStore()
+const userStore = useUserStore()
 
 const loading = ref(true)
 const novel = ref<NovelDetailVO | null>(null)
 const chapters = ref<NovelChapterVO[]>([])
 const recommendNovels = ref<NovelListVO[]>([])
-const author = ref<VisitorAuthorVO | null>(null)
 const showFullIntro = ref(false)
 const chapterSearch = ref('')
 const chapterPage = ref(1)
 const chapterPageSize = 24
+const isCollected = ref(false) // 是否已收藏
+const isFollowing = ref(false) // 是否已关注
+const followLoading = ref(false) // 关注按钮loading
 
 const currentChapterId = computed(() => novelStore.currentChapter?.id)
 
@@ -340,14 +360,15 @@ const fetchData = async () => {
     
     if (novel.value) {
       novelStore.setCurrentNovel(novel.value)
-      
-      // 获取作者公开信息（包含作品数量）
-      if (novel.value.authorId) {
-        try {
-          const authorRes = await getAuthorPublicInfo(novel.value.authorId)
-          author.value = authorRes.data
-        } catch (error) {
-          console.error('Failed to fetch author info:', error)
+      // 检查收藏状态
+      if (userStore.isLoggedIn) {
+        const collectRes = await checkCollect(novelId)
+        isCollected.value = collectRes.data || false
+        
+        // 检查关注状态
+        if (novel.value.authorId) {
+          const followRes = await checkFollow(novel.value.authorId, userStore.userId!)
+          isFollowing.value = followRes.data || false
         }
       }
     }
@@ -367,8 +388,74 @@ const startReading = () => {
   }
 }
 
-const addToShelf = () => {
-  ElMessage.success('已加入书架')
+const toggleCollect = async () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  const novelId = novel.value?.id
+  if (!novelId) return
+
+  try {
+    if (isCollected.value) {
+      await removeCollect(novelId)
+      isCollected.value = false
+      ElMessage.success('已取消收藏')
+    } else {
+      await addCollect(novelId)
+      isCollected.value = true
+      ElMessage.success('收藏成功')
+    }
+  } catch (error) {
+    console.error('Failed to toggle collect:', error)
+    ElMessage.error('操作失败')
+  }
+}
+
+const toggleFollow = async () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  const authorId = novel.value?.authorId
+  if (!authorId) return
+
+  followLoading.value = true
+  try {
+    if (isFollowing.value) {
+      await removeFollow(authorId, userStore.userId!)
+      isFollowing.value = false
+      ElMessage.success('已取消关注')
+    } else {
+      await addFollow({
+        visitorId: userStore.userId!,
+        authorId: authorId,
+        authorName: novel.value?.authorName || '',
+        authorAvatar: novel.value?.authorAvatar,
+        authorRank: novel.value?.authorRank
+      })
+      isFollowing.value = true
+      ElMessage.success('关注成功')
+    }
+  } catch (error) {
+    console.error('Failed to toggle follow:', error)
+    ElMessage.error('操作失败')
+  } finally {
+    followLoading.value = false
+  }
+}
+
+// 格式化字数
+const formatWordCount = (count?: number) => {
+  if (!count) return '0字'
+  if (count >= 10000) {
+    return (count / 10000).toFixed(1) + '万字'
+  }
+  return count + '字'
 }
 
 const handleChapterSelect = (chapter: NovelChapterVO) => {

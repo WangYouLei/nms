@@ -42,6 +42,11 @@ public class NovelDTO implements Serializable {
     private String authorAvatar;
 
     /**
+     * 作者等级（1-执笔者，2-织梦师，3-造界者，4-渡舟人，5-燃灯者）
+     */
+    private Integer authorRank;
+
+    /**
      * 作者ID（关联管理人表）
      */
     private Integer authorId;

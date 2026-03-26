@@ -29,7 +29,7 @@
             <!-- 等级标签 -->
             <div class="flex items-center justify-center md:justify-start gap-2 mt-3">
               <el-tag :type="getRankType(author.rank)" effect="plain" class="rounded-full">
-                {{ getRankName(author.rank) }}
+                {{ author.rankName || getRankName(author.rank) }}
               </el-tag>
             </div>
             
@@ -37,6 +37,18 @@
             <p v-if="author.introduction" class="text-gray-600 dark:text-gray-300 mt-4 max-w-xl">
               {{ author.introduction }}
             </p>
+            
+            <!-- 关注按钮 -->
+            <div class="mt-4 flex items-center justify-center md:justify-start gap-3">
+              <el-button 
+                :type="isFollowing ? 'danger' : 'primary'"
+                :loading="followLoading"
+                @click="toggleFollow"
+              >
+                <el-icon class="mr-1"><Plus /></el-icon>
+                {{ isFollowing ? '已关注' : '关注作者' }}
+              </el-button>
+            </div>
           </div>
           
           <!-- 统计 -->
@@ -107,18 +119,23 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Loading, Document, Warning } from '@element-plus/icons-vue'
-import { getAuthorPublicInfo } from '@/api/author'
-import { getNovelsByAuthor } from '@/api/novel'
+import { Loading, Document, Warning, Plus } from '@element-plus/icons-vue'
+import { getAuthorDetail } from '@/api/novel'
+import { addFollow, removeFollow, checkFollow } from '@/api/follow'
 import { getImageUrl } from '@/utils/file-url'
-import type { VisitorAuthorVO, NovelListVO } from '@/types'
+import { useUserStore } from '@/stores'
+import { ElMessage } from 'element-plus'
+import type { AuthorDetailVO, NovelListVO } from '@/types'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 const loading = ref(true)
-const author = ref<VisitorAuthorVO | null>(null)
+const author = ref<AuthorDetailVO | null>(null)
 const novels = ref<NovelListVO[]>([])
+const isFollowing = ref(false)
+const followLoading = ref(false)
 
 // 通过小说列表计算章节数
 const totalChapters = computed(() => {
@@ -128,19 +145,21 @@ const totalChapters = computed(() => {
 const getRankName = (rank: number) => {
   const ranks: Record<number, string> = {
     1: '执笔者',
-    2: '妙笔生花',
-    3: '笔耕不辍',
-    4: '文学巨匠'
+    2: '织梦师',
+    3: '造界者',
+    4: '渡舟人',
+    5: '燃灯者'
   }
-  return ranks[rank] || '未知'
+  return ranks[rank] || '执笔者'
 }
 
 const getRankType = (rank: number): 'primary' | 'success' | 'warning' | 'danger' | 'info' => {
   const types: Record<number, 'primary' | 'success' | 'warning' | 'danger' | 'info'> = {
     1: 'info',
     2: 'primary',
-    3: 'warning',
-    4: 'danger'
+    3: 'success',
+    4: 'warning',
+    5: 'danger'
   }
   return types[rank] || 'info'
 }
@@ -149,14 +168,55 @@ const goToNovel = (novelId: number) => {
   router.push(`/novel/${novelId}`)
 }
 
+const toggleFollow = async () => {
+  if (!userStore.isLoggedIn) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+
+  if (!author.value) return
+
+  followLoading.value = true
+  try {
+    if (isFollowing.value) {
+      await removeFollow(author.value.id, userStore.userId!)
+      isFollowing.value = false
+      ElMessage.success('已取消关注')
+    } else {
+      await addFollow({
+        visitorId: userStore.userId!,
+        authorId: author.value.id,
+        authorName: author.value.name,
+        authorAvatar: author.value.avatar,
+        authorRank: author.value.rank
+      })
+      isFollowing.value = true
+      ElMessage.success('关注成功')
+    }
+  } catch (error) {
+    console.error('Failed to toggle follow:', error)
+    ElMessage.error('操作失败')
+  } finally {
+    followLoading.value = false
+  }
+}
+
 const fetchAuthor = async () => {
   const authorId = Number(route.params.id)
   if (!authorId) return
 
   loading.value = true
   try {
-    const res = await getAuthorPublicInfo(authorId)
+    const res = await getAuthorDetail(authorId, { pageNum: 1, pageSize: 100 })
     author.value = res.data
+    novels.value = res.data?.novels || []
+    
+    // 检查关注状态
+    if (userStore.isLoggedIn) {
+      const followRes = await checkFollow(authorId, userStore.userId!)
+      isFollowing.value = followRes.data || false
+    }
   } catch (error) {
     console.error('Failed to fetch author:', error)
   } finally {
@@ -164,21 +224,8 @@ const fetchAuthor = async () => {
   }
 }
 
-const fetchNovels = async () => {
-  const authorId = Number(route.params.id)
-  if (!authorId) return
-
-  try {
-    const res = await getNovelsByAuthor(authorId, { pageNum: 1, pageSize: 100 })
-    novels.value = res.data?.list || []
-  } catch (error) {
-    console.error('Failed to fetch novels:', error)
-  }
-}
-
-onMounted(async () => {
-  await fetchAuthor()
-  fetchNovels()
+onMounted(() => {
+  fetchAuthor()
 })
 </script>
 

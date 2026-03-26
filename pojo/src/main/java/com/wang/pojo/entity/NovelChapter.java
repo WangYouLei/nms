@@ -49,6 +49,12 @@ public class NovelChapter implements Serializable {
     private String contentUrl;
 
     /**
+     * 章节字数
+     */
+    @ApiModelProperty("章节字数")
+    private Integer wordCount;
+
+    /**
      * 章节顺序
      */
     @NotNull(message = "[章节顺序]不能为空")

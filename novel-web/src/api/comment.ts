@@ -108,6 +108,22 @@ export function getMyComments(userId: number, userType: number, pageNum: number 
 }
 
 /**
+ * 获取小说的评论树（包含所有回复）
+ */
+export function getNovelCommentTree(
+  novelId: number, 
+  targetType?: number,
+  pageNum: number = 1, 
+  pageSize: number = 10
+) {
+  return request.get<PageResult<CommentVO>>(`/comment-server/comment/tree/${novelId}`, {
+    targetType,
+    pageNum,
+    pageSize
+  })
+}
+
+/**
  * 更新评论
  */
 export function updateComment(data: CommentDTO) {
@@ -117,14 +133,53 @@ export function updateComment(data: CommentDTO) {
 // ==================== 管理员接口 ====================
 
 /**
- * 管理员删除评论
+ * 管理员分页查询评论列表
  */
-export function managerDeleteComment(commentId: number) {
-  return request.delete(`/comment-server/comment/delete/${commentId}`)
+export function getCommentManagePage(data: CommentQueryDTO) {
+  return request.post<PageResult<CommentVO>>('/comment-server/manager/comment/page', data)
 }
 
 /**
- * 审核评论
+ * 管理员获取评论详情
+ */
+export function getCommentManageDetail(id: number) {
+  return request.get<CommentVO>(`/comment-server/manager/comment/detail/${id}`)
+}
+
+/**
+ * 管理员删除评论
+ */
+export function managerDeleteComment(id: number) {
+  return request.delete(`/comment-server/manager/comment/delete/${id}`)
+}
+
+/**
+ * 管理员审核评论
+ */
+export function managerAuditComment(id: number, auditLevel: number) {
+  return request.put(`/comment-server/manager/comment/audit/${id}`, {}, {
+    params: { auditLevel }
+  })
+}
+
+/**
+ * 管理员批量删除评论
+ */
+export function managerBatchDeleteComment(ids: number[]) {
+  return request.delete('/comment-server/manager/comment/batch-delete', ids as any)
+}
+
+/**
+ * 管理员批量审核评论
+ */
+export function managerBatchAuditComment(ids: number[], auditLevel: number) {
+  return request.put('/comment-server/manager/comment/batch-audit', ids as any, {
+    params: { auditLevel }
+  })
+}
+
+/**
+ * 审核评论（普通接口）
  */
 export function auditComment(commentId: number, auditLevel: number) {
   return request.put('/comment-server/comment/audit', {}, {

@@ -83,8 +83,11 @@
           </svg>
           {{ novel.chapterCount || 0 }}章
         </span>
+        <span v-if="novel.allWordCount" class="flex items-center gap-1">
+          {{ formatWordCount(novel.allWordCount) }}
+        </span>
         <span 
-          v-if="novel.categoryName" 
+          v-else-if="novel.categoryName" 
           class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-500 dark:text-gray-400"
         >
           {{ novel.categoryName }}
@@ -158,6 +161,14 @@ watch(() => props.novel.url, updateCoverUrl, { immediate: true })
 const handleImageError = (e: Event) => {
   const target = e.target as HTMLImageElement
   target.src = '/default-cover.jpg'
+}
+
+// 格式化字数
+const formatWordCount = (count: number) => {
+  if (count >= 10000) {
+    return (count / 10000).toFixed(1) + '万字'
+  }
+  return count + '字'
 }
 </script>
 

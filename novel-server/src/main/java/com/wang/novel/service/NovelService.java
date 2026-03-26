@@ -21,11 +21,9 @@ public interface NovelService {
 
     /**
      * 分页搜索小说列表（统一接口）
-     * <p>
      * 权限控制：
      * - Author: 只能搜索自己的小说
      * - Manager/Visitor: 可以搜索所有小说
-     * <p>
      * 搜索条件：
      * - keyword: 关键词搜索（模糊匹配名称、副名称、标签）
      * - name/subName/isHot/isFinished: 精确条件筛选
@@ -74,7 +72,18 @@ public interface NovelService {
      * @param pageNum 页码
      * @param pageSize 每页数量
      * @param categoryId 分类ID
+     * @param sortBy 排序方式（update/collect/word）
+     * @param isFinished 是否完结
      * @return 小说列表
      */
-    Result getNovelsByCategory(Integer pageNum, Integer pageSize, Integer categoryId);
+    Result getNovelsByCategory(Integer pageNum, Integer pageSize, Integer categoryId, String sortBy, Boolean isFinished);
+
+    /**
+     * 获取作者详情（访客端）
+     * @param authorId 作者ID
+     * @param pageNum 页码
+     * @param pageSize 每页数量
+     * @return 作者详情
+     */
+    Result getAuthorDetail(Integer authorId, Integer pageNum, Integer pageSize);
 }

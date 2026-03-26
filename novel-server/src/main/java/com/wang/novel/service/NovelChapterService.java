@@ -39,10 +39,11 @@ public interface NovelChapterService {
      * 上传新章节
      * @param novelId 小说ID
      * @param title 新章节标题
+     * @param wordCount 章节字数
      * @param file 新章节文件
      * @return 操作结果
      */
-    Result uploadChapter(Integer novelId, String title, MultipartFile file);
+    Result uploadChapter(Integer novelId, String title, Integer wordCount, MultipartFile file);
 
     /**
      * 删除章节
@@ -56,9 +57,10 @@ public interface NovelChapterService {
      * @param id 章节id
      * @param title 章节标题
      * @param chapterOrder 章节顺序
+     * @param wordCount 章节字数
      * @param oldFileUrl 旧文件路径
      * @param file 新文件
      * @return
      */
-    Result updateChapter(Integer id,String title,Integer chapterOrder,String oldFileUrl,MultipartFile file);
+    Result updateChapter(Integer id, String title, Integer chapterOrder, Integer wordCount, String oldFileUrl, MultipartFile file);
 }

@@ -41,8 +41,8 @@ spring:
     dashscope:
       api-key: ${Spring_ai_alibaba}
 
-  server:
-  port: 5290
+server:
+  port: 5210
   servlet:
     encoding:
       charset: UTF-8

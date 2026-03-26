@@ -33,7 +33,7 @@ public class ManualAuditDTO {
     private String refusalReason;
 
     @ApiModelProperty("审核管理员ID")
-    private Long managerId;
+    private Integer managerId;
 
     @Size(max = 50, message = "管理员昵称长度不能超过50")
     @ApiModelProperty("审核管理员昵称")

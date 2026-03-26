@@ -1,13 +1,16 @@
 package com.wang.comment.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.enums.AuditAimTypeEnum;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
-import com.wang.common.utils.CopyPropertiesUtil;
+import org.springframework.beans.BeanUtils;
 import com.wang.comment.mapper.CommentMapper;
+import com.wang.comment.mapper.NovelMapper;
+import com.wang.comment.mapper.UserAvatarMapper;
 import com.wang.comment.service.CommentService;
 import com.wang.common.utils.RoleContextUtil;
 import com.wang.commonserver.service.AiAuditService;
@@ -24,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.List;
 
 /**
  * 评论服务实现类
@@ -35,11 +39,17 @@ public class CommentServiceImpl implements CommentService {
     private final CommentMapper commentMapper;
     private final AiAuditService aiAuditService;
     private final SensitiveWordService sensitiveWordService;
+    private final NovelMapper novelMapper;
+    private final UserAvatarMapper userAvatarMapper;
 
-    public CommentServiceImpl(CommentMapper commentMapper,AiAuditService aiAuditService, SensitiveWordService sensitiveWordService) {
+    public CommentServiceImpl(CommentMapper commentMapper, AiAuditService aiAuditService, 
+                              SensitiveWordService sensitiveWordService, NovelMapper novelMapper,
+                              UserAvatarMapper userAvatarMapper) {
         this.commentMapper = commentMapper;
         this.aiAuditService = aiAuditService;
         this.sensitiveWordService = sensitiveWordService;
+        this.novelMapper = novelMapper;
+        this.userAvatarMapper = userAvatarMapper;
     }
 
     @Override
@@ -58,7 +68,7 @@ public class CommentServiceImpl implements CommentService {
 
         Comment comment = new Comment();
 
-        CopyPropertiesUtil.copyNonNullProperties(commentDTO, comment,"id");
+        BeanUtils.copyProperties(commentDTO, comment, "id");
         comment.setReplyCount(0);
         // 默认未审核
         comment.setAuditLevel(0);
@@ -146,7 +156,7 @@ public class CommentServiceImpl implements CommentService {
         // 更新后重置审核状态
         existingComment.setAuditLevel(0);
 
-        int result = commentMapper.updateById(existingComment);
+        int result = commentMapper.update(existingComment);
         if (result == 1) {
             log.info("评论更新成功：commentId={}", commentDTO.getId());
             return Result.success("更新成功");
@@ -192,6 +202,12 @@ public class CommentServiceImpl implements CommentService {
         if (queryDTO.getUserType() != null) {
             queryWrapper.eq(Comment::getUserType, queryDTO.getUserType());
         }
+        if (queryDTO.getUserName() != null && !queryDTO.getUserName().isEmpty()) {
+            queryWrapper.like(Comment::getUserName, queryDTO.getUserName());
+        }
+        if (queryDTO.getContent() != null && !queryDTO.getContent().isEmpty()) {
+            queryWrapper.like(Comment::getContent, queryDTO.getContent());
+        }
         if (queryDTO.getParentId() != null) {
             queryWrapper.eq(Comment::getParentId, queryDTO.getParentId());
         }
@@ -202,11 +218,11 @@ public class CommentServiceImpl implements CommentService {
             queryWrapper.eq(Comment::getAuditLevel, queryDTO.getAuditLevel());
         }
 
-        // 只查询一级评论（parentId为空）
-        if (queryDTO.getParentId() == null && queryDTO.getRootId() == null) {
-            queryWrapper.isNull(Comment::getParentId);
-        }
-
+        // 管理端查询：查询所有评论（包括一级评论和回复）
+        // 普通查询：只查询一级评论（parentId为空）
+        // 判断依据：如果明确指定了 parentId 或 rootId，则按指定条件查询
+        // 否则默认查询所有评论（管理端行为）
+        
         // 按创建时间倒序
         queryWrapper.orderByDesc(Comment::getCreateTime);
 
@@ -331,7 +347,7 @@ public class CommentServiceImpl implements CommentService {
         comment.setAuditLevel(auditLevel);
         comment.setUpdateTime(LocalDateTime.now());
 
-        int result = commentMapper.updateById(comment);
+        int result = commentMapper.update(comment);
         if (result == 1) {
             log.info("审核成功：commentId={}", commentId);
             return Result.success("审核成功");
@@ -346,11 +362,50 @@ public class CommentServiceImpl implements CommentService {
      */
     private CommentVO convertToVO(Comment comment) {
         CommentVO vo = new CommentVO();
-        CopyPropertiesUtil.copyNonNullProperties(comment, vo);
+        BeanUtils.copyProperties(comment, vo);
         vo.setUserTypeName(getUserTypeName(comment.getUserType()));
         vo.setTargetTypeName(getTargetTypeName(comment.getTargetType()));
         vo.setAuditLevelName(getAuditLevelName(comment.getAuditLevel()));
+        
+        // 如果头像为空，根据用户类型查询头像
+        if (comment.getUserAvatar() == null || comment.getUserAvatar().isEmpty()) {
+            String avatar = getUserAvatar(comment.getUserId(), comment.getUserType());
+            vo.setUserAvatar(avatar);
+        }
+        
+        // 查询小说作者ID
+        if (comment.getNovelId() != null) {
+            Integer authorId = novelMapper.selectAuthorIdById(comment.getNovelId());
+            if (authorId != null) {
+                vo.setNovelAuthorId(authorId.longValue());
+            }
+        }
+        
         return vo;
+    }
+
+    /**
+     * 根据用户ID和类型查询头像
+     */
+    private String getUserAvatar(Long userId, Integer userType) {
+        if (userId == null || userType == null) {
+            return null;
+        }
+        
+        String avatar = null;
+        switch (userType) {
+            case 1: // 访客
+                avatar = userAvatarMapper.selectVisitorAvatarById(userId);
+                break;
+            case 2: // 作者
+                avatar = userAvatarMapper.selectAuthorAvatarById(userId);
+                break;
+            case 3: // 管理员
+                avatar = userAvatarMapper.selectManagerAvatarById(userId);
+                break;
+        }
+        
+        return avatar;
     }
 
     /**
@@ -395,5 +450,146 @@ public class CommentServiceImpl implements CommentService {
             case 2 -> "人工审核通过";
             default -> "未知";
         };
+    }
+
+    @Override
+    public Result getNovelCommentTree(Long novelId, Integer targetType, Integer pageNum, Integer pageSize) {
+        log.info("获取小说评论树：novelId={}, targetType={}", novelId, targetType);
+
+        // 查询一级评论
+        LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Comment::getNovelId, novelId)
+                .isNull(Comment::getParentId); // 只查询一级评论
+        
+        // 按评论对象类型筛选
+        if (targetType != null) {
+            queryWrapper.eq(Comment::getTargetType, targetType);
+        }
+        
+        queryWrapper.orderByDesc(Comment::getCreateTime);
+
+        Page<Comment> page = new Page<>(pageNum, pageSize);
+        Page<Comment> resultPage = commentMapper.selectPage(page, queryWrapper);
+
+        // 转换为VO并填充回复
+        List<CommentVO> voList = new ArrayList<>();
+        for (Comment comment : resultPage.getRecords()) {
+            CommentVO vo = convertToVO(comment);
+            
+            // 查询该评论的所有回复
+            if (comment.getReplyCount() != null && comment.getReplyCount() > 0) {
+                List<CommentVO> replies = getRepliesForRoot(comment.getId());
+                vo.setReplies(replies);
+            }
+            
+            voList.add(vo);
+        }
+
+        PageResult<CommentVO> pageResult = PageResult.build(
+                (int) resultPage.getCurrent(),
+                (int) resultPage.getSize(),
+                resultPage.getTotal(),
+                voList
+        );
+
+        return Result.success(pageResult);
+    }
+
+    /**
+     * 获取某条根评论的所有回复（递归获取）
+     */
+    private List<CommentVO> getRepliesForRoot(Long rootId) {
+        LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Comment::getRootId, rootId)
+                .isNotNull(Comment::getParentId)
+                .orderByAsc(Comment::getCreateTime);
+
+        List<Comment> replies = commentMapper.selectList(queryWrapper);
+        
+        List<CommentVO> voList = new ArrayList<>();
+        for (Comment reply : replies) {
+            CommentVO vo = convertToVO(reply);
+            voList.add(vo);
+        }
+
+        return voList;
+    }
+
+    // ==================== 管理端方法实现 ====================
+
+    @Override
+    @Transactional
+    public Result managerDeleteComment(Long commentId) {
+        log.info("管理员删除评论：commentId={}", commentId);
+
+        Comment comment = commentMapper.selectById(commentId);
+        if (comment == null) {
+            log.warn("评论不存在：commentId={}", commentId);
+            return Result.error("评论不存在");
+        }
+
+        // 如果有父评论，减少父评论的回复数
+        if (comment.getParentId() != null) {
+            commentMapper.decrementReplyCount(comment.getParentId());
+        }
+
+        int result = commentMapper.deleteById(commentId);
+        if (result == 1) {
+            log.info("管理员删除评论成功：commentId={}", commentId);
+            return Result.success("删除成功");
+        } else {
+            log.error("管理员删除评论失败：commentId={}", commentId);
+            return Result.error("删除失败");
+        }
+    }
+
+    @Override
+    @Transactional
+    public Result managerBatchDeleteComment(List<Long> ids) {
+        log.info("管理员批量删除评论：ids={}", ids);
+
+        if (ids == null || ids.isEmpty()) {
+            return Result.error("请选择要删除的评论");
+        }
+
+        int count = 0;
+        for (Long id : ids) {
+            Comment comment = commentMapper.selectById(id);
+            if (comment != null) {
+                // 减少父评论回复数
+                if (comment.getParentId() != null) {
+                    commentMapper.decrementReplyCount(comment.getParentId());
+                }
+                commentMapper.deleteById(id);
+                count++;
+            }
+        }
+
+        log.info("管理员批量删除评论成功：删除{}条", count);
+        return Result.success("成功删除" + count + "条评论");
+    }
+
+    @Override
+    @Transactional
+    public Result managerBatchAuditComment(List<Long> ids, Integer auditLevel) {
+        log.info("管理员批量审核评论：ids={}, auditLevel={}", ids, auditLevel);
+
+        if (ids == null || ids.isEmpty()) {
+            return Result.error("请选择要审核的评论");
+        }
+
+        int count = 0;
+        for (Long id : ids) {
+            Comment comment = commentMapper.selectById(id);
+            if (comment != null) {
+                comment.setAuditLevel(auditLevel);
+                comment.setUpdateTime(LocalDateTime.now());
+                commentMapper.update(comment);
+                count++;
+            }
+        }
+
+        log.info("管理员批量审核评论成功：审核{}条", count);
+        return Result.success("成功审核" + count + "条评论");
     }
 }

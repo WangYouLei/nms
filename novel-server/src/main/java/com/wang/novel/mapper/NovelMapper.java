@@ -14,6 +14,13 @@ import java.util.List;
 public interface NovelMapper extends BaseMapper<Novel> {
 
     /**
+     * 动态更新小说信息，只更新非 null 的字段
+     * @param novel 小说信息
+     * @return 影响行数
+     */
+    int update(Novel novel);
+
+    /**
      * 分页查询热门小说（支持分类筛选）
      * @param categoryId 分类ID（可选）
      * @param offset 偏移量
@@ -49,5 +56,23 @@ public interface NovelMapper extends BaseMapper<Novel> {
      * @return 总数
      */
     Integer countNovelsByCategoryId(@Param("categoryId") Integer categoryId);
+
+    /**
+     * 根据作者ID分页查询作品列表
+     * @param authorId 作者ID
+     * @param offset 偏移量
+     * @param pageSize 每页数量
+     * @return 作品列表
+     */
+    List<Novel> selectNovelsByAuthorId(@Param("authorId") Integer authorId,
+                                        @Param("offset") Integer offset,
+                                        @Param("pageSize") Integer pageSize);
+
+    /**
+     * 统计作者作品总数
+     * @param authorId 作者ID
+     * @return 总数
+     */
+    Integer countNovelsByAuthorIdInNovel(@Param("authorId") Integer authorId);
 
 }

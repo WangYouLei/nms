@@ -77,17 +77,32 @@ public class Novel implements Serializable {
     @Length(max= 255,message="编码长度不能超过255")
     private String authorAvatar;
     /**
+     * 作者等级（1-执笔者，2-织梦师，3-造界者，4-渡舟人，5-燃灯者）
+     */
+    @ApiModelProperty("作者等级（1-执笔者，2-织梦师，3-造界者，4-渡舟人，5-燃灯者）")
+    private Integer authorRank;
+    /**
      * 图片路径
      */
     @Size(max= 255,message="编码长度不能超过255")
     @ApiModelProperty("图片路径")
     @Length(max= 255,message="编码长度不能超过255")
     private String url;
-    /**
-    * 小说章节
-    */
+/**
+     * 小说章节
+     */
     @ApiModelProperty("小说章节")
     private Integer chapterCount;
+    /**
+     * 总字数（所有章节字数之和）
+     */
+    @ApiModelProperty("总字数（所有章节字数之和）")
+    private Integer allWordCount;
+    /**
+     * 收藏数量
+     */
+    @ApiModelProperty("收藏数量")
+    private Integer collectCount;
     /**
      * 是否完结（false未完结，true已完结）
      */

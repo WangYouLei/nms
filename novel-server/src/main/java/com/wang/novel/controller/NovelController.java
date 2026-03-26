@@ -90,8 +90,20 @@ public class NovelController {
     public Result getNovelsByCategory(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @PathVariable Integer categoryId) {
-        log.info("[Visitor] 按分类查询小说：分类ID={}", categoryId);
-        return novelService.getNovelsByCategory(pageNum, pageSize, categoryId);
+            @PathVariable Integer categoryId,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) Boolean isFinished) {
+        log.info("[Visitor] 按分类查询小说：分类ID={}, sortBy={}, isFinished={}", categoryId, sortBy, isFinished);
+        return novelService.getNovelsByCategory(pageNum, pageSize, categoryId, sortBy, isFinished);
+    }
+
+    @GetMapping("/visitor/author/{authorId}")
+    @ApiOperation("[Visitor] 获取作者详情")
+    public Result getAuthorDetail(
+            @PathVariable Integer authorId,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        log.info("[Visitor] 获取作者详情：作者ID={}, 页码={}, 每页数量={}", authorId, pageNum, pageSize);
+        return novelService.getAuthorDetail(authorId, pageNum, pageSize);
     }
 }

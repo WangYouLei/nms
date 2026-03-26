@@ -22,7 +22,7 @@ public class ManualAuditQueryDTO {
     private Integer result;
 
     @ApiModelProperty("审核管理员ID")
-    private Long managerId;
+    private Integer managerId;
 
     @ApiModelProperty("页码（默认1）")
     private Integer pageNum = 1;

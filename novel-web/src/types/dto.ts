@@ -44,6 +44,8 @@ export interface NovelSearchDTO extends PaginationParams {
   isHot?: boolean
   /** 是否完结 */
   isFinished?: boolean
+  /** 排序方式：update-最新更新，collect-收藏最多，word-字数最多 */
+  sortBy?: string
 }
 
 /**
@@ -194,12 +196,30 @@ export interface ManagerQueryDTO {
  * 密码修改DTO
  */
 export interface PasswordUpdateEmailDTO {
-  /** 用户ID */
-  id: number
+  /** 用户ID（已登录用户修改密码时使用） */
+  id?: number
+  /** 账号（忘记密码场景使用，与id二选一） */
+  account?: string
   /** 邮箱 */
   email: string
   /** 验证码 */
   code: string
   /** 新密码 */
   newPassword: string
+}
+
+/**
+ * 访客关注作者DTO
+ */
+export interface VisitorFollowDTO {
+  /** 访客ID */
+  visitorId: number
+  /** 作者ID */
+  authorId: number
+  /** 作者名称 */
+  authorName: string
+  /** 作者头像URL */
+  authorAvatar?: string
+  /** 作者等级（1-执笔者，2-织梦师，3-造界者，4-渡舟人，5-燃灯者） */
+  authorRank?: number
 }
