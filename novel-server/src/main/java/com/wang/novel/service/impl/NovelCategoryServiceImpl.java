@@ -1,7 +1,6 @@
 package com.wang.novel.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.utils.RoleContextUtil;
 import com.wang.common.enums.BizCodeEnum;
@@ -10,7 +9,6 @@ import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.novel.mapper.NovelCategoryMapper;
-import com.wang.novel.mapper.NovelCategoryRelationMapper;
 import com.wang.novel.mapper.NovelMapper;
 import com.wang.novel.service.NovelCategoryService;
 import com.wang.pojo.dto.NovelCategoryDTO;

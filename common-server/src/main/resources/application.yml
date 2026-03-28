@@ -9,27 +9,59 @@ server:
 spring:
   application:
     name: common-server
-  
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        namespace: public
+        username: nacos
+        password: 123456
+      config:
+        server-addr: 127.0.0.1:8848
+        namespace: public
+        username: nacos
+        password: 123456
+        file-extension: yml
+        shared-configs:
+          - data-id: common-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 10000
+            read-timeout: 30000
+      circuitbreaker:
+        enabled: true
+    loadbalancer:
+      ribbon:
+        enabled: false
+
+  main:
+    allow-bean-definition-overriding: true
+
   # 文件上传配置
   servlet:
     multipart:
       enabled: true
-      max-file-size: 10MB        # 单个文件最大大小
-      max-request-size: 20MB     # 整个请求最大大小
-  
+      max-file-size: 10MB
+      max-request-size: 20MB
+
   # 数据库配置
   datasource:
     username: root
     password: 123456
     url: jdbc:mysql://localhost:3306/nms?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&charset=utf8mb4
     driver-class-name: com.mysql.cj.jdbc.Driver
-  
+
   # 邮件配置
   mail:
-    host: smtp.qq.com                    # QQ邮箱SMTP服务器
-    port: 587                            # 端口
-    username: 2531215075@qq.com          # 发送方邮箱
-    password: ${QQ_SMTP/IMAP}            # SMTP授权码
+    host: smtp.qq.com
+    port: 587
+    username: 2531215075@qq.com
+    password: ${QQ_SMTP/IMAP}
     properties:
       mail:
         smtp:
@@ -37,7 +69,7 @@ spring:
           starttls:
             enable: true
             required: true
-  
+
   # Redis配置
   data:
     redis:
@@ -51,7 +83,7 @@ spring:
     dashscope:
       api-key: ${Spring_ai_alibaba}
 
-# 模型选择（后期可以再下面添加新的模型，这不是官方配置的形式）
+# 模型选择
 model:
   api-key: ${Spring_ai_alibaba}
   text1: tongyi-xiaomi-analysis-pro
@@ -64,7 +96,7 @@ mybatis-plus:
     map-underscore-to-camel-case: true
   mapper-locations: classpath:/mapper/*.xml
 
-#设置日志级别，ERROR/WARN/INFO/DEBUG,默认是INFO以上才显示
+#设置日志级别
 logging:
   level:
     root: info
@@ -75,11 +107,3 @@ minio:
   accessKey: minioadmin
   secretKey: minioadmin
   bucketName: nms
-
-# 默认小说封面地址、默认作者头像地址、默认用户头像地址
-default:
-  authorAvatarUrl: http://127.0.0.1:9000/nms/AUTHOR_AVATAR/5c347d6e-8d91-496f-857d-af9b45cdb480.jpg
-  visitorAvatarUrl:  http://127.0.0.1:9000/nms/VISITOR_AVATAR/ea59d798-2f32-43b8-bd96-cb70d9b9d054.jpg
-  novelCoverUrl: http://127.0.0.1:9000/nms/NOVEL_COVER/88e08331-0134-43f3-ae66-1f81c4ca191e.jpg
-  managerAvatarUrl: http://127.0.0.1:9000/nms/MANAGER_AVATAR/5bdfcbb8-9b29-4c2d-873a-6a4539714653.jpg
-

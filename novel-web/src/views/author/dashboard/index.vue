@@ -15,7 +15,7 @@
             type="primary" 
             size="large"
             class="!bg-white/20 !border-white/30 !text-white hover:!bg-white/30"
-            @click="router.push('/author/novels')"
+            @click="router.push('/author/novel/create')"
           >
             <el-icon class="mr-2"><Plus /></el-icon>
             新建小说
@@ -40,8 +40,6 @@
         :icon="Reading"
         icon-color="#409eff"
         icon-bg-class="bg-primary/10"
-        trend="up"
-        trend-value="+2"
         :glass-effect="true"
       />
       <StatisticsCard 
@@ -50,8 +48,6 @@
         :icon="Document"
         icon-color="#67c23a"
         icon-bg-class="bg-green-500/10"
-        trend="up"
-        trend-value="+12"
         :glass-effect="true"
       />
       <StatisticsCard 
@@ -64,13 +60,11 @@
         :glass-effect="true"
       />
       <StatisticsCard 
-        title="总阅读" 
-        :value="statistics.readCount" 
-        :icon="View"
+        title="粉丝数" 
+        :value="statistics.followerCount" 
+        :icon="User"
         icon-color="#f56c6c"
         icon-bg-class="bg-red-500/10"
-        trend="up"
-        trend-value="+8.5%"
         :glass-effect="true"
       />
     </div>
@@ -86,7 +80,7 @@
         <div class="space-y-3">
           <button 
             class="w-full flex items-center gap-3 p-4 rounded-xl bg-primary/5 hover:bg-primary/10 text-primary transition-colors"
-            @click="router.push('/author/novels')"
+            @click="router.push('/author/novel/create')"
           >
             <el-icon :size="24"><Plus /></el-icon>
             <div class="text-left">
@@ -129,10 +123,14 @@
           </router-link>
         </div>
         
-        <div v-if="recentNovels.length === 0" class="text-center py-8">
+        <div v-if="loading" class="flex justify-center py-8">
+          <el-icon class="is-loading" :size="32"><Loading /></el-icon>
+        </div>
+        
+        <div v-else-if="recentNovels.length === 0" class="text-center py-8">
           <el-icon :size="48" class="text-gray-300 dark:text-gray-600 mb-3"><Document /></el-icon>
           <p class="text-gray-400">暂无作品</p>
-          <el-button type="primary" class="mt-4" @click="router.push('/author/novels')">
+          <el-button type="primary" class="mt-4" @click="router.push('/author/novel/create')">
             创建第一部作品
           </el-button>
         </div>
@@ -142,7 +140,7 @@
             v-for="novel in recentNovels" 
             :key="novel.id"
             class="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
-            @click="router.push(`/author/novels/${novel.id}`)"
+            @click="router.push(`/author/novel/${novel.id}/chapters`)"
           >
             <img 
               :src="getImageUrl(novel.url)" 
@@ -150,13 +148,18 @@
             />
             <div class="flex-1 min-w-0">
               <p class="font-medium text-gray-800 dark:text-gray-200 truncate">{{ novel.name }}</p>
-              <div class="flex items-center gap-2 mt-1 text-xs text-gray-400">
-                <span>{{ novel.chapterCount }}章</span>
-                <span v-if="novel.isFinished" class="text-green-500">完结</span>
-                <span v-else class="text-blue-500">连载中</span>
+              <div class="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                <span>{{ novel.chapterCount || 0 }}章</span>
+                <span>{{ formatWordCount(novel.allWordCount || 0) }}字</span>
+                <span>{{ novel.collectCount || 0 }}人收藏</span>
               </div>
             </div>
-            <el-icon class="text-gray-300"><ArrowRight /></el-icon>
+            <el-tag 
+              size="small" 
+              :type="novel.isFinished ? 'success' : 'primary'"
+            >
+              {{ novel.isFinished ? '完结' : '连载中' }}
+            </el-tag>
           </div>
         </div>
       </div>
@@ -167,29 +170,66 @@
 <script setup lang="ts">
 import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Reading, Document, EditPen, View, Plus, Operation, Setting, Edit, ArrowRight } from '@element-plus/icons-vue'
+import { Reading, Document, EditPen, User, Plus, Operation, Setting, Edit, Loading } from '@element-plus/icons-vue'
 import StatisticsCard from '@/components/business/statistics-card.vue'
 import { useUserStore } from '@/stores'
 import { getImageUrl } from '@/utils/file-url'
+import { searchNovels, getFollowerCount } from '@/api'
 import type { NovelListVO } from '@/types'
 
 const router = useRouter()
 const userStore = useUserStore()
 
+const loading = ref(false)
+
 const statistics = reactive({
   novelCount: 0,
   chapterCount: 0,
   wordCount: 0,
-  readCount: 0
+  followerCount: 0
 })
 
 const recentNovels = ref<NovelListVO[]>([])
 
-onMounted(async () => {
-  // 模拟数据
-  statistics.novelCount = 3
-  statistics.chapterCount = 156
-  statistics.wordCount = 456000
-  statistics.readCount = 12345
+// 格式化字数显示
+const formatWordCount = (count: number) => {
+  if (count >= 10000) {
+    return (count / 10000).toFixed(1) + '万'
+  }
+  return count.toString()
+}
+
+// 获取统计数据
+const fetchStatistics = async () => {
+  loading.value = true
+  try {
+    // 获取作者的小说列表
+    const res = await searchNovels({
+      pageNum: 1,
+      pageSize: 100 // 获取所有小说
+    })
+    
+    const novels = res.data?.list || []
+    recentNovels.value = novels.slice(0, 5) // 只显示最近5部
+    
+    // 计算统计数据
+    statistics.novelCount = novels.length
+    statistics.chapterCount = novels.reduce((sum: number, n: NovelListVO) => sum + (n.chapterCount || 0), 0)
+    statistics.wordCount = novels.reduce((sum: number, n: NovelListVO) => sum + (n.allWordCount || 0), 0)
+    
+    // 获取粉丝数
+    if (userStore.userId) {
+      const followerRes = await getFollowerCount(userStore.userId)
+      statistics.followerCount = followerRes.data || 0
+    }
+  } catch (error) {
+    console.error('Failed to fetch statistics:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchStatistics()
 })
 </script>

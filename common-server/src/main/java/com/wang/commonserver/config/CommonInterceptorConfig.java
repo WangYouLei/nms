@@ -14,7 +14,7 @@ public class CommonInterceptorConfig implements WebMvcConfigurer {
         log.info("开始添加访客拦截器");
         // 添加角色拦截器，所有角色都可以访问
         registry.addInterceptor(new RoleInterceptor("common-server", UserRole.VISITOR,UserRole.AUTHOR,UserRole.MANAGER))
-                // 拦截文件相关接口    邮箱和图形验证码相关接口不拦截
+                // 拦截文件相关接口
                 .addPathPatterns("/file/**")
                 // 获取预签名URL接口不拦截（用于前端显示图片）
                 .excludePathPatterns("/file/presigned-url");

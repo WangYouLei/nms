@@ -27,12 +27,10 @@ public class FileServiceImpl implements FileService {
 
     private final MinioInfo minioInfo;
     private final MinioClient minioClient;
-    private final DefaultUrlConfig defaultUrlConfig;
 
-    public FileServiceImpl(MinioInfo minioInfo, MinioClient minioClient, DefaultUrlConfig defaultUrlConfig) {
+    public FileServiceImpl(MinioInfo minioInfo, MinioClient minioClient) {
         this.minioInfo = minioInfo;
         this.minioClient = minioClient;
-        this.defaultUrlConfig = defaultUrlConfig;
     }
 
     @Override
@@ -64,8 +62,8 @@ public class FileServiceImpl implements FileService {
 
             if (response != null) {
                 String url = minioInfo.getEndpoint() + "/" + minioInfo.getBucketName() + "/" + newFileName;
-                deleteFile(oldFileUrl);
-                log.info("文件上传成功: {}", url);
+                boolean b = deleteFile(oldFileUrl);
+                log.info("文件上传成功: {},老文件删除情况：{}", url,b);
                 return Result.success(url);
             }
         } catch (Exception e) {
@@ -111,7 +109,7 @@ public class FileServiceImpl implements FileService {
             return false;
         }
         //判断这个文件地址是否是默认文件地址
-        Map<Integer, String> novelType = defaultUrlConfig.getNovelType();
+        Map<Integer, String> novelType = DefaultUrlConfig.NOVEL_TYPE;
         if (novelType.containsValue(fileUrl)) {
             return true;
         }

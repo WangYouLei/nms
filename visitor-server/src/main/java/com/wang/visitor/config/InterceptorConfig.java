@@ -15,7 +15,14 @@ public class InterceptorConfig implements WebMvcConfigurer {
         // 添加角色拦截器，只允许 VISITOR 角色访问
         registry.addInterceptor(new RoleInterceptor("visitor-server", UserRole.VISITOR))
                 .addPathPatterns("/visitor/*/**")
-                // 登录、登出、注册、获取名称和头像接口不拦截
-                .excludePathPatterns("/visitor/login", "/visitor/logout", "/visitor/register", "/visitor/getNameAndAvatar/*");
+                // 登录、登出、注册、获取名称和头像、粉丝数量接口不拦截
+                .excludePathPatterns(
+                        "/visitor/login",
+                        "/visitor/logout",
+                        "/visitor/register",
+                        "/visitor/getNameAndAvatar/*",
+                        "/visitor/follow/followerCount/*",
+                        "/visitor/follow/followers/*"
+                );
     }
 }

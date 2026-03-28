@@ -27,6 +27,12 @@ public class CommentQueryDTO {
     @ApiModelProperty("用户类型：1-访客，2-作者，3-管理员")
     private Integer userType;
 
+    @ApiModelProperty("用户昵称（模糊查询）")
+    private String userName;
+
+    @ApiModelProperty("评论内容（模糊查询）")
+    private String content;
+
     @ApiModelProperty("父评论ID（查询回复时使用）")
     private Long parentId;
 

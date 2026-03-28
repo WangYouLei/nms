@@ -80,4 +80,18 @@ public class FileController {
         log.info("删除文件，文件地址：{}", fileUrl);
         return fileServer.deleteFile(fileUrl) ? Result.success() : Result.error("删除文件失败");
     }
+
+    @GetMapping("/content")
+    @ApiOperation("获取文件内容")
+    public Result getFileContent(
+            @ApiParam(value = "文件URL", required = true)
+            @RequestParam
+            String fileUrl) {
+        log.info("获取文件内容，文件地址：{}", fileUrl);
+        String content = fileServer.getFileContent(fileUrl);
+        if (content != null) {
+            return Result.success(content);
+        }
+        return Result.error("获取文件内容失败");
+    }
 }

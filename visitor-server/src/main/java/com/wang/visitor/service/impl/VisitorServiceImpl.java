@@ -1,7 +1,6 @@
 package com.wang.visitor.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
@@ -10,8 +9,8 @@ import com.wang.common.result.Result;
 import com.wang.common.utils.Argon2idUtil;
 
 import com.wang.common.utils.JWTUtil;
-import com.wang.commonserver.service.CaptchaService;
-import com.wang.commonserver.service.EmailService;
+import com.wang.visitor.feign.CaptchaServiceFeign;
+import com.wang.visitor.feign.EmailServiceFeign;
 import com.wang.visitor.mapper.VisitorMapper;
 import com.wang.visitor.service.VisitorService;
 import com.wang.pojo.dto.PasswordUpdateEmailDTO;
@@ -36,16 +35,14 @@ import java.util.Map;
 @Service
 public class VisitorServiceImpl implements VisitorService {
 
-    private final EmailService emailService;
-    private final CaptchaService captchaService;
+    private final EmailServiceFeign emailServiceFeign;
+    private final CaptchaServiceFeign captchaServiceFeign;
     private final VisitorMapper visitorMapper;
-    private final DefaultUrlConfig defaultUrlConfig;
 
-    public VisitorServiceImpl(VisitorMapper visitorMapper, EmailService emailService, CaptchaService captchaService, DefaultUrlConfig defaultUrlConfig) {
+    public VisitorServiceImpl(VisitorMapper visitorMapper, EmailServiceFeign emailServiceFeign, CaptchaServiceFeign captchaServiceFeign) {
         this.visitorMapper = visitorMapper;
-        this.emailService = emailService;
-        this.captchaService = captchaService;
-        this.defaultUrlConfig = defaultUrlConfig;
+        this.emailServiceFeign = emailServiceFeign;
+        this.captchaServiceFeign = captchaServiceFeign;
     }
 
     /**
@@ -58,14 +55,14 @@ public class VisitorServiceImpl implements VisitorService {
         log.info("访客注册：账号={}", registerDTO.getAccount());
 
         // 1. 验证图形验证码
-        boolean captchaValid = captchaService.verify(registerDTO.getCaptchaToken(), registerDTO.getCaptchaCode());
-        if (!captchaValid) {
+        Result captchaResult = captchaServiceFeign.verify(registerDTO.getCaptchaToken(), registerDTO.getCaptchaCode());
+        if (!"success".equals(captchaResult.getMsg())) {
             log.warn("图形验证码验证失败：token={},captchaCode={}", registerDTO.getCaptchaToken(), registerDTO.getCaptchaCode());
             return Result.error("图形验证码错误或已过期");
         }
 
         // 2. 验证邮箱验证码
-        Result emailResult = emailService.verifyCode(registerDTO.getEmail(), registerDTO.getEmailCode());
+        Result emailResult = emailServiceFeign.verifyCode(registerDTO.getEmail(), registerDTO.getEmailCode());
         if (!"success".equals(emailResult.getMsg())) {
             log.warn("邮箱验证码验证失败：email={}", registerDTO.getEmail());
             return Result.error("邮箱验证码错误或已过期");
@@ -80,7 +77,7 @@ public class VisitorServiceImpl implements VisitorService {
         // 默认为普通用户
         visitor.setVipLevel(0);
         // 设置默认头像
-        visitor.setAvatar(defaultUrlConfig.getVisitorAvatarUrl());
+        visitor.setAvatar(DefaultUrlConfig.VISITOR_AVATAR_URL);
         visitor.setCreateTime(LocalDateTime.now());
         visitor.setUpdateTime(LocalDateTime.now());
 
@@ -246,7 +243,7 @@ public class VisitorServiceImpl implements VisitorService {
     @Override
     public Result updatePasswordByEmail(PasswordUpdateEmailDTO passwordUpdateEmailDTO) {
         // 验证邮箱验证码
-        Result result = emailService.verifyCode(passwordUpdateEmailDTO.getEmail(), passwordUpdateEmailDTO.getCode());
+        Result result = emailServiceFeign.verifyCode(passwordUpdateEmailDTO.getEmail(), passwordUpdateEmailDTO.getCode());
         if(!"success".equals(result.getMsg())){
             return result;
         }
@@ -315,7 +312,7 @@ public class VisitorServiceImpl implements VisitorService {
         }
 
         // 3. 验证邮箱验证码
-        Result emailResult = emailService.verifyCode(dto.getEmail(), dto.getCode());
+        Result emailResult = emailServiceFeign.verifyCode(dto.getEmail(), dto.getCode());
         if (!"success".equals(emailResult.getMsg())) {
             log.warn("邮箱验证码验证失败：email={}", dto.getEmail());
             return Result.error("邮箱验证码错误或已过期");

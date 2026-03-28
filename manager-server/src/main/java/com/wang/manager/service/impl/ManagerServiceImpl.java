@@ -1,7 +1,6 @@
 package com.wang.manager.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.utils.RoleContextUtil;
@@ -35,11 +34,9 @@ import java.util.stream.Collectors;
 public class ManagerServiceImpl implements ManagerService {
 
     private final ManagerMapper managerMapper;
-    private final DefaultUrlConfig defaultUrlConfig;
 
-    public ManagerServiceImpl(ManagerMapper managerMapper, DefaultUrlConfig defaultUrlConfig) {
+    public ManagerServiceImpl(ManagerMapper managerMapper) {
         this.managerMapper = managerMapper;
-        this.defaultUrlConfig = defaultUrlConfig;
     }
 
     /**
@@ -120,7 +117,7 @@ public class ManagerServiceImpl implements ManagerService {
         // 设置创建者为当前登录管理员的ID
         manager.setCreateId(loginUser.getId());
         manager.setUpdateTime(LocalDateTime.now());
-        manager.setAvatar(defaultUrlConfig.getManagerAvatarUrl());
+        manager.setAvatar(DefaultUrlConfig.MANAGER_AVATAR_URL);
 
         // 密码加密
         String hashedPassword = Argon2idUtil.hash(managerDTO.getPassword());

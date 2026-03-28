@@ -10,7 +10,9 @@
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column label="头像" width="80">
           <template #default="{ row }">
-            <el-avatar :src="row.avatar" />
+            <el-avatar :src="getAvatarUrl(row.avatar)">
+              {{ row.name?.charAt(0) }}
+            </el-avatar>
           </template>
         </el-table-column>
         <el-table-column prop="name" label="昵称" width="120" />
@@ -52,6 +54,8 @@
 import { ref, onMounted } from 'vue'
 import { getAuthorRankName } from '@/enums'
 import { formatDateTime } from '@/utils/format'
+import { getAvatarUrl } from '@/utils/file-url'
+import { getAuthorPage, getAuthorDetail } from '@/api/author'
 import type { AuthorVO } from '@/types'
 
 const loading = ref(true)
@@ -66,17 +70,26 @@ const getRankLabel = (rank: number) => getAuthorRankName(rank)
 
 const fetchAuthors = async () => {
   loading.value = true
-  // 模拟数据
-  authors.value = [
-    { id: 1, name: '作者1', account: '13800138001', email: 'author1@test.com', rank: 3, novelCount: 5, avatar: '', createTime: '2024-01-01' },
-    { id: 2, name: '作者2', account: '13800138002', email: 'author2@test.com', rank: 2, novelCount: 3, avatar: '', createTime: '2024-01-02' }
-  ]
-  total.value = 2
-  loading.value = false
+  try {
+    const res = await getAuthorPage({ pageNum: pageNum.value, pageSize: pageSize.value })
+    if (res.data) {
+      authors.value = res.data.list || []
+      total.value = res.data.total
+    }
+  } catch (error) {
+    console.error('获取作者列表失败:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
-const handleView = (author: AuthorVO) => {
-  console.log('View author:', author)
+const handleView = async (author: AuthorVO) => {
+  try {
+    const res = await getAuthorDetail(author.id)
+    console.log('作者详情:', res.data)
+  } catch (error) {
+    console.error('获取作者详情失败:', error)
+  }
 }
 
 onMounted(() => {

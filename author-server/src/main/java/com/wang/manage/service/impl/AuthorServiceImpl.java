@@ -1,17 +1,15 @@
 package com.wang.manage.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.utils.Argon2idUtil;
+import com.wang.manage.feign.CommonServiceFeignService;
 import org.springframework.beans.BeanUtils;
 import com.wang.common.utils.JWTUtil;
-import com.wang.commonserver.service.CaptchaService;
-import com.wang.commonserver.service.EmailService;
 import com.wang.manage.mapper.AuthorMapper;
 import com.wang.manage.service.AuthorService;
 import com.wang.pojo.dto.AuthorDTO;
@@ -25,8 +23,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * 作者服务实现类
@@ -35,16 +31,12 @@ import java.util.Map;
 @Service
 public class AuthorServiceImpl implements AuthorService {
 
-    private final EmailService emailService;
-    private final CaptchaService captchaService;
+    private final CommonServiceFeignService commonServiceFeignService;
     private final AuthorMapper authorMapper;
-    private final DefaultUrlConfig  defaultUrlConfig;
 
-    public AuthorServiceImpl(AuthorMapper authorMapper, EmailService emailService, CaptchaService captchaService, DefaultUrlConfig defaultUrlConfig) {
+    public AuthorServiceImpl(AuthorMapper authorMapper, CommonServiceFeignService commonServiceFeignService) {
         this.authorMapper = authorMapper;
-        this.emailService = emailService;
-        this.captchaService = captchaService;
-        this.defaultUrlConfig = defaultUrlConfig;
+        this.commonServiceFeignService = commonServiceFeignService;
     }
 
     /**
@@ -57,14 +49,14 @@ public class AuthorServiceImpl implements AuthorService {
         log.info("作者注册：账号={}", registerDTO.getAccount());
 
         // 1. 验证图形验证码
-        boolean captchaValid = captchaService.verify(registerDTO.getCaptchaToken(), registerDTO.getCaptchaCode());
-        if (!captchaValid) {
+        Result captchaResult = commonServiceFeignService.verify(registerDTO.getCaptchaToken(), registerDTO.getCaptchaCode());
+        if (!"success".equals(captchaResult.getMsg())) {
             log.warn("图形验证码验证失败：token={},captchaCode={}", registerDTO.getCaptchaToken(),registerDTO.getCaptchaCode());
             return Result.error("图形验证码错误或已过期");
         }
 
         // 2. 验证邮箱验证码
-        Result emailResult = emailService.verifyCode(registerDTO.getEmail(), registerDTO.getEmailCode());
+        Result emailResult = commonServiceFeignService.verifyCode(registerDTO.getEmail(), registerDTO.getEmailCode());
         if (!"success".equals(emailResult.getMsg())) {
             log.warn("邮箱验证码验证失败：email={}", registerDTO.getEmail());
             return Result.error("邮箱验证码错误或已过期");
@@ -79,7 +71,7 @@ public class AuthorServiceImpl implements AuthorService {
         // 默认等级为执笔者
         author.setRank(1);
         // 默认头像
-        author.setAvatar(defaultUrlConfig.getAuthorAvatarUrl());
+        author.setAvatar(DefaultUrlConfig.AUTHOR_AVATAR_URL);
         author.setCreateTime(LocalDateTime.now());
         author.setUpdateTime(LocalDateTime.now());
 
@@ -273,7 +265,7 @@ public class AuthorServiceImpl implements AuthorService {
     @Override
     public Result updatePasswordByEmail(PasswordUpdateEmailDTO passwordUpdateEmailDTO) {
         // 验证邮箱验证码
-        Result result = emailService.verifyCode(passwordUpdateEmailDTO.getEmail(), passwordUpdateEmailDTO.getCode());
+        Result result = commonServiceFeignService.verifyCode(passwordUpdateEmailDTO.getEmail(), passwordUpdateEmailDTO.getCode());
         if(!"success".equals(result.getMsg())){
             return result;
         }

@@ -1,15 +1,50 @@
 spring:
+  application:
+    name: author-server
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        namespace: public
+        username: nacos
+        password: 123456
+      config:
+        server-addr: 127.0.0.1:8848
+        namespace: public
+        username: nacos
+        password: 123456
+        file-extension: yml
+        shared-configs:
+          - data-id: common-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 10000
+            read-timeout: 30000
+      circuitbreaker:
+        enabled: true
+    loadbalancer:
+      ribbon:
+        enabled: false
+
+  main:
+    allow-bean-definition-overriding: true
+
   datasource:
     username: root
     password: 123456
     url: jdbc:mysql://localhost:3306/nms?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&charset=utf8mb4
     driver-class-name: com.mysql.cj.jdbc.Driver
+
   # Redis配置
   data:
     redis:
       host: localhost
       port: 6379
-      # password: 123456  # 如果有密码，取消注释
       database: 0
       timeout: 3000ms
       lettuce:
@@ -19,28 +54,6 @@ spring:
           max-idle: 8
           min-idle: 0
 
-  application:
-    name: author-server
-
-  # 邮件配置      todo 项目变成微服务构架后，要删除这个配置（common-Server模块中有）
-  mail:
-    host: smtp.qq.com
-    port: 587
-    username: 2531215075@qq.com
-    password: ${QQ_SMTP/IMAP}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-            required: true
-
-  # DashScope AI 配置
-  ai:
-    dashscope:
-      api-key: ${Spring_ai_alibaba}
-
 server:
   port: 5200
   servlet:
@@ -49,34 +62,14 @@ server:
       enabled: true
       force: true
 
-# MinIO 配置   todo 项目变成微服务构架后，要删除这个配置（common-Server模块中有）
-minio:
-  endpoint: http://127.0.0.1:9000
-  accessKey: minioadmin
-  secretKey: minioadmin
-  bucketName: nms
-
-#配置plus打印sql日志
+# MyBatis-Plus 配置
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-    map-underscore-to-camel-case: true  # 开启驼峰命名转换
+    map-underscore-to-camel-case: true
   mapper-locations: classpath:/mapper/*.xml
 
-#设置日志级别，ERROR/WARN/INFO/DEBUG,默认是INFO以上才显示
+# 日志级别
 logging:
   level:
     root: info
-
-# 默认小说封面地址、默认作者头像地址、默认用户头像地址
-default:
-  authorAvatarUrl: http://127.0.0.1:9000/nms/AUTHOR_AVATAR/5c347d6e-8d91-496f-857d-af9b45cdb480.jpg
-  visitorAvatarUrl:  http://127.0.0.1:9000/nms/VISITOR_AVATAR/ea59d798-2f32-43b8-bd96-cb70d9b9d054.jpg
-  novelCoverUrl: http://127.0.0.1:9000/nms/NOVEL_COVER/88e08331-0134-43f3-ae66-1f81c4ca191e.jpg
-  managerAvatarUrl: http://127.0.0.1:9000/nms/MANAGER_AVATAR/5bdfcbb8-9b29-4c2d-873a-6a4539714653.jpg
-
-# 模型选择（后期可以再下面添加新的模型，这不是官方配置的形式）
-model:
-  api-key: ${Spring_ai_alibaba}
-  text1: tongyi-xiaomi-analysis-pro
-  voice1: qwen3-tts-vd-2026-01-26

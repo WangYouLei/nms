@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import type { VisitorVO, VisitorDTO, VisitorRegisterDTO, VisitorDeleteDTO, PasswordUpdateEmailDTO } from '@/types'
+import type { VisitorVO, VisitorDTO, VisitorRegisterDTO, VisitorDeleteDTO, PasswordUpdateEmailDTO, PageResult } from '@/types'
 
 // ==================== 访客认证 ====================
 
@@ -67,4 +67,27 @@ export function deleteVisitor(data: VisitorDeleteDTO) {
  */
 export function getVisitorNameAndAvatar(visitorId: number) {
   return request.get<{ name: string; avatar: string }>(`/visitor-server/visitor/getNameAndAvatar/${visitorId}`)
+}
+
+// ==================== 访客管理（管理员端） ====================
+
+/**
+ * 分页查询访客信息（管理员端）
+ */
+export function getVisitorPage(params: { pageNum?: number; pageSize?: number }) {
+  return request.get<PageResult<VisitorVO>>('/manager-server/manager/visitor/page', params)
+}
+
+/**
+ * 多条件查询访客（管理员端）
+ */
+export function getVisitorList(params: { id?: number; name?: string; account?: string; vipLevel?: number }) {
+  return request.get<VisitorVO[]>('/manager-server/manager/visitor/list', params)
+}
+
+/**
+ * 获取访客详情（管理员端）
+ */
+export function getVisitorDetail(id: number) {
+  return request.get<VisitorVO>(`/manager-server/manager/visitor/info/${id}`)
 }

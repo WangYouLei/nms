@@ -1,7 +1,6 @@
 package com.wang.comment.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.enums.AuditAimTypeEnum;
 import com.wang.common.enums.BizCodeEnum;
@@ -12,9 +11,9 @@ import com.wang.comment.mapper.CommentMapper;
 import com.wang.comment.mapper.NovelMapper;
 import com.wang.comment.mapper.UserAvatarMapper;
 import com.wang.comment.service.CommentService;
+import com.wang.comment.feign.AiAuditServiceFeign;
+import com.wang.comment.feign.SensitiveWordServiceFeign;
 import com.wang.common.utils.RoleContextUtil;
-import com.wang.commonserver.service.AiAuditService;
-import com.wang.commonserver.service.SensitiveWordService;
 import com.wang.pojo.dto.CommentDTO;
 import com.wang.pojo.dto.CommentQueryDTO;
 import com.wang.pojo.entity.Comment;
@@ -26,8 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.List;
+import java.util.Map;
 
 /**
  * 评论服务实现类
@@ -37,17 +37,17 @@ import java.util.List;
 public class CommentServiceImpl implements CommentService {
 
     private final CommentMapper commentMapper;
-    private final AiAuditService aiAuditService;
-    private final SensitiveWordService sensitiveWordService;
+    private final AiAuditServiceFeign aiAuditServiceFeign;
+    private final SensitiveWordServiceFeign sensitiveWordServiceFeign;
     private final NovelMapper novelMapper;
     private final UserAvatarMapper userAvatarMapper;
 
-    public CommentServiceImpl(CommentMapper commentMapper, AiAuditService aiAuditService, 
-                              SensitiveWordService sensitiveWordService, NovelMapper novelMapper,
+    public CommentServiceImpl(CommentMapper commentMapper, AiAuditServiceFeign aiAuditServiceFeign,
+                              SensitiveWordServiceFeign sensitiveWordServiceFeign, NovelMapper novelMapper,
                               UserAvatarMapper userAvatarMapper) {
         this.commentMapper = commentMapper;
-        this.aiAuditService = aiAuditService;
-        this.sensitiveWordService = sensitiveWordService;
+        this.aiAuditServiceFeign = aiAuditServiceFeign;
+        this.sensitiveWordServiceFeign = sensitiveWordServiceFeign;
         this.novelMapper = novelMapper;
         this.userAvatarMapper = userAvatarMapper;
     }
@@ -56,7 +56,9 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     public Result addComment(CommentDTO commentDTO) {
         //本地敏感词审核
-        AuditResultVO auditResultVO = sensitiveWordService.auditText(commentDTO.getContent(), true);
+        Map<String, String> request = new HashMap<>();
+        request.put("content", commentDTO.getContent());
+        AuditResultVO auditResultVO = sensitiveWordServiceFeign.auditText(request);
         if(!auditResultVO.getPassed()){
             //拒绝高危敏感词
             return Result.buildResult(BizCodeEnum.SENSITIVE_WORD);
@@ -92,7 +94,7 @@ public class CommentServiceImpl implements CommentService {
 
 
         // 使用生成的评论ID进行AI审核
-        Result aiAuditResult = aiAuditService.auditWithAi(commentDTO.getContent(), comment.getId(), AuditAimTypeEnum.COMMENT.getValue(), auditResultVO);
+        Result aiAuditResult = aiAuditServiceFeign.auditWithAi(commentDTO.getContent(), comment.getId(), AuditAimTypeEnum.COMMENT.getValue(), auditResultVO);
         if(aiAuditResult.getCode() != BizCodeEnum.SUCCESS.getCode()){
             //高危敏感词在auditWithAi就被拦截并返回最终结果了,这里返回这个枚举类就行了
             return Result.buildResult(BizCodeEnum.SENSITIVE_WORD);

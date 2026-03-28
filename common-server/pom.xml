@@ -67,10 +67,28 @@
             <scope>test</scope>
         </dependency>
 
+        <!--spring ai alibaba-->
         <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
             <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
-            <version>1.0.0.2</version>
+        </dependency>
+
+        <!-- Nacos Discovery -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+
+        <!-- OpenFeign -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
+        <!-- Spring Cloud Loadbalancer -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
         </dependency>
     </dependencies>
 </project>

@@ -10,7 +10,9 @@
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column label="头像" width="80">
           <template #default="{ row }">
-            <el-avatar :src="row.avatar" />
+            <el-avatar :src="getAvatarUrl(row.avatar)">
+              {{ row.name?.charAt(0) }}
+            </el-avatar>
           </template>
         </el-table-column>
         <el-table-column prop="name" label="昵称" width="120" />
@@ -51,6 +53,8 @@
 import { ref, onMounted } from 'vue'
 import { getVipLevelName, VipLevel } from '@/enums'
 import { formatDateTime } from '@/utils/format'
+import { getAvatarUrl } from '@/utils/file-url'
+import { getVisitorPage, getVisitorDetail } from '@/api/visitor'
 import type { VisitorVO } from '@/types'
 
 const loading = ref(true)
@@ -71,17 +75,26 @@ const getVipType = (level: number) => {
 
 const fetchVisitors = async () => {
   loading.value = true
-  // 模拟数据
-  visitors.value = [
-    { id: 1, name: '用户1', account: '13800138001', email: 'user1@test.com', vipLevel: 0, avatar: '', createTime: '2024-01-01' },
-    { id: 2, name: '用户2', account: '13800138002', email: 'user2@test.com', vipLevel: 1, avatar: '', createTime: '2024-01-02' }
-  ]
-  total.value = 2
-  loading.value = false
+  try {
+    const res = await getVisitorPage({ pageNum: pageNum.value, pageSize: pageSize.value })
+    if (res.data) {
+      visitors.value = res.data.list || []
+      total.value = res.data.total
+    }
+  } catch (error) {
+    console.error('获取访客列表失败:', error)
+  } finally {
+    loading.value = false
+  }
 }
 
-const handleView = (visitor: VisitorVO) => {
-  console.log('View visitor:', visitor)
+const handleView = async (visitor: VisitorVO) => {
+  try {
+    const res = await getVisitorDetail(visitor.id)
+    console.log('访客详情:', res.data)
+  } catch (error) {
+    console.error('获取访客详情失败:', error)
+  }
 }
 
 onMounted(() => {

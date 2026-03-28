@@ -39,8 +39,12 @@ public class CaptchaController {
      * @return 是否验证成功
      */
     @RequestMapping("/verify")
-    public boolean verify(String token, String code) {
-        return captchaService.verify(token, code);
+    public Result verify(String token, String code) {
+        boolean valid = captchaService.verify(token, code);
+        if (valid) {
+            return Result.success();
+        }
+        return Result.error("验证码错误或已过期");
     }
 
     /**

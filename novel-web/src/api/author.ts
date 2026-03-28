@@ -1,5 +1,5 @@
 import request from '@/utils/request'
-import type { AuthorVO, AuthorDTO, AuthorRegisterDTO, PasswordUpdateEmailDTO, VisitorAuthorVO } from '@/types'
+import type { AuthorVO, AuthorDTO, AuthorRegisterDTO, PasswordUpdateEmailDTO, VisitorAuthorVO, PageResult } from '@/types'
 
 // ==================== 作者认证 ====================
 
@@ -68,4 +68,27 @@ export function updateAuthorPassword(id: number, oldPassword: string, newPasswor
  */
 export function updateAuthorPasswordByEmail(data: PasswordUpdateEmailDTO) {
   return request.post('/author-server/author/updatePasswordByEmail', data)
+}
+
+// ==================== 作者管理（管理员端） ====================
+
+/**
+ * 分页查询作者信息（管理员端）
+ */
+export function getAuthorPage(params: { pageNum?: number; pageSize?: number }) {
+  return request.get<PageResult<AuthorVO>>('/manager-server/manager/author/page', params)
+}
+
+/**
+ * 多条件查询作者（管理员端）
+ */
+export function getAuthorList(params: { id?: number; name?: string; account?: string; rank?: number }) {
+  return request.get<AuthorVO[]>('/manager-server/manager/author/list', params)
+}
+
+/**
+ * 获取作者详情（管理员端）
+ */
+export function getAuthorDetail(id: number) {
+  return request.get<AuthorVO>(`/manager-server/manager/author/info/${id}`)
 }

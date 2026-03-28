@@ -7,10 +7,3 @@ spring:
     dashscope:
       api-key: ${Spring_ai_alibaba}
 
-# 默认小说封面地址、默认作者头像地址、默认用户头像地址
-default:
-  authorAvatarUrl: http://127.0.0.1:9000/nms/AUTHOR_AVATAR/5c347d6e-8d91-496f-857d-af9b45cdb480.jpg
-  visitorAvatarUrl:  http://127.0.0.1:9000/nms/VISITOR_AVATAR/aa66044f-0d4d-4868-95f3-a95c1ac13f86.jpg
-  novelCoverUrl: http://127.0.0.1:9000/nms/NOVEL_COVER/88e08331-0134-43f3-ae66-1f81c4ca191e.jpg
-  managerAvatarUrl: http://127.0.0.1:9000/nms/MANAGER_AVATAR/5bdfcbb8-9b29-4c2d-873a-6a4539714653.jpg
-

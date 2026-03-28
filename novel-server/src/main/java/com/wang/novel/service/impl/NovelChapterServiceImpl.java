@@ -1,19 +1,22 @@
 package com.wang.novel.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.wang.common.utils.RoleContextUtil;
+import com.wang.common.enums.AuditAimTypeEnum;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.FileUploadTypeEnum;
 import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
-import com.wang.commonserver.service.FileService;
+import com.wang.novel.feign.AiAuditServiceFeign;
+import com.wang.novel.feign.FileServiceFeign;
+import com.wang.novel.feign.SensitiveWordServiceFeign;
 import com.wang.novel.mapper.NovelChapterMapper;
 import com.wang.novel.mapper.NovelMapper;
 import com.wang.novel.service.NovelChapterService;
 import com.wang.pojo.entity.Novel;
 import com.wang.pojo.entity.NovelChapter;
+import com.wang.pojo.vo.AuditResultVO;
 import com.wang.pojo.vo.NovelChapterVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -23,7 +26,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -37,14 +42,20 @@ public class NovelChapterServiceImpl implements NovelChapterService {
 
     private final NovelChapterMapper novelChapterMapper;
     private final NovelMapper novelMapper;
-    private final FileService fileService;
+    private final FileServiceFeign fileServiceFeign;
+    private final SensitiveWordServiceFeign sensitiveWordServiceFeign;
+    private final AiAuditServiceFeign aiAuditServiceFeign;
 
     public NovelChapterServiceImpl(NovelChapterMapper novelChapterMapper,
                                    NovelMapper novelMapper,
-                                   FileService fileService) {
+                                   FileServiceFeign fileServiceFeign,
+                                   SensitiveWordServiceFeign sensitiveWordServiceFeign,
+                                   AiAuditServiceFeign aiAuditServiceFeign) {
         this.novelChapterMapper = novelChapterMapper;
         this.novelMapper = novelMapper;
-        this.fileService = fileService;
+        this.fileServiceFeign = fileServiceFeign;
+        this.sensitiveWordServiceFeign = sensitiveWordServiceFeign;
+        this.aiAuditServiceFeign = aiAuditServiceFeign;
     }
 
     // ==================== Common - 公共方法（无权限校验） ====================
@@ -83,8 +94,9 @@ public class NovelChapterServiceImpl implements NovelChapterService {
             return Result.buildResult(BizCodeEnum.NOVEL_CHAPTER_NOT_FOUND);
         }
 
-        // 使用 FileService 获取内容
-        String content = fileService.getFileContent(chapter.getContentUrl());
+        // 使用 FileServiceFeign 获取内容
+        Result contentResult = fileServiceFeign.getFileContent(chapter.getContentUrl());
+        String content = (String) contentResult.getData();
         if (content == null) {
             return Result.error("获取章节内容失败");
         }
@@ -117,19 +129,44 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         }
 
         try {
-            // 使用 FileService 上传文件
-            Result uploadResult = fileService.uploadFile(
+            // 使用 FileServiceFeign 上传文件
+            Result uploadResult = fileServiceFeign.uploadFile(
                     file,
                     FileUploadTypeEnum.NOVEL_CHAPTER.getCode(),
                     novelId,
                     null
             );
 
-            if (!"success".equals(uploadResult.getMsg())) {
+            if (uploadResult.getCode() != 10000) {
                 return Result.error("上传新章节文件失败");
             }
 
             String contentUrl = (String) uploadResult.getData();
+
+            // 获取章节内容进行敏感词审核
+            Result contentResult = fileServiceFeign.getFileContent(contentUrl);
+            String content = (String) contentResult.getData();
+            
+            if (content != null && !content.isEmpty()) {
+                // 本地敏感词审核
+                Map<String, String> request = new HashMap<>();
+                request.put("content", content);
+                AuditResultVO auditResultVO = sensitiveWordServiceFeign.auditText(request);
+                if (!auditResultVO.getPassed()) {
+                    // 删除已上传的文件
+                    fileServiceFeign.deleteFile(contentUrl);
+                    // 拒绝高危敏感词
+                    return Result.buildResult(BizCodeEnum.SENSITIVE_WORD);
+                }
+
+                // AI 审核
+                Result aiAuditResult = aiAuditServiceFeign.auditWithAi(content, null, AuditAimTypeEnum.CHAPTER.getValue(), auditResultVO);
+                if (aiAuditResult.getCode() != BizCodeEnum.SUCCESS.getCode()) {
+                    // 删除已上传的文件
+                    fileServiceFeign.deleteFile(contentUrl);
+                    return Result.buildResult(BizCodeEnum.SENSITIVE_WORD);
+                }
+            }
 
             // 保存章节记录
             return saveChapterRecord(novel, title, contentUrl, getNextChapterOrder(novelId), wordCount);
@@ -161,7 +198,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         Novel novel = novelMapper.selectById(chapter.getNovelId());
 
         // 删除文件
-        fileService.deleteFile(chapter.getContentUrl());
+        fileServiceFeign.deleteFile(chapter.getContentUrl());
 
         // 删除数据库记录
         int result = novelChapterMapper.deleteById(id);
@@ -217,20 +254,42 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         if (file != null && !file.isEmpty()) {
             try {
                 // 上传新文件
-                Result uploadResult = fileService.uploadFile(
+                Result uploadResult = fileServiceFeign.uploadFile(
                         file,
                         FileUploadTypeEnum.NOVEL_CHAPTER.getCode(),
                         chapter.getNovelId(),
-                        // 传入旧文件URL，由 FileService 处理删除
+                        // 传入旧文件URL，由 FileServiceFeign 处理删除
                         oldFileUrl
                 );
 
-                if (!"success".equals(uploadResult.getMsg())) {
+                if (uploadResult.getCode() != 10000) {
                     return Result.error("更新章节文件失败");
                 }
 
                 // 更新内容URL
                 String newContentUrl = (String) uploadResult.getData();
+
+                // 获取章节内容进行敏感词审核
+                Result contentResult = fileServiceFeign.getFileContent(newContentUrl);
+                String content = (String) contentResult.getData();
+
+                if (content != null && !content.isEmpty()) {
+                    // 本地敏感词审核
+                    Map<String, String> request = new HashMap<>();
+                    request.put("content", content);
+                    AuditResultVO auditResultVO = sensitiveWordServiceFeign.auditText(request);
+                    if (!auditResultVO.getPassed()) {
+                        // 拒绝高危敏感词
+                        return Result.buildResult(BizCodeEnum.SENSITIVE_WORD);
+                    }
+
+                    // AI 审核
+                    Result aiAuditResult = aiAuditServiceFeign.auditWithAi(content, id.longValue(), AuditAimTypeEnum.CHAPTER.getValue(), auditResultVO);
+                    if (aiAuditResult.getCode() != BizCodeEnum.SUCCESS.getCode()) {
+                        return Result.buildResult(BizCodeEnum.SENSITIVE_WORD);
+                    }
+                }
+
                 chapter.setContentUrl(newContentUrl);
             } catch (Exception e) {
                 log.error("更新章节文件异常：{}", e.getMessage());

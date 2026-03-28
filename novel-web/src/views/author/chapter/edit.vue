@@ -29,71 +29,134 @@
       <img :src="getImageUrl(novel?.url)" class="w-16 h-20 object-cover rounded" />
       <div>
         <h2 class="font-medium text-gray-800 dark:text-gray-200">{{ novel?.name || '加载中...' }}</h2>
-        <p class="text-sm text-gray-500">章节序号：{{ chapterForm.chapterOrder }}</p>
+        <p class="text-sm text-gray-500">章节序号：第 {{ chapterForm.chapterOrder }} 章</p>
       </div>
     </div>
 
-    <!-- 编辑区域 -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <!-- 章节标题 -->
-      <div class="lg:col-span-1">
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-4">
-          <h3 class="font-medium text-gray-800 dark:text-gray-200 mb-3">章节信息</h3>
-          <el-form :model="chapterForm" label-position="top">
-            <el-form-item label="章节标题" required>
-              <el-input 
-                v-model="chapterForm.title" 
-                placeholder="请输入章节标题"
-                maxlength="100"
-                show-word-limit
-              />
-            </el-form-item>
-            <el-form-item label="章节序号">
-              <el-input-number 
-                v-model="chapterForm.chapterOrder" 
-                :min="1"
-                :max="9999"
-                class="w-full"
-              />
-            </el-form-item>
-          </el-form>
+    <!-- 抽屉式信息面板 -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl mb-4 overflow-hidden">
+      <!-- 抽屉头部（可点击展开/收起） -->
+      <div 
+        class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        @click="infoDrawerExpanded = !infoDrawerExpanded"
+      >
+        <div class="flex items-center gap-6">
+          <div class="flex items-center gap-2">
+            <el-icon :class="{ 'rotate-90': infoDrawerExpanded }" class="transition-transform">
+              <ArrowRight />
+            </el-icon>
+            <span class="font-medium text-gray-800 dark:text-gray-200">
+              {{ infoDrawerExpanded ? '收起' : '展开' }}章节信息
+            </span>
+          </div>
+          
+          <!-- 收起状态显示简要信息 -->
+          <template v-if="!infoDrawerExpanded">
+            <div class="flex items-center gap-6 text-sm">
+              <div class="flex items-center gap-2">
+                <span class="text-gray-500">标题：</span>
+                <span class="text-gray-800 dark:text-gray-200">{{ chapterForm.title || '未填写' }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-gray-500">字数：</span>
+                <span class="text-primary font-medium">{{ wordCount }}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-gray-500">序号：</span>
+                <span class="text-gray-800 dark:text-gray-200">第 {{ chapterForm.chapterOrder }} 章</span>
+              </div>
+            </div>
+          </template>
         </div>
-
-        <!-- 字数统计 -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 mt-4">
-          <h3 class="font-medium text-gray-800 dark:text-gray-200 mb-3">统计信息</h3>
-          <div class="space-y-2 text-sm">
-            <div class="flex justify-between">
-              <span class="text-gray-500">总字数</span>
-              <span class="font-medium text-gray-800 dark:text-gray-200">{{ wordCount }} 字</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-500">段落</span>
-              <span class="font-medium text-gray-800 dark:text-gray-200">{{ paragraphCount }} 段</span>
-            </div>
+        
+        <!-- 统计信息（始终显示） -->
+        <div class="flex items-center gap-4 text-sm">
+          <div class="flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full">
+            <el-icon><EditPen /></el-icon>
+            <span>{{ wordCount }} 字</span>
+          </div>
+          <div class="flex items-center gap-1 px-3 py-1 bg-success/10 text-green-600 rounded-full">
+            <el-icon><Document /></el-icon>
+            <span>{{ paragraphCount }} 段</span>
           </div>
         </div>
       </div>
-
-      <!-- 内容编辑 -->
-      <div class="lg:col-span-2">
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-4 h-full">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="font-medium text-gray-800 dark:text-gray-200">章节内容</h3>
-            <el-button size="small" @click="clearContent">
-              <el-icon class="mr-1"><Delete /></el-icon>
-              清空
-            </el-button>
+      
+      <!-- 抽屉内容 -->
+      <el-collapse-transition>
+        <div v-show="infoDrawerExpanded" class="border-t border-gray-100 dark:border-gray-700">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4">
+            <!-- 左侧：章节信息 -->
+            <div>
+              <h4 class="text-sm font-medium text-gray-500 mb-3">章节信息</h4>
+              <el-form :model="chapterForm" label-position="top" size="default">
+                <el-form-item label="章节标题" required class="mb-3">
+                  <el-input 
+                    v-model="chapterForm.title" 
+                    placeholder="请输入章节标题"
+                    maxlength="100"
+                    show-word-limit
+                    clearable
+                  />
+                </el-form-item>
+                <el-form-item label="章节序号" class="mb-0">
+                  <el-input-number 
+                    v-model="chapterForm.chapterOrder" 
+                    :min="1"
+                    :max="9999"
+                    class="w-full"
+                  />
+                </el-form-item>
+              </el-form>
+            </div>
+            
+            <!-- 右侧：统计信息 -->
+            <div>
+              <h4 class="text-sm font-medium text-gray-500 mb-3">统计信息</h4>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                  <p class="text-3xl font-bold text-primary">{{ wordCount }}</p>
+                  <p class="text-sm text-gray-500 mt-1">总字数</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                  <p class="text-3xl font-bold text-green-600">{{ paragraphCount }}</p>
+                  <p class="text-sm text-gray-500 mt-1">段落数</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                  <p class="text-xl font-bold" :class="chapterForm.title ? 'text-green-600' : 'text-gray-400'">
+                    {{ chapterForm.title ? '有' : '无' }}
+                  </p>
+                  <p class="text-sm text-gray-500 mt-1">标题状态</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                  <p class="text-3xl font-bold" :class="wordCount >= 2000 ? 'text-green-600' : 'text-red-500'">
+                    {{ wordCount >= 2000 ? '达标' : '不足' }}
+                  </p>
+                  <p class="text-sm text-gray-500 mt-1">建议 2000+ 字</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <el-input
-            v-model="chapterForm.content"
-            type="textarea"
-            :rows="20"
-            placeholder="请输入章节内容..."
-            class="chapter-editor"
-          />
         </div>
+      </el-collapse-transition>
+    </div>
+
+    <!-- 内容编辑区域（全宽） -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-medium text-gray-800 dark:text-gray-200">章节内容</h3>
+        <el-button size="small" @click="clearContent">
+          <el-icon class="mr-1"><Delete /></el-icon>
+          清空
+        </el-button>
       </div>
+      <el-input
+        v-model="chapterForm.content"
+        type="textarea"
+        :rows="24"
+        placeholder="请输入章节内容...&#10;&#10;提示：&#10;- 使用换行分隔段落&#10;- 支持中文标点&#10;- 建议每章 2000-5000 字"
+        class="chapter-editor"
+      />
     </div>
   </div>
 </template>
@@ -101,7 +164,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, Check, Document, Delete } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, Check, Document, Delete, EditPen } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getNovelDetail, getChapterDetail, getChapterContent, updateChapter } from '@/api'
 import { getImageUrl } from '@/utils/file-url'
@@ -115,6 +178,7 @@ const saving = ref(false)
 const publishing = ref(false)
 const lastSavedAt = ref('')
 const oldFileUrl = ref('')
+const infoDrawerExpanded = ref(true) // 抽屉默认展开
 
 // 自动保存定时器
 let autoSaveTimer: ReturnType<typeof setInterval> | null = null
@@ -161,7 +225,7 @@ const fetchChapter = async () => {
     chapterForm.title = detailRes.data?.title || ''
     chapterForm.chapterOrder = detailRes.data?.chapterOrder || 1
     chapterForm.content = contentRes.data?.content || ''
-    oldFileUrl.value = detailRes.data?.url || ''
+    oldFileUrl.value = detailRes.data?.contentUrl || ''
     
     // 从草稿加载（如果有更新的草稿）
     loadDraft()
@@ -266,11 +330,12 @@ const publishChapter = async () => {
     const blob = new Blob([chapterForm.content], { type: 'text/plain;charset=utf-8' })
     const file = new File([blob], `${chapterForm.title}.txt`, { type: 'text/plain' })
 
-    // 调用更新接口
+    // 调用更新接口 - 传递 wordCount 参数
     await updateChapter({
       id: chapterForm.id,
       title: chapterForm.title,
       chapterOrder: chapterForm.chapterOrder,
+      wordCount: wordCount.value,  // 修复：传递字数
       oldFileUrl: oldFileUrl.value,
       file: file
     })

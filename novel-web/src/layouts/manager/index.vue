@@ -168,7 +168,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { 
   Setting, DataBoard, User, Fold, Expand, 
-  Sunny, Moon, ArrowDown, SwitchButton, Document, Avatar, List
+  Sunny, Moon, ArrowDown, SwitchButton, Document, Avatar, List, ChatDotRound, Warning
 } from '@element-plus/icons-vue'
 import { useUserStore, useAppStore } from '@/stores'
 
@@ -179,7 +179,9 @@ const appStore = useAppStore()
 
 const contentMenuItems = [
   { path: '/manager/novels', title: '小说管理', icon: Document },
-  { path: '/manager/categories', title: '分类管理', icon: List }
+  { path: '/manager/categories', title: '分类管理', icon: List },
+  { path: '/manager/comments', title: '评论管理', icon: ChatDotRound },
+  { path: '/manager/audit', title: '人工审核', icon: Warning }
 ]
 
 const userMenuItems = [

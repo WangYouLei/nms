@@ -1,7 +1,6 @@
 package com.wang.novel.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.utils.RoleContextUtil;
@@ -53,7 +52,6 @@ public class NovelServiceImpl implements NovelService {
     private final NovelCategoryRelationMapper novelCategoryRelationMapper;
     private final AuthorMapper authorMapper;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final DefaultUrlConfig defaultUrlConfig;
 
     // 缓存Key前缀
     private static final String CACHE_KEY_NOVEL_DETAIL = "novel:detail:";
@@ -73,14 +71,12 @@ public class NovelServiceImpl implements NovelService {
                             NovelCategoryMapper novelCategoryMapper,
                             NovelCategoryRelationMapper novelCategoryRelationMapper,
                             AuthorMapper authorMapper,
-                            RedisTemplate<String, Object> redisTemplate,
-                            DefaultUrlConfig defaultUrlConfig) {
+                            RedisTemplate<String, Object> redisTemplate) {
         this.novelMapper = novelMapper;
         this.novelCategoryMapper = novelCategoryMapper;
         this.novelCategoryRelationMapper = novelCategoryRelationMapper;
         this.authorMapper = authorMapper;
         this.redisTemplate = redisTemplate;
-        this.defaultUrlConfig = defaultUrlConfig;
     }
 
     // ==================== Common - 公共方法 ====================
@@ -285,7 +281,7 @@ public class NovelServiceImpl implements NovelService {
         novel.setIsFinished(false);
         novel.setIsDel(false);
         if(!StringUtils.hasText(novelDTO.getUrl())){
-            novel.setUrl(defaultUrlConfig.getNovelCoverUrl());
+            novel.setUrl(DefaultUrlConfig.NOVEL_COVER_URL);
         }
 
         // 设置创建时间和修改时间
@@ -548,9 +544,9 @@ public class NovelServiceImpl implements NovelService {
             vo.setAuthorAvatar(novel.getAuthorAvatar());
         } else if (novel.getAuthorId() != null) {
             String avatar = authorMapper.selectAvatarById(novel.getAuthorId());
-            vo.setAuthorAvatar(avatar != null ? avatar : defaultUrlConfig.getAuthorAvatarUrl());
+            vo.setAuthorAvatar(avatar != null ? avatar : DefaultUrlConfig.AUTHOR_AVATAR_URL);
         } else {
-            vo.setAuthorAvatar(defaultUrlConfig.getAuthorAvatarUrl());
+            vo.setAuthorAvatar(DefaultUrlConfig.AUTHOR_AVATAR_URL);
         }
         
         // 设置作者作品数量
@@ -636,7 +632,7 @@ public class NovelServiceImpl implements NovelService {
         AuthorDetailVO vo = new AuthorDetailVO();
         vo.setId(author.getId());
         vo.setName(author.getName());
-        vo.setAvatar(StringUtils.hasText(author.getAvatar()) ? author.getAvatar() : defaultUrlConfig.getAuthorAvatarUrl());
+        vo.setAvatar(StringUtils.hasText(author.getAvatar()) ? author.getAvatar() : DefaultUrlConfig.AUTHOR_AVATAR_URL);
         vo.setRank(author.getRank());
         vo.setRankName(getRankName(author.getRank()));
         vo.setIntroduction(author.getIntroduction());
