@@ -4,6 +4,8 @@ import type { UserInfo } from '@/types'
 import { getToken, setToken, removeToken, getUserInfo, setUserInfo, removeUserInfo, getRole, setRole, removeRole } from '@/utils/auth'
 import { UserRole } from '@/enums'
 import { getPresignedFileUrl } from '@/utils/file-url'
+import { visitorLogout, authorLogout } from '@/api'
+import { managerLogout } from '@/api/manager'
 
 export const useUserStore = defineStore('user', () => {
   // 状态
@@ -64,7 +66,25 @@ export const useUserStore = defineStore('user', () => {
     setRoleAndStore(data.role)
   }
 
-  function logout() {
+  async function logout() {
+    // 先调用后端 logout 接口删除 token
+    try {
+      const currentUserId = userInfo.value?.id
+      if (currentUserId) {
+        if (role.value === UserRole.VISITOR) {
+          await visitorLogout(currentUserId)
+        } else if (role.value === UserRole.AUTHOR) {
+          await authorLogout(currentUserId)
+        } else if (role.value === UserRole.MANAGER) {
+          await managerLogout()
+        }
+      }
+    } catch (error) {
+      console.error('Logout API error:', error)
+      // 即使后端接口失败，也继续清除本地状态
+    }
+    
+    // 清除本地状态
     token.value = ''
     userInfo.value = null
     role.value = ''

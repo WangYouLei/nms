@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
+import com.wang.common.service.CacheService;
+import com.wang.common.constants.CacheConstants;
 import com.wang.pojo.dto.VisitorFollowDTO;
 import com.wang.pojo.entity.VisitorFollow;
 import com.wang.pojo.vo.VisitorFollowVO;
@@ -26,9 +28,11 @@ import java.util.List;
 public class VisitorFollowServiceImpl implements VisitorFollowService {
 
     private final VisitorFollowMapper visitorFollowMapper;
+    private final CacheService cacheService;
 
-    public VisitorFollowServiceImpl(VisitorFollowMapper visitorFollowMapper) {
+    public VisitorFollowServiceImpl(VisitorFollowMapper visitorFollowMapper, CacheService cacheService) {
         this.visitorFollowMapper = visitorFollowMapper;
+        this.cacheService = cacheService;
     }
 
     @Override
@@ -54,6 +58,14 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
 
         int result = visitorFollowMapper.insert(follow);
         if (result == 1) {
+            // 删除相关缓存
+            String checkKey = CacheConstants.buildFollowCheckKey(dto.getVisitorId().intValue(), dto.getAuthorId().intValue());
+            String countKey = CacheConstants.buildFollowCountKey(dto.getVisitorId().intValue());
+            String fansKey = CacheConstants.buildFansCountKey(dto.getAuthorId().intValue());
+            cacheService.delete(checkKey);
+            cacheService.delete(countKey);
+            cacheService.delete(fansKey);
+            
             log.info("关注成功：visitorId={}, authorId={}", dto.getVisitorId(), dto.getAuthorId());
             return Result.success("关注成功");
         } else {
@@ -64,7 +76,7 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
 
     @Override
     @Transactional
-    public Result unfollow(Long visitorId, Long authorId) {
+    public Result unfollow(Integer visitorId, Integer authorId) {
         log.info("取消关注：visitorId={}, authorId={}", visitorId, authorId);
 
         LambdaQueryWrapper<VisitorFollow> queryWrapper = new LambdaQueryWrapper<>();
@@ -73,6 +85,14 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
 
         int result = visitorFollowMapper.delete(queryWrapper);
         if (result == 1) {
+            // 删除相关缓存
+            String checkKey = CacheConstants.buildFollowCheckKey(visitorId, authorId);
+            String countKey = CacheConstants.buildFollowCountKey(visitorId);
+            String fansKey = CacheConstants.buildFansCountKey(authorId);
+            cacheService.delete(checkKey);
+            cacheService.delete(countKey);
+            cacheService.delete(fansKey);
+            
             log.info("取消关注成功：visitorId={}, authorId={}", visitorId, authorId);
             return Result.success("取消关注成功");
         } else {
@@ -82,14 +102,29 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
     }
 
     @Override
-    public Result checkFollow(Long visitorId, Long authorId) {
+    public Result checkFollow(Integer visitorId, Integer authorId) {
         log.info("检查是否关注：visitorId={}, authorId={}", visitorId, authorId);
+        
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildFollowCheckKey(visitorId, authorId);
+        Boolean cachedResult = cacheService.get(cacheKey, Boolean.class);
+        if (cachedResult != null) {
+            log.info("从缓存获取关注检查结果");
+            return Result.success(cachedResult);
+        }
+        
+        // 缓存未命中，查询数据库
         boolean exists = visitorFollowMapper.existsByVisitorIdAndAuthorId(visitorId, authorId);
+        
+        // 存入缓存
+        cacheService.set(cacheKey, exists, CacheConstants.CHECK_TTL);
+        log.info("关注检查结果已缓存");
+        
         return Result.success(exists);
     }
 
     @Override
-    public Result getMyFollows(Long visitorId, Integer pageNum, Integer pageSize) {
+    public Result getMyFollows(Integer visitorId, Integer pageNum, Integer pageSize) {
         log.info("获取我的关注列表：visitorId={}", visitorId);
 
         LambdaQueryWrapper<VisitorFollow> queryWrapper = new LambdaQueryWrapper<>();
@@ -116,7 +151,7 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
     }
 
     @Override
-    public Result getFollowers(Long authorId, Integer pageNum, Integer pageSize) {
+    public Result getFollowers(Integer authorId, Integer pageNum, Integer pageSize) {
         log.info("获取作者粉丝列表：authorId={}", authorId);
 
         LambdaQueryWrapper<VisitorFollow> queryWrapper = new LambdaQueryWrapper<>();
@@ -143,16 +178,46 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
     }
 
     @Override
-    public Result getMyFollowCount(Long visitorId) {
+    public Result getMyFollowCount(Integer visitorId) {
         log.info("获取我的关注数量：visitorId={}", visitorId);
+        
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildFollowCountKey(visitorId);
+        Integer cachedCount = cacheService.get(cacheKey, Integer.class);
+        if (cachedCount != null) {
+            log.info("从缓存获取关注数量");
+            return Result.success(cachedCount);
+        }
+        
+        // 缓存未命中，查询数据库
         int count = visitorFollowMapper.countByVisitorId(visitorId);
+        
+        // 存入缓存
+        cacheService.set(cacheKey, count, CacheConstants.COUNT_TTL);
+        log.info("关注数量已缓存");
+        
         return Result.success(count);
     }
 
     @Override
-    public Result getFollowerCount(Long authorId) {
+    public Result getFollowerCount(Integer authorId) {
         log.info("获取作者粉丝数量：authorId={}", authorId);
+        
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildFansCountKey(authorId);
+        Integer cachedCount = cacheService.get(cacheKey, Integer.class);
+        if (cachedCount != null) {
+            log.info("从缓存获取粉丝数量");
+            return Result.success(cachedCount);
+        }
+        
+        // 缓存未命中，查询数据库
         int count = visitorFollowMapper.countByAuthorId(authorId);
+        
+        // 存入缓存
+        cacheService.set(cacheKey, count, CacheConstants.COUNT_TTL);
+        log.info("粉丝数量已缓存");
+        
         return Result.success(count);
     }
 

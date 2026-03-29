@@ -38,7 +38,7 @@ public class VisitorController {
     @ApiOperation("用户退出登入")
     public Result logout(Integer id){
         log.info("用户退出登入,id= {}", id);
-        return Result.success();
+        return visitorService.logout(id);
     }
 
     @PostMapping("/register")

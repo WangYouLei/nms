@@ -196,35 +196,35 @@ export function auditComment(commentId: number, auditLevel: number) {
  * 获取敏感词列表（分页）
  */
 export function getSensitiveWordList(data: SensitiveWordQueryDTO) {
-  return request.post<PageResult<SensitiveWordVO>>('/api/common-server/sensitive-word/list', data)
+  return request.post<PageResult<SensitiveWordVO>>('/common-server/sensitive-word/list', data)
 }
 
 /**
  * 添加敏感词
  */
 export function addSensitiveWord(data: SensitiveWordDTO) {
-  return request.post('/api/common-server/sensitive-word/add', data)
+  return request.post('/common-server/sensitive-word/add', data)
 }
 
 /**
  * 更新敏感词
  */
 export function updateSensitiveWord(data: SensitiveWordDTO) {
-  return request.put('/api/common-server/sensitive-word/update', data)
+  return request.put('/common-server/sensitive-word/update', data)
 }
 
 /**
  * 删除敏感词
  */
 export function deleteSensitiveWord(id: number) {
-  return request.delete(`/api/common-server/sensitive-word/delete/${id}`)
+  return request.delete(`/common-server/sensitive-word/delete/${id}`)
 }
 
 /**
  * 启用/禁用敏感词
  */
 export function updateSensitiveWordStatus(id: number, status: number) {
-  return request.put(`/api/common-server/sensitive-word/status/${id}`, {}, {
+  return request.put(`/common-server/sensitive-word/status/${id}`, {}, {
     params: {
       status
     }
@@ -235,14 +235,14 @@ export function updateSensitiveWordStatus(id: number, status: number) {
  * 检测文本中的敏感词
  */
 export function detectSensitiveWords(content: string) {
-  return request.post<Set<string>>('/api/common-server/sensitive-word/detect', { content })
+  return request.post<Set<string>>('/common-server/sensitive-word/detect', { content })
 }
 
 /**
  * 过滤文本中的敏感词
  */
 export function filterSensitiveWords(content: string, replacement: string = '*') {
-  return request.post<string>('/api/common-server/sensitive-word/filter', { content }, {
+  return request.post<string>('/common-server/sensitive-word/filter', { content }, {
     params: { replacement }
   })
 }
@@ -251,5 +251,5 @@ export function filterSensitiveWords(content: string, replacement: string = '*')
  * 刷新敏感词缓存
  */
 export function refreshSensitiveWordCache() {
-  return request.post('/api/common-server/sensitive-word/refresh-cache')
+  return request.post('/common-server/sensitive-word/refresh-cache')
 }

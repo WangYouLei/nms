@@ -36,6 +36,23 @@
           <el-input v-model="formData.tags" placeholder="多个标签用英文逗号分隔，如：玄幻,热血,穿越" />
         </el-form-item>
         
+        <el-form-item label="小说分类">
+          <div class="flex items-center gap-2">
+            <el-tag 
+              v-for="cat in selectedCategories" 
+              :key="cat.id"
+              closable
+              @close="removeCategory(cat.id)"
+            >
+              {{ cat.type }}
+            </el-tag>
+            <el-button type="primary" link @click="showCategoryDrawer = true">
+              <el-icon class="mr-1"><Plus /></el-icon>
+              选择分类
+            </el-button>
+          </div>
+        </el-form-item>
+        
         <el-form-item label="小说简介" prop="introduction">
           <el-input 
             v-model="formData.introduction" 
@@ -59,6 +76,13 @@
         </el-form-item>
       </el-form>
     </div>
+
+    <!-- 分类选择抽屉 -->
+    <CategoryDrawer 
+      v-model="showCategoryDrawer"
+      :selected-category-ids="selectedCategoryIds"
+      @confirm="handleCategoryConfirm"
+    />
   </div>
 </template>
 
@@ -66,11 +90,14 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { addNovel, updateNovel, getNovelDetail, uploadFile } from '@/api'
+import { Plus } from '@element-plus/icons-vue'
+import { addNovel, updateNovel, getNovelDetail, uploadFile, getNovelCategory, setNovelCategory, getAllCategories } from '@/api'
 import { FileUploadType } from '@/enums'
 import { validateImageFile } from '@/utils/file-validator'
 import { getImageUrl } from '@/utils/file-url'
+import CategoryDrawer from '@/components/business/CategoryDrawer.vue'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
+import type { NovelCategoryVO } from '@/types'
 
 const router = useRouter()
 const route = useRoute()
@@ -79,6 +106,10 @@ const isEdit = computed(() => !!route.params.id)
 
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
+const showCategoryDrawer = ref(false)
+const selectedCategoryIds = ref<number[]>([])
+const selectedCategories = ref<NovelCategoryVO[]>([])
+const allCategories = ref<NovelCategoryVO[]>([])
 
 const formData = reactive({
   id: undefined as number | undefined,
@@ -117,6 +148,26 @@ const handleUpload = async (options: UploadRequestOptions) => {
   }
 }
 
+const fetchAllCategories = async () => {
+  try {
+    const res = await getAllCategories()
+    allCategories.value = res.data || []
+  } catch (error) {
+    console.error('Failed to fetch categories:', error)
+  }
+}
+
+const fetchNovelCategory = async (novelId: number) => {
+  try {
+    const res = await getNovelCategory(novelId)
+    const categories = res.data || []
+    selectedCategoryIds.value = categories.map((c: NovelCategoryVO) => c.id)
+    selectedCategories.value = categories
+  } catch (error) {
+    console.error('Failed to fetch novel category:', error)
+  }
+}
+
 const fetchNovel = async () => {
   if (!route.params.id) return
   try {
@@ -129,8 +180,25 @@ const fetchNovel = async () => {
     formData.tags = novel.tags || ''
     formData.introduction = novel.introduction || ''
     formData.isFinished = novel.isFinished
+    
+    // 获取小说分类
+    await fetchNovelCategory(novel.id)
   } catch (error) {
     console.error('Failed to fetch novel:', error)
+  }
+}
+
+const handleCategoryConfirm = (categoryIds: number[]) => {
+  selectedCategoryIds.value = categoryIds
+  // 更新显示的分类列表
+  selectedCategories.value = allCategories.value.filter(c => categoryIds.includes(c.id))
+}
+
+const removeCategory = (categoryId: number) => {
+  const index = selectedCategoryIds.value.indexOf(categoryId)
+  if (index > -1) {
+    selectedCategoryIds.value.splice(index, 1)
+    selectedCategories.value = selectedCategories.value.filter(c => c.id !== categoryId)
   }
 }
 
@@ -140,13 +208,26 @@ const handleSubmit = async () => {
   
   submitting.value = true
   try {
+    let novelId: number
+    
     if (isEdit.value) {
       await updateNovel(formData as any)
+      novelId = formData.id!
       ElMessage.success('保存成功')
     } else {
-      await addNovel(formData as any)
+      const res = await addNovel(formData as any)
+      novelId = res.data
       ElMessage.success('创建成功')
     }
+    
+    // 设置小说分类
+    if (selectedCategoryIds.value.length > 0) {
+      await setNovelCategory({
+        novelId,
+        categoryIds: selectedCategoryIds.value
+      })
+    }
+    
     router.push('/author/novels')
   } catch (error) {
     console.error('Failed to save novel:', error)
@@ -155,9 +236,10 @@ const handleSubmit = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await fetchAllCategories()
   if (isEdit.value) {
-    fetchNovel()
+    await fetchNovel()
   }
 })
 </script>

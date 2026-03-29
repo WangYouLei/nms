@@ -14,13 +14,13 @@ import java.time.LocalDateTime;
 public class VisitorFollowVO {
 
     @ApiModelProperty("关注记录ID")
-    private Long id;
+    private Integer id;
 
     @ApiModelProperty("访客ID")
-    private Long visitorId;
+    private Integer visitorId;
 
     @ApiModelProperty("作者ID")
-    private Long authorId;
+    private Integer authorId;
 
     @ApiModelProperty("作者名称")
     private String authorName;

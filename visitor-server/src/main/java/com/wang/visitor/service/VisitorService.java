@@ -68,4 +68,11 @@ public interface VisitorService {
      * @return 名称和头像
      */
     Result getNameAndAvatar(Integer visitorId);
+
+    /**
+     * 访客退出登录
+     * @param visitorId 访客ID
+     * @return 退出结果
+     */
+    Result logout(Integer visitorId);
 }

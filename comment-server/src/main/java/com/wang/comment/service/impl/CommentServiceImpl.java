@@ -72,8 +72,18 @@ public class CommentServiceImpl implements CommentService {
 
         BeanUtils.copyProperties(commentDTO, comment, "id");
         comment.setReplyCount(0);
-        // 默认未审核
-        comment.setAuditLevel(0);
+        
+        // 根据本地审核结果设置 audit_level
+        // result=1: 无敏感词，直接通过
+        // result=2: 有低危敏感词，需要人工审核
+        if (auditResultVO.getResult() == 1) {
+            // 本地审核通过，直接显示
+            comment.setAuditLevel(1);
+        } else {
+            // 有低危敏感词，等待人工审核
+            comment.setAuditLevel(0);
+        }
+        
         comment.setCreateTime(LocalDateTime.now());
         comment.setUpdateTime(LocalDateTime.now());
 
@@ -90,14 +100,16 @@ public class CommentServiceImpl implements CommentService {
             return Result.buildResult(BizCodeEnum.FAIL);
         }
 
-        log.info("评论发表成功：commentId={}", comment.getId());
+        log.info("评论发表成功：commentId={}, auditLevel={}", comment.getId(), comment.getAuditLevel());
 
-
-        // 使用生成的评论ID进行AI审核
-        Result aiAuditResult = aiAuditServiceFeign.auditWithAi(commentDTO.getContent(), comment.getId(), AuditAimTypeEnum.COMMENT.getValue(), auditResultVO);
-        if(aiAuditResult.getCode() != BizCodeEnum.SUCCESS.getCode()){
-            //高危敏感词在auditWithAi就被拦截并返回最终结果了,这里返回这个枚举类就行了
-            return Result.buildResult(BizCodeEnum.SENSITIVE_WORD);
+        // 只有存在低危敏感词时才调用AI审核
+        if (auditResultVO.getResult() == 2) {
+            // 使用生成的评论ID进行AI审核
+            Result aiAuditResult = aiAuditServiceFeign.auditWithAi(commentDTO.getContent(), comment.getId(), AuditAimTypeEnum.COMMENT.getValue(), auditResultVO);
+            if(aiAuditResult.getCode() != BizCodeEnum.SUCCESS.getCode()){
+                //高危敏感词在auditWithAi就被拦截并返回最终结果了,这里返回这个枚举类就行了
+                return Result.buildResult(BizCodeEnum.SENSITIVE_WORD);
+            }
         }
 
         CommentVO vo = convertToVO(comment);
@@ -225,7 +237,8 @@ public class CommentServiceImpl implements CommentService {
         // 判断依据：如果明确指定了 parentId 或 rootId，则按指定条件查询
         // 否则默认查询所有评论（管理端行为）
         
-        // 按创建时间倒序
+        // 管理员评论置顶，然后按创建时间倒序
+        queryWrapper.orderByDesc(Comment::getUserType);
         queryWrapper.orderByDesc(Comment::getCreateTime);
 
         int pageNum = queryDTO.getPageNum() != null ? queryDTO.getPageNum() : 1;
@@ -258,6 +271,8 @@ public class CommentServiceImpl implements CommentService {
         LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Comment::getNovelId, novelId)
                 .isNull(Comment::getParentId) // 只查询一级评论
+                .gt(Comment::getAuditLevel, 0) // 只显示审核通过的评论
+                .orderByDesc(Comment::getUserType) // 管理员评论置顶
                 .orderByDesc(Comment::getCreateTime);
 
         Page<Comment> page = new Page<>(pageNum, pageSize);
@@ -286,6 +301,7 @@ public class CommentServiceImpl implements CommentService {
         LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Comment::getRootId, rootId)
                 .isNotNull(Comment::getParentId)
+                .gt(Comment::getAuditLevel, 0) // 只显示审核通过的回复
                 .orderByAsc(Comment::getCreateTime);
 
         Page<Comment> page = new Page<>(pageNum, pageSize);
@@ -461,13 +477,16 @@ public class CommentServiceImpl implements CommentService {
         // 查询一级评论
         LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Comment::getNovelId, novelId)
-                .isNull(Comment::getParentId); // 只查询一级评论
+                .isNull(Comment::getParentId) // 只查询一级评论
+                .gt(Comment::getAuditLevel, 0); // 只显示审核通过的评论
         
         // 按评论对象类型筛选
         if (targetType != null) {
             queryWrapper.eq(Comment::getTargetType, targetType);
         }
         
+        // 管理员评论置顶，然后按创建时间倒序
+        queryWrapper.orderByDesc(Comment::getUserType);
         queryWrapper.orderByDesc(Comment::getCreateTime);
 
         Page<Comment> page = new Page<>(pageNum, pageSize);
@@ -504,6 +523,7 @@ public class CommentServiceImpl implements CommentService {
         LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Comment::getRootId, rootId)
                 .isNotNull(Comment::getParentId)
+                .gt(Comment::getAuditLevel, 0) // 只显示审核通过的回复
                 .orderByAsc(Comment::getCreateTime);
 
         List<Comment> replies = commentMapper.selectList(queryWrapper);

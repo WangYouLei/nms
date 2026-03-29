@@ -67,4 +67,11 @@ public interface AuthorService {
      * @return 名称和头像
      */
     Result getNameAndAvatar(Integer id);
+
+    /**
+     * 作者退出登录
+     * @param authorId 作者ID
+     * @return 退出结果
+     */
+    Result logout(Integer authorId);
 }

@@ -18,7 +18,7 @@ public interface VisitorFollowMapper extends BaseMapper<VisitorFollow> {
      * @return 关注数量
      */
     @Select("SELECT COUNT(*) FROM visitor_follow WHERE visitor_id = #{visitorId}")
-    int countByVisitorId(@Param("visitorId") Long visitorId);
+    int countByVisitorId(@Param("visitorId") Integer visitorId);
 
     /**
      * 查询某作者的粉丝数量
@@ -26,7 +26,7 @@ public interface VisitorFollowMapper extends BaseMapper<VisitorFollow> {
      * @return 粉丝数量
      */
     @Select("SELECT COUNT(*) FROM visitor_follow WHERE author_id = #{authorId}")
-    int countByAuthorId(@Param("authorId") Long authorId);
+    int countByAuthorId(@Param("authorId") Integer authorId);
 
     /**
      * 检查是否已关注
@@ -35,5 +35,5 @@ public interface VisitorFollowMapper extends BaseMapper<VisitorFollow> {
      * @return 是否已关注
      */
     @Select("SELECT COUNT(*) > 0 FROM visitor_follow WHERE visitor_id = #{visitorId} AND author_id = #{authorId}")
-    boolean existsByVisitorIdAndAuthorId(@Param("visitorId") Long visitorId, @Param("authorId") Long authorId);
+    boolean existsByVisitorIdAndAuthorId(@Param("visitorId") Integer visitorId, @Param("authorId") Integer authorId);
 }

@@ -21,6 +21,6 @@ public class CommonInterceptorConfig implements WebMvcConfigurer {
 
         registry.addInterceptor(new RoleInterceptor("sensitiveWord",UserRole.MANAGER))
                 .addPathPatterns("/sensitiveWord/**")
-                .excludePathPatterns("/sensitiveWord/list","/sensitiveWord/detect");
+                .excludePathPatterns("/sensitiveWord.list","/sensitiveWord.detect");
     }
 }

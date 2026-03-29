@@ -7,9 +7,11 @@ import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.utils.Argon2idUtil;
-import com.wang.manage.feign.CommonServiceFeignService;
-import org.springframework.beans.BeanUtils;
 import com.wang.common.utils.JWTUtil;
+import com.wang.common.service.TokenService;
+import com.wang.common.service.CacheService;
+import com.wang.common.constants.CacheConstants;
+import com.wang.manage.feign.CommonServiceFeignService;
 import com.wang.manage.mapper.AuthorMapper;
 import com.wang.manage.service.AuthorService;
 import com.wang.pojo.dto.AuthorDTO;
@@ -20,6 +22,7 @@ import com.wang.pojo.vo.AuthorVO;
 import com.wang.pojo.vo.VisitorAuthorVO;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -33,10 +36,17 @@ public class AuthorServiceImpl implements AuthorService {
 
     private final CommonServiceFeignService commonServiceFeignService;
     private final AuthorMapper authorMapper;
+    private final TokenService tokenService;
+    private final CacheService cacheService;
 
-    public AuthorServiceImpl(AuthorMapper authorMapper, CommonServiceFeignService commonServiceFeignService) {
+    public AuthorServiceImpl(AuthorMapper authorMapper, 
+                             CommonServiceFeignService commonServiceFeignService,
+                             TokenService tokenService,
+                             CacheService cacheService) {
         this.authorMapper = authorMapper;
         this.commonServiceFeignService = commonServiceFeignService;
+        this.tokenService = tokenService;
+        this.cacheService = cacheService;
     }
 
     /**
@@ -134,7 +144,34 @@ public class AuthorServiceImpl implements AuthorService {
                 .role(UserRole.AUTHOR)
                 .build();
         String token = JWTUtil.geneJsonWebToken(loginUser);
+        
+        // 删除之前的 token（如果有）
+        tokenService.deleteUserTokens(UserRole.AUTHOR.getCode(), author.getId());
+        // 存储新 token 到 Redis（24小时过期）
+        String tokenKey = tokenService.generateTokenKey(UserRole.AUTHOR.getCode(), author.getId());
+        tokenService.saveToken(tokenKey, token, 24 * 60 * 60);
+        
         return Result.success(token);
+    }
+
+    /**
+     * 作者退出登录
+     *
+     * @param authorId 作者ID
+     * @return 退出结果
+     */
+    @Override
+    public Result logout(Integer authorId) {
+        log.info("作者退出登录：ID={}", authorId);
+        
+        if (authorId == null) {
+            return Result.error("作者ID不能为空");
+        }
+        
+        // 删除 token
+        tokenService.deleteUserTokens(UserRole.AUTHOR.getCode(), authorId);
+        
+        return Result.success("退出成功");
     }
 
     /**
@@ -147,6 +184,15 @@ public class AuthorServiceImpl implements AuthorService {
     public Result getAuthorInfo(Integer id) {
         log.info("获取作者信息：ID={}", id);
 
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildAuthorDetailKey(id);
+        AuthorVO cachedVo = cacheService.get(cacheKey, AuthorVO.class);
+        if (cachedVo != null) {
+            log.info("从缓存获取作者信息：ID={}", id);
+            return Result.success(cachedVo);
+        }
+
+        // 缓存未命中，查询数据库
         Author author = authorMapper.selectById(id);
         if (author == null || author.getIsDel()) {
             log.warn("作者不存在：ID={}", id);
@@ -155,6 +201,11 @@ public class AuthorServiceImpl implements AuthorService {
 
         AuthorVO vo = new AuthorVO();
         BeanUtils.copyProperties(author, vo);
+        
+        // 存入缓存
+        cacheService.set(cacheKey, vo, CacheConstants.USER_DETAIL_TTL);
+        log.info("作者信息已缓存：key={}", cacheKey);
+        
         return Result.success(vo);
     }
 
@@ -212,7 +263,12 @@ public class AuthorServiceImpl implements AuthorService {
 
         int result = authorMapper.update(author);
         if (result == 1) {
-            log.info("修改作者信息成功：ID={}", author.getId());
+            // 删除缓存
+            String detailKey = CacheConstants.buildAuthorDetailKey(authorDTO.getId());
+            String nameAvatarKey = CacheConstants.buildAuthorNameAvatarKey(authorDTO.getId());
+            cacheService.delete(detailKey);
+            cacheService.delete(nameAvatarKey);
+            log.info("修改作者信息成功，已删除缓存：ID={}", author.getId());
             return Result.success("修改成功");
         } else {
             log.error("修改作者信息失败：ID={}", author.getId());
@@ -312,6 +368,15 @@ public class AuthorServiceImpl implements AuthorService {
 
     @Override
     public Result getNameAndAvatar(Integer id) {
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildAuthorNameAvatarKey(id);
+        VisitorAuthorVO cachedVo = cacheService.get(cacheKey, VisitorAuthorVO.class);
+        if (cachedVo != null) {
+            log.info("从缓存获取作者名称和头像：ID={}", id);
+            return Result.success(cachedVo);
+        }
+
+        // 缓存未命中，查询数据库
         Author author = authorMapper.selectById(id);
         if (author == null || author.getIsDel()) {
             return Result.error("作者不存在");
@@ -324,6 +389,10 @@ public class AuthorServiceImpl implements AuthorService {
         vo.setRank(author.getRank());
         vo.setIntroduction(author.getIntroduction());
         vo.setNovelCount(author.getNovelCount() != null ? author.getNovelCount() : 0);
+        
+        // 存入缓存
+        cacheService.set(cacheKey, vo, CacheConstants.USER_NAME_AVATAR_TTL);
+        log.info("作者名称和头像已缓存：key={}", cacheKey);
         
         return Result.success(vo);
     }

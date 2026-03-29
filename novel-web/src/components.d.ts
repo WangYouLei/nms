@@ -7,6 +7,7 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
+    CategoryDrawer: typeof import('./components/business/CategoryDrawer.vue')['default']
     CategoryNav: typeof import('./components/business/category-nav.vue')['default']
     ChapterList: typeof import('./components/business/chapter-list.vue')['default']
     CommentForm: typeof import('./components/business/CommentForm.vue')['default']
@@ -16,6 +17,7 @@ declare module 'vue' {
     ElBreadcrumb: typeof import('element-plus/es')['ElBreadcrumb']
     ElBreadcrumbItem: typeof import('element-plus/es')['ElBreadcrumbItem']
     ElButton: typeof import('element-plus/es')['ElButton']
+    ElCheckbox: typeof import('element-plus/es')['ElCheckbox']
     ElCollapseTransition: typeof import('element-plus/es')['ElCollapseTransition']
     ElDialog: typeof import('element-plus/es')['ElDialog']
     ElDivider: typeof import('element-plus/es')['ElDivider']

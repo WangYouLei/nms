@@ -1,6 +1,8 @@
 package com.wang.manager.service.impl;
 
 import com.wang.common.result.Result;
+import com.wang.common.service.CacheService;
+import com.wang.common.constants.CacheConstants;
 import com.wang.manager.mapper.StatisticsMapper;
 import com.wang.manager.service.DashboardService;
 import com.wang.pojo.vo.AuthorRankingVO;
@@ -27,9 +29,11 @@ import java.util.stream.Collectors;
 public class DashboardServiceImpl implements DashboardService {
 
     private final StatisticsMapper statisticsMapper;
+    private final CacheService cacheService;
 
-    public DashboardServiceImpl(StatisticsMapper statisticsMapper) {
+    public DashboardServiceImpl(StatisticsMapper statisticsMapper, CacheService cacheService) {
         this.statisticsMapper = statisticsMapper;
+        this.cacheService = cacheService;
     }
 
     // ==================== 概览 ====================
@@ -38,6 +42,14 @@ public class DashboardServiceImpl implements DashboardService {
     public Result getOverview() {
         log.info("获取数据概览");
 
+        // 先从缓存获取
+        DashboardOverviewVO cachedVo = cacheService.get(CacheConstants.DASHBOARD_OVERVIEW, DashboardOverviewVO.class);
+        if (cachedVo != null) {
+            log.info("从缓存获取数据概览");
+            return Result.success(cachedVo);
+        }
+
+        // 缓存未命中，查询数据库
         LocalDate today = LocalDate.now();
 
         DashboardOverviewVO vo = new DashboardOverviewVO();
@@ -57,6 +69,10 @@ public class DashboardServiceImpl implements DashboardService {
         vo.setHotNovelCount(statisticsMapper.countHotNovels());
         vo.setFinishedNovelCount(statisticsMapper.countFinishedNovels());
 
+        // 存入缓存
+        cacheService.set(CacheConstants.DASHBOARD_OVERVIEW, vo, CacheConstants.DASHBOARD_OVERVIEW_TTL);
+        log.info("数据概览已缓存");
+
         log.info("数据概览获取成功：小说={}, 作者={}, 用户={}", 
                 vo.getNovelCount(), vo.getAuthorCount(), vo.getVisitorCount());
 
@@ -71,6 +87,14 @@ public class DashboardServiceImpl implements DashboardService {
 
         if (groupBy == null || groupBy.isBlank()) {
             return Result.error("groupBy参数不能为空");
+        }
+
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildStatsKey("novel:" + groupBy);
+        NovelStatisticsVO cachedVo = cacheService.get(cacheKey, NovelStatisticsVO.class);
+        if (cachedVo != null) {
+            log.info("从缓存获取小说数量统计：groupBy={}", groupBy);
+            return Result.success(cachedVo);
         }
 
         List<LinkedHashMap<String, Object>> dataList;
@@ -104,6 +128,10 @@ public class DashboardServiceImpl implements DashboardService {
                 .collect(Collectors.toList());
         vo.setItems(items);
 
+        // 存入缓存
+        cacheService.set(cacheKey, vo, CacheConstants.STATS_TTL);
+        log.info("小说数量统计已缓存：groupBy={}", groupBy);
+
         log.info("小说数量统计完成：groupBy={}, 结果数={}", groupBy, items.size());
         return Result.success(vo);
     }
@@ -111,6 +139,14 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public Result getAuthorCountStatistics() {
         log.info("作者数量统计（按等级）");
+
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildStatsKey("author:rank");
+        AuthorStatisticsVO cachedVo = cacheService.get(cacheKey, AuthorStatisticsVO.class);
+        if (cachedVo != null) {
+            log.info("从缓存获取作者数量统计");
+            return Result.success(cachedVo);
+        }
 
         List<LinkedHashMap<String, Object>> dataList = statisticsMapper.countAuthorsByRank();
 
@@ -128,6 +164,10 @@ public class DashboardServiceImpl implements DashboardService {
                 .collect(Collectors.toList());
         vo.setItems(items);
 
+        // 存入缓存
+        cacheService.set(cacheKey, vo, CacheConstants.STATS_TTL);
+        log.info("作者数量统计已缓存");
+
         log.info("作者数量统计完成：结果数={}", items.size());
         return Result.success(vo);
     }
@@ -135,6 +175,14 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public Result getVisitorCountStatistics() {
         log.info("用户数量统计（按VIP等级）");
+
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildStatsKey("visitor:vip");
+        VisitorStatisticsVO cachedVo = cacheService.get(cacheKey, VisitorStatisticsVO.class);
+        if (cachedVo != null) {
+            log.info("从缓存获取用户数量统计");
+            return Result.success(cachedVo);
+        }
 
         List<LinkedHashMap<String, Object>> dataList = statisticsMapper.countVisitorsByVipLevel();
 
@@ -152,6 +200,10 @@ public class DashboardServiceImpl implements DashboardService {
                 .collect(Collectors.toList());
         vo.setItems(items);
 
+        // 存入缓存
+        cacheService.set(cacheKey, vo, CacheConstants.STATS_TTL);
+        log.info("用户数量统计已缓存");
+
         log.info("用户数量统计完成：结果数={}", items.size());
         return Result.success(vo);
     }
@@ -161,6 +213,14 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public Result getNovelOngoingRanking(Integer limit) {
         log.info("连载榜：limit={}", limit);
+
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildRankingKey("novel:ongoing", limit);
+        NovelRankingVO cachedVo = cacheService.get(cacheKey, NovelRankingVO.class);
+        if (cachedVo != null) {
+            log.info("从缓存获取连载榜");
+            return Result.success(cachedVo);
+        }
 
         List<LinkedHashMap<String, Object>> dataList = statisticsMapper.rankNovelsByOngoing(limit);
 
@@ -183,6 +243,10 @@ public class DashboardServiceImpl implements DashboardService {
         }
         vo.setItems(items);
 
+        // 存入缓存
+        cacheService.set(cacheKey, vo, CacheConstants.RANKING_TTL);
+        log.info("连载榜已缓存");
+
         log.info("连载榜获取完成：结果数={}", items.size());
         return Result.success(vo);
     }
@@ -190,6 +254,14 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public Result getAuthorProductiveRanking(Integer limit) {
         log.info("作者高产榜：limit={}", limit);
+
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildRankingKey("author:productive", limit);
+        AuthorRankingVO cachedVo = cacheService.get(cacheKey, AuthorRankingVO.class);
+        if (cachedVo != null) {
+            log.info("从缓存获取作者高产榜");
+            return Result.success(cachedVo);
+        }
 
         List<LinkedHashMap<String, Object>> dataList = statisticsMapper.rankAuthorsByProductive(limit);
 
@@ -210,6 +282,10 @@ public class DashboardServiceImpl implements DashboardService {
         }
         vo.setItems(items);
 
+        // 存入缓存
+        cacheService.set(cacheKey, vo, CacheConstants.RANKING_TTL);
+        log.info("作者高产榜已缓存");
+
         log.info("作者高产榜获取完成：结果数={}", items.size());
         return Result.success(vo);
     }
@@ -219,31 +295,82 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public Result getNovelTrend(LocalDate startDate, LocalDate endDate, String type) {
         log.info("小说趋势统计：startDate={}, endDate={}, type={}", startDate, endDate, type);
-        return buildTrendResult(startDate, endDate, type, "小说",
+        
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildTrendKey("novel", startDate.toString(), endDate.toString() + ":" + type);
+        TrendVO cachedVo = cacheService.get(cacheKey, TrendVO.class);
+        if (cachedVo != null) {
+            log.info("从缓存获取小说趋势统计");
+            return Result.success(cachedVo);
+        }
+        
+        Result result = buildTrendResult(startDate, endDate, type, "小说",
                 statisticsMapper::novelTrendByDay,
                 statisticsMapper::novelTrendByWeek,
                 statisticsMapper::novelTrendByMonth,
                 statisticsMapper::novelTrendByYear);
+        
+        // 存入缓存
+        if (result.getCode() == 10000) {
+            cacheService.set(cacheKey, result.getData(), CacheConstants.TREND_TTL);
+            log.info("小说趋势统计已缓存");
+        }
+        
+        return result;
     }
 
     @Override
     public Result getAuthorTrend(LocalDate startDate, LocalDate endDate, String type) {
         log.info("作者注册趋势统计：startDate={}, endDate={}, type={}", startDate, endDate, type);
-        return buildTrendResult(startDate, endDate, type, "作者注册",
+        
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildTrendKey("author", startDate.toString(), endDate.toString() + ":" + type);
+        TrendVO cachedVo = cacheService.get(cacheKey, TrendVO.class);
+        if (cachedVo != null) {
+            log.info("从缓存获取作者注册趋势统计");
+            return Result.success(cachedVo);
+        }
+        
+        Result result = buildTrendResult(startDate, endDate, type, "作者注册",
                 statisticsMapper::authorTrendByDay,
                 statisticsMapper::authorTrendByWeek,
                 statisticsMapper::authorTrendByMonth,
                 statisticsMapper::authorTrendByYear);
+        
+        // 存入缓存
+        if (result.getCode() == 10000) {
+            cacheService.set(cacheKey, result.getData(), CacheConstants.TREND_TTL);
+            log.info("作者注册趋势统计已缓存");
+        }
+        
+        return result;
     }
 
     @Override
     public Result getVisitorTrend(LocalDate startDate, LocalDate endDate, String type) {
         log.info("用户注册趋势统计：startDate={}, endDate={}, type={}", startDate, endDate, type);
-        return buildTrendResult(startDate, endDate, type, "用户注册",
+        
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildTrendKey("visitor", startDate.toString(), endDate.toString() + ":" + type);
+        TrendVO cachedVo = cacheService.get(cacheKey, TrendVO.class);
+        if (cachedVo != null) {
+            log.info("从缓存获取用户注册趋势统计");
+            return Result.success(cachedVo);
+        }
+        
+        Result result = buildTrendResult(startDate, endDate, type, "用户注册",
                 statisticsMapper::visitorTrendByDay,
                 statisticsMapper::visitorTrendByWeek,
                 statisticsMapper::visitorTrendByMonth,
                 statisticsMapper::visitorTrendByYear);
+        
+        // 存入缓存
+        if (result.getCode() == 10000) {
+            cacheService.set(cacheKey, result.getData(), CacheConstants.TREND_TTL);
+            log.info("用户注册趋势统计已缓存");
+        }
+        
+        return result;
     }
 
     // ==================== 私有方法 ====================

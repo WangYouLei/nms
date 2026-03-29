@@ -7,8 +7,10 @@ import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.utils.Argon2idUtil;
-
 import com.wang.common.utils.JWTUtil;
+import com.wang.common.service.TokenService;
+import com.wang.common.service.CacheService;
+import com.wang.common.constants.CacheConstants;
 import com.wang.visitor.feign.CaptchaServiceFeign;
 import com.wang.visitor.feign.EmailServiceFeign;
 import com.wang.visitor.mapper.VisitorMapper;
@@ -38,11 +40,19 @@ public class VisitorServiceImpl implements VisitorService {
     private final EmailServiceFeign emailServiceFeign;
     private final CaptchaServiceFeign captchaServiceFeign;
     private final VisitorMapper visitorMapper;
+    private final TokenService tokenService;
+    private final CacheService cacheService;
 
-    public VisitorServiceImpl(VisitorMapper visitorMapper, EmailServiceFeign emailServiceFeign, CaptchaServiceFeign captchaServiceFeign) {
+    public VisitorServiceImpl(VisitorMapper visitorMapper, 
+                              EmailServiceFeign emailServiceFeign, 
+                              CaptchaServiceFeign captchaServiceFeign,
+                              TokenService tokenService,
+                              CacheService cacheService) {
         this.visitorMapper = visitorMapper;
         this.emailServiceFeign = emailServiceFeign;
         this.captchaServiceFeign = captchaServiceFeign;
+        this.tokenService = tokenService;
+        this.cacheService = cacheService;
     }
 
     /**
@@ -141,7 +151,34 @@ public class VisitorServiceImpl implements VisitorService {
                 .role(UserRole.VISITOR)
                 .build();
         String token = JWTUtil.geneJsonWebToken(loginUser);
+        
+        // 删除之前的 token（如果有）
+        tokenService.deleteUserTokens(UserRole.VISITOR.getCode(), visitor.getId());
+        // 存储新 token 到 Redis（24小时过期）
+        String tokenKey = tokenService.generateTokenKey(UserRole.VISITOR.getCode(), visitor.getId());
+        tokenService.saveToken(tokenKey, token, 24 * 60 * 60);
+        
         return Result.success(token);
+    }
+
+    /**
+     * 访客退出登录
+     *
+     * @param visitorId 访客ID
+     * @return 退出结果
+     */
+    @Override
+    public Result logout(Integer visitorId) {
+        log.info("访客退出登录：ID={}", visitorId);
+        
+        if (visitorId == null) {
+            return Result.error("访客ID不能为空");
+        }
+        
+        // 删除 token
+        tokenService.deleteUserTokens(UserRole.VISITOR.getCode(), visitorId);
+        
+        return Result.success("退出成功");
     }
 
     /**
@@ -154,6 +191,15 @@ public class VisitorServiceImpl implements VisitorService {
     public Result getVisitorInfo(Integer visitorId) {
         log.info("获取访客信息：ID={}", visitorId);
 
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildVisitorDetailKey(visitorId);
+        VisitorVO cachedVo = cacheService.get(cacheKey, VisitorVO.class);
+        if (cachedVo != null) {
+            log.info("从缓存获取访客信息：ID={}", visitorId);
+            return Result.success(cachedVo);
+        }
+
+        // 缓存未命中，查询数据库
         Visitor visitor = visitorMapper.selectById(visitorId);
         if (visitor == null) {
             log.warn("访客不存在：ID={}", visitorId);
@@ -163,6 +209,11 @@ public class VisitorServiceImpl implements VisitorService {
         VisitorVO vo = new VisitorVO();
         BeanUtils.copyProperties(visitor, vo);
         vo.setVipLevelName(getVipLevelName(visitor.getVipLevel()));
+        
+        // 存入缓存
+        cacheService.set(cacheKey, vo, CacheConstants.USER_DETAIL_TTL);
+        log.info("访客信息已缓存：key={}", cacheKey);
+        
         return Result.success(vo);
     }
 
@@ -189,6 +240,14 @@ public class VisitorServiceImpl implements VisitorService {
         existingVisitor.setUpdateTime(LocalDateTime.now());
 
         int result = visitorMapper.update(existingVisitor);
+        if (result > 0) {
+            // 删除缓存
+            String detailKey = CacheConstants.buildVisitorDetailKey(visitorDTO.getId());
+            String nameAvatarKey = CacheConstants.buildVisitorNameAvatarKey(visitorDTO.getId());
+            cacheService.delete(detailKey);
+            cacheService.delete(nameAvatarKey);
+            log.info("访客信息更新成功，已删除缓存：ID={}", visitorDTO.getId());
+        }
         if (result == 1) {
             log.info("修改访客信息成功：ID={}", existingVisitor.getId());
             return Result.success("修改成功");
@@ -348,6 +407,16 @@ public class VisitorServiceImpl implements VisitorService {
     @Override
     public Result getNameAndAvatar(Integer visitorId) {
         log.info("获取访客名称和头像：ID={}", visitorId);
+        
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildVisitorNameAvatarKey(visitorId);
+        Map<String, String> cachedMap = cacheService.get(cacheKey, Map.class);
+        if (cachedMap != null) {
+            log.info("从缓存获取访客名称和头像：ID={}", visitorId);
+            return Result.success(cachedMap);
+        }
+        
+        // 缓存未命中，查询数据库
         Map<String, String> map = new HashMap<>();
         Visitor visitor = visitorMapper.selectById(visitorId);
         if (visitor == null) {
@@ -356,6 +425,11 @@ public class VisitorServiceImpl implements VisitorService {
         }
         map.put("name", visitor.getName());
         map.put("avatar", visitor.getAvatar());
+        
+        // 存入缓存
+        cacheService.set(cacheKey, map, CacheConstants.USER_NAME_AVATAR_TTL);
+        log.info("访客名称和头像已缓存：key={}", cacheKey);
+        
         return Result.success(map);
     }
 }

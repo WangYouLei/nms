@@ -37,7 +37,7 @@ public class AuthorController {
     @ApiOperation("作者退出登入")
     public Result logout(Integer id){
         log.info("作者退出登入,id= {}", id);
-        return Result.success();
+        return authorService.logout(id);
     }
 
     @GetMapping("info/{id}")

@@ -1,6 +1,8 @@
 package com.wang.manager.controller;
 
+import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
+import com.wang.common.utils.RoleContextUtil;
 import com.wang.manager.service.ManagerService;
 import com.wang.pojo.dto.ManagerDTO;
 import com.wang.pojo.dto.ManagerQueryDTO;
@@ -54,7 +56,7 @@ public class ManagerController {
         return managerService.updateManager(managerDTO);
     }
 
-    @GetMapping("/list")
+    @PostMapping("/list")
     @ApiOperation("多条件查询管理员（支持id、姓名、账号，条件可为空）")
     public Result getManagerList(@RequestBody ManagerQueryDTO queryDTO) {
         log.info("多条件查询管理员请求：queryDTO={}", queryDTO);
@@ -83,6 +85,10 @@ public class ManagerController {
     @ApiOperation("管理员登出")
     public Result logout() {
         log.info("管理员登出");
+        LoginUser loginUser = RoleContextUtil.getCurrentUser();
+        if (loginUser != null) {
+            return managerService.logout(loginUser.getId());
+        }
         return Result.success("登出成功");
     }
 

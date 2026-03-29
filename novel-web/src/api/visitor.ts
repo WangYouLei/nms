@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import { axiosInstance } from '@/utils/request'
 import type { VisitorVO, VisitorDTO, VisitorRegisterDTO, VisitorDeleteDTO, PasswordUpdateEmailDTO, PageResult } from '@/types'
 
 // ==================== 访客认证 ====================
@@ -56,10 +57,10 @@ export function updateVisitorPasswordByEmail(data: PasswordUpdateEmailDTO) {
 }
 
 /**
- * 删除访客账号 - 后端使用@RequestBody
+ * 删除访客账号 - 后端使用@DeleteMapping + @RequestBody
  */
 export function deleteVisitor(data: VisitorDeleteDTO) {
-  return request.post('/visitor-server/visitor/delete', data)
+  return axiosInstance.delete('/visitor-server/visitor/delete', { data })
 }
 
 /**

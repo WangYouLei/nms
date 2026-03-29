@@ -76,12 +76,17 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public String getFileContent(String fileUrl) {
+        log.info("开始获取文件内容，原始URL: {}", fileUrl);
+        
         if (!StringUtils.hasText(fileUrl)) {
+            log.warn("文件URL为空，无法获取内容");
             return null;
         }
 
         try {
             String objectName = extractObjectName(fileUrl);
+            log.info("提取的对象名称: {}, 存储桶: {}", objectName, minioInfo.getBucketName());
+            
             try (InputStream stream = minioClient.getObject(
                     GetObjectArgs.builder()
                             .bucket(minioInfo.getBucketName())
@@ -94,10 +99,12 @@ public class FileServiceImpl implements FileService {
                 while ((bytesRead = stream.read(buffer)) != -1) {
                     content.append(new String(buffer, 0, bytesRead, StandardCharsets.UTF_8));
                 }
+                log.info("成功获取文件内容，长度: {} 字符", content.length());
                 return content.toString();
             }
         } catch (Exception e) {
-            log.error("获取文件内容失败: {}", fileUrl, e);
+            log.error("获取文件内容失败: fileUrl={}, bucket={}, error={}", 
+                    fileUrl, minioInfo.getBucketName(), e.getMessage(), e);
             return null;
         }
     }
@@ -171,20 +178,29 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public String extractObjectName(String url) {
+        log.debug("提取对象名称，输入URL: {}", url);
+        
         String bucketName = minioInfo.getBucketName();
         int bucketIndex = url.indexOf(bucketName);
         if (bucketIndex != -1) {
-            return url.substring(bucketIndex + bucketName.length() + 1);
+            String objectName = url.substring(bucketIndex + bucketName.length() + 1);
+            log.debug("通过bucket名称提取对象名: {}", objectName);
+            return objectName;
         }
+        
         // 尝试从路径中提取
         int slashIndex = url.indexOf("//");
         if (slashIndex != -1) {
             String path = url.substring(slashIndex + 2);
             int nextSlash = path.indexOf("/");
             if (nextSlash != -1) {
-                return path.substring(nextSlash + 1);
+                String objectName = path.substring(nextSlash + 1);
+                log.debug("通过路径提取对象名: {}", objectName);
+                return objectName;
             }
         }
+        
+        log.warn("无法提取对象名称，返回原始URL: {}", url);
         return url;
     }
 

@@ -8,7 +8,10 @@ import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
+import com.wang.common.service.CacheService;
+import com.wang.common.constants.CacheConstants;
 import com.wang.novel.mapper.NovelCategoryMapper;
+import com.wang.novel.mapper.NovelCategoryRelationMapper;
 import com.wang.novel.mapper.NovelMapper;
 import com.wang.novel.service.NovelCategoryService;
 import com.wang.pojo.dto.NovelCategoryDTO;
@@ -38,21 +41,37 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     private final NovelCategoryMapper categoryMapper;
     private final NovelCategoryRelationMapper relationMapper;
     private final NovelMapper novelMapper;
+    private final CacheService cacheService;
 
     public NovelCategoryServiceImpl(NovelCategoryMapper categoryMapper,
                                      NovelCategoryRelationMapper relationMapper,
-                                     NovelMapper novelMapper) {
+                                     NovelMapper novelMapper,
+                                     CacheService cacheService) {
         this.categoryMapper = categoryMapper;
         this.relationMapper = relationMapper;
         this.novelMapper = novelMapper;
+        this.cacheService = cacheService;
     }
 
     // ==================== Common - 公共方法 ====================
 
     @Override
     public Result getAllCategories() {
+        // 先从缓存获取
+        List<NovelCategoryVO> cachedList = cacheService.get(CacheConstants.CATEGORY_ALL, List.class);
+        if (cachedList != null && !cachedList.isEmpty()) {
+            log.info("从缓存获取所有分类");
+            return Result.success(cachedList);
+        }
+
+        // 缓存未命中，查询数据库
         List<NovelCategory> list = categoryMapper.selectList(null);
         List<NovelCategoryVO> voList = list.stream().map(this::convertToVO).collect(Collectors.toList());
+        
+        // 存入缓存
+        cacheService.set(CacheConstants.CATEGORY_ALL, voList, CacheConstants.CATEGORY_TTL);
+        log.info("所有分类已缓存");
+        
         return Result.success(voList);
     }
 
@@ -67,10 +86,23 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
 
     @Override
     public Result getHotCategories() {
+        // 先从缓存获取
+        List<NovelCategoryVO> cachedList = cacheService.get(CacheConstants.CATEGORY_HOT, List.class);
+        if (cachedList != null && !cachedList.isEmpty()) {
+            log.info("从缓存获取热门分类");
+            return Result.success(cachedList);
+        }
+
+        // 缓存未命中，查询数据库
         LambdaQueryWrapper<NovelCategory> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(NovelCategory::getIsHot, 1);
         List<NovelCategory> list = categoryMapper.selectList(queryWrapper);
         List<NovelCategoryVO> voList = list.stream().map(this::convertToVO).collect(Collectors.toList());
+        
+        // 存入缓存
+        cacheService.set(CacheConstants.CATEGORY_HOT, voList, CacheConstants.CATEGORY_TTL);
+        log.info("热门分类已缓存");
+        
         return Result.success(voList);
     }
 
@@ -105,6 +137,12 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
         BeanUtils.copyProperties(dto, entity);
         entity.setIsHot(dto.getIsHot() != null ? dto.getIsHot() : 0);
         categoryMapper.insert(entity);
+        
+        // 删除分类缓存
+        cacheService.delete(CacheConstants.CATEGORY_ALL);
+        cacheService.delete(CacheConstants.CATEGORY_HOT);
+        log.info("添加分类成功，已删除缓存");
+        
         return Result.success(convertToVO(entity));
     }
 
@@ -134,6 +172,12 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
 
         BeanUtils.copyProperties(dto, entity);
         categoryMapper.update(entity);
+        
+        // 删除分类缓存
+        cacheService.delete(CacheConstants.CATEGORY_ALL);
+        cacheService.delete(CacheConstants.CATEGORY_HOT);
+        log.info("更新分类成功，已删除缓存");
+        
         return Result.success(convertToVO(entity));
     }
 
@@ -159,6 +203,12 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
         }
 
         categoryMapper.deleteById(id);
+        
+        // 删除分类缓存
+        cacheService.delete(CacheConstants.CATEGORY_ALL);
+        cacheService.delete(CacheConstants.CATEGORY_HOT);
+        log.info("删除分类成功，已删除缓存");
+        
         return Result.success("删除成功");
     }
 
@@ -229,12 +279,25 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
             relationMapper.insert(relation);
         }
 
-        log.info("设置小说分类成功：小说ID={}, 分类数量={}", dto.getNovelId(), dto.getCategoryIds().size());
+        // 删除小说分类缓存
+        String novelCategoryKey = CacheConstants.buildNovelCategoryKey(dto.getNovelId());
+        cacheService.delete(novelCategoryKey);
+        log.info("设置小说分类成功：小说ID={}, 分类数量={}, 已删除缓存", dto.getNovelId(), dto.getCategoryIds().size());
+        
         return Result.success("设置成功");
     }
 
     @Override
     public Result getNovelCategory(Integer novelId) {
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildNovelCategoryKey(novelId);
+        List<NovelCategoryVO> cachedList = cacheService.get(cacheKey, List.class);
+        if (cachedList != null) {
+            log.info("从缓存获取小说分类：novelId={}", novelId);
+            return Result.success(cachedList);
+        }
+
+        // 缓存未命中，查询数据库
         LambdaQueryWrapper<NovelCategoryRelation> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(NovelCategoryRelation::getNovelId, novelId);
         List<NovelCategoryRelation> relations = relationMapper.selectList(queryWrapper);
@@ -250,7 +313,13 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
             return Result.success(null);
         }
 
-        return Result.success(convertToVO(categoryList));
+        List<NovelCategoryVO> voList = convertToVO(categoryList);
+        
+        // 存入缓存
+        cacheService.set(cacheKey, voList, CacheConstants.CATEGORY_TTL);
+        log.info("小说分类已缓存：novelId={}", novelId);
+        
+        return Result.success(voList);
     }
 
     // ==================== 私有方法 ====================

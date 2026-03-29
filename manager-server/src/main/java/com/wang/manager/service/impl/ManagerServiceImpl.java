@@ -10,8 +10,11 @@ import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.common.utils.Argon2idUtil;
-import org.springframework.beans.BeanUtils;
 import com.wang.common.utils.JWTUtil;
+import com.wang.common.service.TokenService;
+import com.wang.common.service.CacheService;
+import com.wang.common.constants.CacheConstants;
+import org.springframework.beans.BeanUtils;
 import com.wang.manager.mapper.ManagerMapper;
 import com.wang.manager.service.ManagerService;
 import com.wang.pojo.dto.ManagerDTO;
@@ -34,9 +37,13 @@ import java.util.stream.Collectors;
 public class ManagerServiceImpl implements ManagerService {
 
     private final ManagerMapper managerMapper;
+    private final TokenService tokenService;
+    private final CacheService cacheService;
 
-    public ManagerServiceImpl(ManagerMapper managerMapper) {
+    public ManagerServiceImpl(ManagerMapper managerMapper, TokenService tokenService, CacheService cacheService) {
         this.managerMapper = managerMapper;
+        this.tokenService = tokenService;
+        this.cacheService = cacheService;
     }
 
     /**
@@ -76,7 +83,33 @@ public class ManagerServiceImpl implements ManagerService {
                 .build();
         String token = JWTUtil.geneJsonWebToken(loginUser);
 
+        // 删除之前的 token（如果有）
+        tokenService.deleteUserTokens(UserRole.MANAGER.getCode(), manager.getId());
+        // 存储新 token 到 Redis（24小时过期）
+        String tokenKey = tokenService.generateTokenKey(UserRole.MANAGER.getCode(), manager.getId());
+        tokenService.saveToken(tokenKey, token, 24 * 60 * 60);
+
         return Result.success(token);
+    }
+
+    /**
+     * 管理员退出登录
+     *
+     * @param managerId 管理员ID
+     * @return 退出结果
+     */
+    @Override
+    public Result logout(Integer managerId) {
+        log.info("管理员退出登录：ID={}", managerId);
+        
+        if (managerId == null) {
+            return Result.error("管理员ID不能为空");
+        }
+        
+        // 删除 token
+        tokenService.deleteUserTokens(UserRole.MANAGER.getCode(), managerId);
+        
+        return Result.success("退出成功");
     }
 
     /**
@@ -316,6 +349,16 @@ public class ManagerServiceImpl implements ManagerService {
     @Override
     public Result getNameAndAvatar(Integer id) {
         log.info("获取管理员名称和头像：ID={}", id);
+        
+        // 先从缓存获取
+        String cacheKey = CacheConstants.buildManagerNameAvatarKey(id);
+        Map<String, String> cachedMap = cacheService.get(cacheKey, Map.class);
+        if (cachedMap != null) {
+            log.info("从缓存获取管理员名称和头像：ID={}", id);
+            return Result.success(cachedMap);
+        }
+        
+        // 缓存未命中，查询数据库
         Map<String, String> map = new HashMap<>();
         Manager manager = managerMapper.selectById(id);
         if (manager == null) {
@@ -324,6 +367,11 @@ public class ManagerServiceImpl implements ManagerService {
         }
         map.put("name", manager.getName());
         map.put("avatar", manager.getAvatar());
+        
+        // 存入缓存
+        cacheService.set(cacheKey, map, CacheConstants.USER_NAME_AVATAR_TTL);
+        log.info("管理员名称和头像已缓存：key={}", cacheKey);
+        
         return Result.success(map);
     }
 }

@@ -64,4 +64,11 @@ public interface ManagerService {
      * @return 名称和头像
      */
     Result getNameAndAvatar(Integer id);
+
+    /**
+     * 管理员退出登录
+     * @param managerId 管理员ID
+     * @return 退出结果
+     */
+    Result logout(Integer managerId);
 }

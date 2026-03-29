@@ -89,18 +89,29 @@ public class NovelChapterServiceImpl implements NovelChapterService {
 
     @Override
     public Result getChapterContent(Integer chapterId) {
+        log.info("获取章节内容，章节ID: {}", chapterId);
+        
         NovelChapter chapter = novelChapterMapper.selectById(chapterId);
         if (chapter == null) {
+            log.warn("章节不存在，章节ID: {}", chapterId);
             return Result.buildResult(BizCodeEnum.NOVEL_CHAPTER_NOT_FOUND);
         }
 
+        log.info("章节信息: id={}, title={}, contentUrl={}", 
+                chapter.getId(), chapter.getTitle(), chapter.getContentUrl());
+
         // 使用 FileServiceFeign 获取内容
         Result contentResult = fileServiceFeign.getFileContent(chapter.getContentUrl());
+        log.info("文件服务返回结果: code={}, msg={}", contentResult.getCode(), contentResult.getMsg());
+        
         String content = (String) contentResult.getData();
         if (content == null) {
+            log.error("获取章节内容失败，章节ID: {}, contentUrl: {}", chapterId, chapter.getContentUrl());
             return Result.error("获取章节内容失败");
         }
 
+        log.info("成功获取章节内容，章节ID: {}, 内容长度: {}", chapterId, content.length());
+        
         NovelChapterVO vo = convertToVO(chapter);
         vo.setContent(content);
         return Result.success(vo);

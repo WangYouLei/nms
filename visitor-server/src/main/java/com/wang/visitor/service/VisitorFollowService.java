@@ -22,7 +22,7 @@ public interface VisitorFollowService {
      * @param authorId 作者ID
      * @return 取消结果
      */
-    Result unfollow(Long visitorId, Long authorId);
+    Result unfollow(Integer visitorId, Integer authorId);
 
     /**
      * 检查是否已关注
@@ -30,7 +30,7 @@ public interface VisitorFollowService {
      * @param authorId 作者ID
      * @return 是否已关注
      */
-    Result checkFollow(Long visitorId, Long authorId);
+    Result checkFollow(Integer visitorId, Integer authorId);
 
     /**
      * 获取我的关注列表
@@ -39,7 +39,7 @@ public interface VisitorFollowService {
      * @param pageSize 每页数量
      * @return 关注列表
      */
-    Result getMyFollows(Long visitorId, Integer pageNum, Integer pageSize);
+    Result getMyFollows(Integer visitorId, Integer pageNum, Integer pageSize);
 
     /**
      * 获取作者的粉丝列表
@@ -48,19 +48,19 @@ public interface VisitorFollowService {
      * @param pageSize 每页数量
      * @return 粉丝列表
      */
-    Result getFollowers(Long authorId, Integer pageNum, Integer pageSize);
+    Result getFollowers(Integer authorId, Integer pageNum, Integer pageSize);
 
     /**
      * 获取我的关注数量
      * @param visitorId 访客ID
      * @return 关注数量
      */
-    Result getMyFollowCount(Long visitorId);
+    Result getMyFollowCount(Integer visitorId);
 
     /**
      * 获取作者的粉丝数量
      * @param authorId 作者ID
      * @return 粉丝数量
      */
-    Result getFollowerCount(Long authorId);
+    Result getFollowerCount(Integer authorId);
 }

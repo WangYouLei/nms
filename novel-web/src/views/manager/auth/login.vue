@@ -70,6 +70,11 @@ const handleLogin = async () => {
   
   loading.value = true
   try {
+    // 如果已经登录，先退出
+    if (userStore.isLoggedIn) {
+      await userStore.logout()
+    }
+    
     const token = (await managerLogin(formData.account, formData.password)).data
     
     // 检查 token 是否有效
