@@ -13,7 +13,7 @@ import lombok.Data;
 public class VisitorDeleteDTO {
 
     @ApiModelProperty("访客ID")
-    private Integer id;
+    private Long id;
 
     @ApiModelProperty("邮箱")
     private String email;

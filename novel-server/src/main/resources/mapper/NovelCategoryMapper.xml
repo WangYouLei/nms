@@ -3,7 +3,7 @@
 <mapper namespace="com.wang.novel.mapper.NovelCategoryMapper">
 
     <!-- 动态更新小说分类，只更新非 null 且非空的字段 -->
-    <update id="update" parameterType="com.wang.pojo.entity.NovelCategory">
+    <update id="updateSelective" parameterType="com.wang.pojo.entity.NovelCategory">
         UPDATE novel_category
         <set>
             <if test="type != null and type != ''">

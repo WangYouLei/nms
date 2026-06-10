@@ -15,5 +15,5 @@ public interface NovelCategoryMapper extends BaseMapper<NovelCategory> {
      * @param novelCategory 分类信息
      * @return 影响行数
      */
-    int update(NovelCategory novelCategory);
+    int updateSelective(NovelCategory novelCategory);
 }

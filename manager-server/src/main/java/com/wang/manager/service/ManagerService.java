@@ -4,6 +4,8 @@ import com.wang.common.result.Result;
 import com.wang.pojo.dto.ManagerDTO;
 import com.wang.pojo.dto.ManagerQueryDTO;
 
+import java.util.List;
+
 public interface ManagerService {
 
     /**
@@ -26,7 +28,7 @@ public interface ManagerService {
      * @param id 管理员ID
      * @return 删除结果
      */
-    Result deleteManager(Integer id);
+    Result deleteManager(Long id);
 
     /**
      * 修改管理员信息
@@ -56,19 +58,33 @@ public interface ManagerService {
      * @param newPassword 新密码
      * @return 修改结果
      */
-    Result updatePassword(Integer id, String newPassword);
+    Result updatePassword(Long id, String newPassword);
 
     /**
      * 获取管理员名称和头像
      * @param id 管理员ID
      * @return 名称和头像
      */
-    Result getNameAndAvatar(Integer id);
+    Result getNameAndAvatar(Long id);
 
     /**
      * 管理员退出登录
      * @param managerId 管理员ID
      * @return 退出结果
      */
-    Result logout(Integer managerId);
+    Result logout(Long managerId);
+
+    /**
+     * 获取管理员头像URL（供其他微服务Feign调用）
+     * @param managerId 管理员ID
+     * @return 头像URL
+     */
+    Result getManagerAvatar(Long managerId);
+
+    /**
+     * 批量获取管理员头像URL（供其他微服务Feign调用，解决N+1查询问题）
+     * @param managerIds 管理员ID列表
+     * @return 管理员ID与头像URL的映射
+     */
+    Result batchGetManagerAvatars(List<Long> managerIds);
 }

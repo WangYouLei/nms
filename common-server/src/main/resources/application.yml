@@ -78,17 +78,6 @@ spring:
       database: 0
       timeout: 3000ms
 
-  # DashScope AI 配置
-  ai:
-    dashscope:
-      api-key: ${Spring_ai_alibaba}
-
-# 模型选择
-model:
-  api-key: ${Spring_ai_alibaba}
-  text1: tongyi-xiaomi-analysis-pro
-  voice1: qwen3-tts-vd-2026-01-26
-
 # MyBatis-Plus 配置
 mybatis-plus:
   configuration:

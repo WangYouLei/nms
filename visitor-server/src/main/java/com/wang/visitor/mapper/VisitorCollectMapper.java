@@ -16,11 +16,11 @@ public interface VisitorCollectMapper extends BaseMapper<VisitorCollect> {
      * 统计用户收藏数量
      */
     @Select("SELECT COUNT(*) FROM visitor_collect WHERE visitor_id = #{visitorId}")
-    Integer countByVisitorId(@Param("visitorId") Integer visitorId);
+    Long countByVisitorId(@Param("visitorId") Long visitorId);
 
     /**
      * 统计小说被收藏数量
      */
     @Select("SELECT COUNT(*) FROM visitor_collect WHERE novel_id = #{novelId}")
-    Integer countByNovelId(@Param("novelId") Integer novelId);
+    Long countByNovelId(@Param("novelId") Long novelId);
 }

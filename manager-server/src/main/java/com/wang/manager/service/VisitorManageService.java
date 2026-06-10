@@ -28,5 +28,5 @@ public interface VisitorManageService {
      * @param id 访客ID
      * @return 访客信息
      */
-    Result getVisitorInfo(Integer id);
+    Result getVisitorInfo(Long id);
 }

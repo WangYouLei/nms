@@ -118,13 +118,6 @@
         <router-view />
       </main>
     </div>
-    
-    <!-- Footer -->
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-6">
-      <div class="container mx-auto px-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-        <p>© 2026 NMS All Rights Reserved</p>
-      </div>
-    </footer>
   </div>
 </template>
 

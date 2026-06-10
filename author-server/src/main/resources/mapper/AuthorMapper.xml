@@ -3,7 +3,7 @@
 <mapper namespace="com.wang.manage.mapper.AuthorMapper">
 
     <!-- 动态更新作者信息，只更新非 null 且非空的字段 -->
-    <update id="update" parameterType="com.wang.pojo.entity.Author">
+    <update id="updateSelective" parameterType="com.wang.pojo.entity.Author">
         UPDATE author
         <set>
             <!-- String类型：判断非null且非空字符串 -->

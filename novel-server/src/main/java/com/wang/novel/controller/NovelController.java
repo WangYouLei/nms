@@ -28,7 +28,7 @@ public class NovelController {
 
     @GetMapping("/common/novel/{novelId}")
     @ApiOperation("[Common] 获取小说详情")
-    public Result getNovelDetail(@PathVariable Integer novelId) {
+    public Result getNovelDetail(@PathVariable Long novelId) {
         log.info("[Common] 获取小说详情：ID={}", novelId);
         return novelService.getNovelDetail(novelId);
     }
@@ -52,7 +52,7 @@ public class NovelController {
 
     @DeleteMapping("/author/novel/delete/{id}")
     @ApiOperation("[Author] 删除小说(逻辑删除)")
-    public Result deleteNovel(@PathVariable Integer id) {
+    public Result deleteNovel(@PathVariable Long id) {
         log.info("[Author] 删除小说（逻辑删除）：ID={}", id);
         return novelService.deleteNovel(id);
     }
@@ -68,7 +68,7 @@ public class NovelController {
 
     @DeleteMapping("/manager/novel/delete/{id}")
     @ApiOperation("[Manager] 删除小说")
-    public Result managerDeleteNovel(@PathVariable Integer id) {
+    public Result managerDeleteNovel(@PathVariable Long id) {
         log.info("[Manager] 删除小说：ID={}", id);
         return novelService.deleteNovel(id);
     }
@@ -80,7 +80,7 @@ public class NovelController {
     public Result getHotNovels(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) Integer categoryId) {
+            @RequestParam(required = false) Long categoryId) {
         log.info("[Visitor] 分页查询热门小说：页码={}, 每页数量={}, 分类ID={}", pageNum, pageSize, categoryId);
         return novelService.getHotNovels(pageNum, pageSize, categoryId);
     }
@@ -90,7 +90,7 @@ public class NovelController {
     public Result getNovelsByCategory(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
-            @PathVariable Integer categoryId,
+            @PathVariable Long categoryId,
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) Boolean isFinished) {
         log.info("[Visitor] 按分类查询小说：分类ID={}, sortBy={}, isFinished={}", categoryId, sortBy, isFinished);
@@ -100,7 +100,7 @@ public class NovelController {
     @GetMapping("/visitor/author/{authorId}")
     @ApiOperation("[Visitor] 获取作者详情")
     public Result getAuthorDetail(
-            @PathVariable Integer authorId,
+            @PathVariable Long authorId,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
         log.info("[Visitor] 获取作者详情：作者ID={}, 页码={}, 每页数量={}", authorId, pageNum, pageSize);

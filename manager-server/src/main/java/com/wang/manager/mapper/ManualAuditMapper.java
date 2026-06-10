@@ -19,7 +19,7 @@ public interface ManualAuditMapper extends BaseMapper<ManualAudit> {
      * @param manualAudit 审核记录
      * @return 影响行数
      */
-    int update(ManualAudit manualAudit);
+    int updateSelective(ManualAudit manualAudit);
 
     /**
      * 根据审核目标查询审核记录
@@ -51,5 +51,5 @@ public interface ManualAuditMapper extends BaseMapper<ManualAudit> {
      * @return 审核记录列表
      */
     @Select("SELECT * FROM manual_audit WHERE manager_id = #{managerId} ORDER BY create_time DESC")
-    List<ManualAudit> selectByManagerId(@Param("managerId") Integer managerId);
+    List<ManualAudit> selectByManagerId(@Param("managerId") Long managerId);
 }

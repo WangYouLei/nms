@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public class NovelCategoryVO {
 
     @ApiModelProperty("分类ID")
-    private Integer id;
+    private Long id;
 
     @ApiModelProperty("分类类型")
     private String type;

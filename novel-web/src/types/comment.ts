@@ -222,6 +222,12 @@ export interface ManualAuditVO {
   firstAuditTime?: string
   /** 修改时间 */
   updateTime: string
+  /** 审核目标内容 */
+  aimContent?: string
+  /** 提交者ID */
+  submitterId?: number
+  /** 提交者名称 */
+  submitterName?: string
 }
 
 /**
@@ -263,6 +269,18 @@ export interface AiAuditResult {
   }
   /** AI审核意见 */
   aiResult?: string
+}
+
+/**
+ * 审核结果VO
+ */
+export interface AuditResultVO {
+  passed: boolean
+  result: number
+  resultDesc: string
+  sensitiveWords?: string[]
+  maxLevel?: number
+  wordCount?: number
 }
 
 /**

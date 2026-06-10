@@ -3,13 +3,18 @@ package com.wang.common.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.wang.common.model.ZSetEntry;
 import com.wang.common.service.CacheService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * 通用缓存服务实现类
@@ -135,6 +140,76 @@ public class CacheServiceImpl implements CacheService {
             return redisTemplate.opsForValue().decrement(key);
         } catch (Exception e) {
             log.error("自减操作失败：key={}, error={}", key, e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
+    public void zAdd(String key, double score, String member) {
+        try {
+            redisTemplate.opsForZSet().add(key, member, score);
+            log.debug("ZSET添加成功：key={}, member={}, score={}", key, member, score);
+        } catch (Exception e) {
+            log.error("ZSET添加失败：key={}, member={}, error={}", key, member, e.getMessage());
+        }
+    }
+
+    @Override
+    public Double zIncrBy(String key, double delta, String member) {
+        try {
+            return redisTemplate.opsForZSet().incrementScore(key, member, delta);
+        } catch (Exception e) {
+            log.error("ZSET增量失败：key={}, member={}, error={}", key, member, e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
+    public List<ZSetEntry> zRevRangeWithScores(String key, long start, long end) {
+        try {
+            Set<ZSetOperations.TypedTuple<String>> tuples =
+                    redisTemplate.opsForZSet().reverseRangeWithScores(key, start, end);
+            if (tuples == null || tuples.isEmpty()) {
+                return Collections.emptyList();
+            }
+            return tuples.stream()
+                    .map(tuple -> new ZSetEntry(
+                            tuple.getValue(),
+                            tuple.getScore()
+                    ))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("ZSET范围查询失败：key={}, error={}", key, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    public void zRem(String key, String member) {
+        try {
+            redisTemplate.opsForZSet().remove(key, member);
+            log.debug("ZSET移除成功：key={}, member={}", key, member);
+        } catch (Exception e) {
+            log.error("ZSET移除失败：key={}, member={}, error={}", key, member, e.getMessage());
+        }
+    }
+
+    @Override
+    public Double zScore(String key, String member) {
+        try {
+            return redisTemplate.opsForZSet().score(key, member);
+        } catch (Exception e) {
+            log.error("ZSET获取分数失败：key={}, member={}, error={}", key, member, e.getMessage());
+            return null;
+        }
+    }
+
+    @Override
+    public Long zRevRank(String key, String member) {
+        try {
+            return redisTemplate.opsForZSet().reverseRank(key, member);
+        } catch (Exception e) {
+            log.error("ZSET获取排名失败：key={}, member={}, error={}", key, member, e.getMessage());
             return null;
         }
     }

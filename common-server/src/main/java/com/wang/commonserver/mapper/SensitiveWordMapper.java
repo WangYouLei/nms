@@ -19,7 +19,7 @@ public interface SensitiveWordMapper extends BaseMapper<SensitiveWord> {
      * @param sensitiveWord 敏感词信息
      * @return 影响行数
      */
-    int update(SensitiveWord sensitiveWord);
+    int updateSelective(SensitiveWord sensitiveWord);
 
     /**
      * 查询所有启用的敏感词
@@ -51,4 +51,18 @@ public interface SensitiveWordMapper extends BaseMapper<SensitiveWord> {
      */
     @Select("SELECT * FROM sensitive_word WHERE level = #{level} AND status = 1")
     List<SensitiveWord> selectByLevel(@Param("level") Integer level);
+
+    /**
+     * 批量查询已存在的敏感词（用于批量添加时去重）
+     * @param words 敏感词列表
+     * @return 已存在的敏感词实体列表
+     */
+    List<SensitiveWord> selectByWords(@Param("words") List<String> words);
+
+    /**
+     * 批量插入敏感词
+     * @param entities 敏感词实体列表
+     * @return 插入行数
+     */
+    int insertBatch(@Param("list") List<SensitiveWord> entities);
 }

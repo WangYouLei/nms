@@ -16,7 +16,7 @@ import java.util.List;
 public class NovelDetailVO {
 
     @ApiModelProperty("小说ID")
-    private Integer id;
+    private Long id;
 
     @ApiModelProperty("小说名称")
     private String name;
@@ -34,7 +34,7 @@ public class NovelDetailVO {
     private String url;
 
     @ApiModelProperty("作者ID")
-    private Integer authorId;
+    private Long authorId;
 
     @ApiModelProperty("作者名称")
     private String authorName;
@@ -65,6 +65,9 @@ public class NovelDetailVO {
 
     @ApiModelProperty("更新时间")
     private LocalDateTime updateTime;
+
+    @ApiModelProperty("是否已删除（false未删除，true已删除）")
+    private Boolean isDel;
 
     @ApiModelProperty("分类信息列表（多对多）")
     private List<NovelCategoryVO> categories;

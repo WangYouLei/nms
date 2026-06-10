@@ -3,7 +3,7 @@
 <mapper namespace="com.wang.commonserver.mapper.SensitiveWordMapper">
 
     <!-- 动态更新敏感词，只更新非 null 且非空的字段 -->
-    <update id="update" parameterType="com.wang.pojo.entity.SensitiveWord">
+    <update id="updateSelective" parameterType="com.wang.pojo.entity.SensitiveWord">
         UPDATE sensitive_word
         <set>
             <if test="word != null and word != ''">
@@ -24,5 +24,23 @@
         </set>
         WHERE id = #{id}
     </update>
+
+    <!-- 批量查询已存在的敏感词 -->
+    <select id="selectByWords" resultType="com.wang.pojo.entity.SensitiveWord">
+        SELECT * FROM sensitive_word
+        WHERE word IN
+        <foreach collection="words" item="word" open="(" separator="," close=")">
+            #{word}
+        </foreach>
+    </select>
+
+    <!-- 批量插入敏感词 -->
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO sensitive_word (word, category, level, status, source, creator_id, create_time, update_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.word}, #{item.category}, #{item.level}, #{item.status}, #{item.source}, #{item.creatorId}, #{item.createTime}, #{item.updateTime})
+        </foreach>
+    </insert>
 
 </mapper>

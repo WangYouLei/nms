@@ -107,7 +107,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     }
 
     @Override
-    public Result getCategoryById(Integer id) {
+    public Result getCategoryById(Long id) {
         NovelCategory entity = categoryMapper.selectById(id);
         if (entity == null) {
             return Result.buildResult(BizCodeEnum.NOVEL_CATEGORY_NOT_FOUND);
@@ -171,7 +171,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
         }
 
         BeanUtils.copyProperties(dto, entity);
-        categoryMapper.update(entity);
+        categoryMapper.updateSelective(entity);
         
         // 删除分类缓存
         cacheService.delete(CacheConstants.CATEGORY_ALL);
@@ -183,7 +183,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
 
     @Override
     @Transactional
-    public Result deleteCategory(Integer id) {
+    public Result deleteCategory(Long id) {
         // 权限校验：只有管理员可以删除分类
         LoginUser loginUser = RoleContextUtil.getCurrentUser();
         if (loginUser == null || !UserRole.MANAGER.equals(loginUser.getRole())) {
@@ -272,7 +272,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
         relationMapper.delete(deleteWrapper);
 
         // 批量添加新分类关联
-        for (Integer categoryId : dto.getCategoryIds()) {
+        for (Long categoryId : dto.getCategoryIds()) {
             NovelCategoryRelation relation = new NovelCategoryRelation();
             relation.setNovelId(dto.getNovelId());
             relation.setCategoryId(categoryId);
@@ -288,7 +288,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
     }
 
     @Override
-    public Result getNovelCategory(Integer novelId) {
+    public Result getNovelCategory(Long novelId) {
         // 先从缓存获取
         String cacheKey = CacheConstants.buildNovelCategoryKey(novelId);
         List<NovelCategoryVO> cachedList = cacheService.get(cacheKey, List.class);
@@ -306,7 +306,7 @@ public class NovelCategoryServiceImpl implements NovelCategoryService {
             return Result.success(null);
         }
         //提取出所有分类ID
-        List<Integer> list = relations.stream().map(NovelCategoryRelation::getCategoryId).toList();
+        List<Long> list = relations.stream().map(NovelCategoryRelation::getCategoryId).toList();
         List<NovelCategory> categoryList = categoryMapper.selectBatchIds(list);
 
         if (categoryList.isEmpty()) {

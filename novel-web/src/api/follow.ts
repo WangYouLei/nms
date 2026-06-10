@@ -47,3 +47,13 @@ export function getMyFollowCount(visitorId: number) {
 export function getFollowerCount(authorId: number) {
   return request.get<number>(`/visitor-server/visitor/follow/followerCount/${authorId}`)
 }
+
+/**
+ * 获取作者的粉丝列表
+ */
+export function getFollowerList(authorId: number, pageNum: number = 1, pageSize: number = 10) {
+  return request.get<PageResult<VisitorFollowVO>>(`/visitor-server/visitor/follow/followers/${authorId}`, {
+    pageNum,
+    pageSize
+  })
+}

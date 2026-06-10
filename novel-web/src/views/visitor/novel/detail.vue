@@ -79,6 +79,10 @@
                 <el-icon><Clock /></el-icon>
                 {{ formatTime(novel.updateTime) }}更新
               </span>
+              <span class="flex items-center gap-1">
+                <el-icon><View /></el-icon>
+                {{ readingCount }} 人在读
+              </span>
             </div>
             
             <!-- 分类标签 -->
@@ -113,7 +117,7 @@
                  @click="startReading"
                >
                  <el-icon class="mr-1"><Reading /></el-icon>
-                 开始阅读
+                 {{ readingProgress ? '继续阅读' : '开始阅读' }}
                </el-button>
                <el-button 
                  size="large"
@@ -248,6 +252,8 @@
             <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
               <p class="text-sm text-gray-500">
                 <span class="text-primary font-medium">{{ novel?.authorNovelCount || 0 }}</span> 篇作品
+                <span class="mx-2">·</span>
+                <span class="text-primary font-medium">{{ followerCount }}</span> 粉丝
               </p>
             </div>
           </section>
@@ -295,19 +301,20 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { 
-  Loading, Reading, Document, Clock, FolderAdd, Search, 
-  StarFilled, Warning, Star, Plus, Notebook 
+  Loading, Reading, Document, Clock, Search,
+  StarFilled, Warning, Star, Plus, Notebook, View
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getNovelDetail, getChapterList, getHotNovels } from '@/api'
 import { addCollect, removeCollect, checkCollect } from '@/api/collect'
-import { addFollow, removeFollow, checkFollow } from '@/api/follow'
+import { addFollow, removeFollow, checkFollow, getFollowerCount } from '@/api/follow'
+import { getReadingProgress, getReadingCount } from '@/api/reading-progress'
 import { useNovelStore, useUserStore } from '@/stores'
 import { getImageUrl } from '@/utils/file-url'
 import { formatRelativeTime } from '@/utils/format'
 import CommentList from '@/components/business/CommentList.vue'
 import { CommentTargetType } from '@/types/comment'
-import type { NovelDetailVO, NovelChapterVO, NovelListVO } from '@/types'
+import type { NovelDetailVO, NovelChapterVO, NovelListVO, VisitorReadingProgressVO } from '@/types'
 
 const router = useRouter()
 const route = useRoute()
@@ -325,6 +332,9 @@ const chapterPageSize = 24
 const isCollected = ref(false) // 是否已收藏
 const isFollowing = ref(false) // 是否已关注
 const followLoading = ref(false) // 关注按钮loading
+const readingCount = ref(0) // 在读人数
+const followerCount = ref(0) // 作者粉丝数
+const readingProgress = ref<VisitorReadingProgressVO | null>(null) // 阅读进度
 
 const currentChapterId = computed(() => novelStore.currentChapter?.id)
 
@@ -360,15 +370,36 @@ const fetchData = async () => {
     
     if (novel.value) {
       novelStore.setCurrentNovel(novel.value)
+
+      // 获取在读人数
+      getReadingCount(novelId).then(res => {
+        readingCount.value = res.data || 0
+      }).catch(() => {})
+
+      // 获取作者粉丝数
+      if (novel.value.authorId) {
+        getFollowerCount(novel.value.authorId).then(res => {
+          followerCount.value = res.data || 0
+        }).catch(() => {})
+      }
+
       // 检查收藏状态
       if (userStore.isLoggedIn) {
         const collectRes = await checkCollect(novelId)
         isCollected.value = collectRes.data || false
-        
+
         // 检查关注状态
         if (novel.value.authorId) {
           const followRes = await checkFollow(novel.value.authorId, userStore.userId!)
           isFollowing.value = followRes.data || false
+        }
+
+        // 获取阅读进度
+        try {
+          const progressRes = await getReadingProgress(novelId)
+          readingProgress.value = progressRes.data || null
+        } catch {
+          readingProgress.value = null
         }
       }
     }
@@ -380,6 +411,11 @@ const fetchData = async () => {
 }
 
 const startReading = () => {
+  // 如果有阅读进度，跳转到上次阅读的章节
+  if (readingProgress.value) {
+    router.push(`/read/${novel.value?.id}/${readingProgress.value.chapterId}`)
+    return
+  }
   if (chapters.value.length > 0) {
     const firstChapter = chapters.value[0]
     router.push(`/read/${novel.value?.id}/${firstChapter.id}`)
@@ -441,6 +477,8 @@ const toggleFollow = async () => {
       isFollowing.value = true
       ElMessage.success('关注成功')
     }
+    // 刷新粉丝数
+    getFollowerCount(authorId).then(res => { followerCount.value = res.data || 0 }).catch(() => {})
   } catch (error) {
     console.error('Failed to toggle follow:', error)
     ElMessage.error('操作失败')

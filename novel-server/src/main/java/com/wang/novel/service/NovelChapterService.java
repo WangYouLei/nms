@@ -17,21 +17,21 @@ public interface NovelChapterService {
      * @param novelId 小说ID
      * @return 章节列表
      */
-    Result getChapterList(Integer novelId);
+    Result getChapterList(Long novelId);
 
     /**
      * 获取章节详情
      * @param chapterId 章节ID
      * @return 章节详情
      */
-    Result getChapterDetail(Integer chapterId);
+    Result getChapterDetail(Long chapterId);
 
     /**
      * 获取章节内容
      * @param chapterId 章节ID
      * @return 章节内容
      */
-    Result getChapterContent(Integer chapterId);
+    Result getChapterContent(Long chapterId);
 
     // ==================== Author/Manager - 作者/管理端方法 ====================
 
@@ -43,14 +43,14 @@ public interface NovelChapterService {
      * @param file 新章节文件
      * @return 操作结果
      */
-    Result uploadChapter(Integer novelId, String title, Integer wordCount, MultipartFile file);
+    Result uploadChapter(Long novelId, String title, Integer wordCount, MultipartFile file);
 
     /**
      * 删除章节
      * @param id 章节ID
      * @return 操作结果
      */
-    Result deleteChapter(Integer id);
+    Result deleteChapter(Long id);
 
     /**
      * 更新章节信息（包括章节内容）
@@ -62,5 +62,5 @@ public interface NovelChapterService {
      * @param file 新文件
      * @return
      */
-    Result updateChapter(Integer id, String title, Integer chapterOrder, Integer wordCount, String oldFileUrl, MultipartFile file);
+    Result updateChapter(Long id, String title, Integer chapterOrder, Integer wordCount, String oldFileUrl, MultipartFile file);
 }

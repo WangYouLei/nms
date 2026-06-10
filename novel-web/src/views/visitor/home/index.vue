@@ -165,15 +165,15 @@
               </div>
               <router-link to="/rank" class="text-sm text-primary">更多</router-link>
             </div>
-            
-            <div v-if="hotNovels.length > 0" class="space-y-3">
-              <div 
-                v-for="(novel, index) in hotNovels.slice(0, 5)" 
-                :key="novel.id"
+
+            <div v-if="collectRanking.length > 0" class="space-y-3">
+              <div
+                v-for="(item, index) in collectRanking"
+                :key="item.id"
                 class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
-                @click="handleNovelClick(novel)"
+                @click="router.push(`/novel/${item.id}`)"
               >
-                <span 
+                <span
                   class="w-5 h-5 rounded flex items-center justify-center text-xs font-bold flex-shrink-0"
                   :class="{
                     'bg-yellow-400 text-white': index === 0,
@@ -182,9 +182,44 @@
                     'bg-gray-100 dark:bg-gray-700 text-gray-500': index > 2
                   }"
                 >
-                  {{ index + 1 }}
+                  {{ item.rank }}
                 </span>
-                <span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{{ novel.name }}</span>
+                <span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{{ item.name }}</span>
+                <span class="text-xs text-gray-400 flex-shrink-0">{{ item.authorName }}</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- 连载榜 -->
+          <section class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <el-icon class="text-blue-500" :size="20"><Trophy /></el-icon>
+                <h3 class="font-bold text-gray-800 dark:text-gray-200">连载榜</h3>
+              </div>
+              <router-link to="/rank" class="text-sm text-primary">更多</router-link>
+            </div>
+
+            <div v-if="ongoingRanking.length > 0" class="space-y-3">
+              <div
+                v-for="(item, index) in ongoingRanking"
+                :key="item.id"
+                class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                @click="router.push(`/novel/${item.id}`)"
+              >
+                <span
+                  class="w-5 h-5 rounded flex items-center justify-center text-xs font-bold flex-shrink-0"
+                  :class="{
+                    'bg-yellow-400 text-white': index === 0,
+                    'bg-gray-300 text-white': index === 1,
+                    'bg-amber-600 text-white': index === 2,
+                    'bg-gray-100 dark:bg-gray-700 text-gray-500': index > 2
+                  }"
+                >
+                  {{ item.rank }}
+                </span>
+                <span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{{ item.name }}</span>
+                <span class="text-xs text-gray-400 flex-shrink-0">{{ item.authorName }}</span>
               </div>
             </div>
           </section>
@@ -243,9 +278,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Search, ArrowRight, Loading, Trophy, CircleCheck, Edit } from '@element-plus/icons-vue'
 import { getHotNovels, getAllCategories, searchNovels } from '@/api'
+import { getNovelCollectRanking, getNovelOngoingRanking } from '@/api/ranking'
 import NovelCard from '@/components/business/novel-card.vue'
 import CategoryNav from '@/components/business/category-nav.vue'
-import type { NovelListVO, NovelCategoryVO } from '@/types'
+import type { NovelListVO, NovelCategoryVO, NovelRankingItem } from '@/types'
 import { formatRelativeTime } from '@/utils/format'
 import { getImageUrl } from '@/utils/file-url'
 import { Channel } from '@/enums'
@@ -256,6 +292,8 @@ const loading = ref(true)
 const hotNovels = ref<NovelListVO[]>([])
 const latestNovels = ref<NovelListVO[]>([])
 const categories = ref<NovelCategoryVO[]>([])
+const collectRanking = ref<NovelRankingItem[]>([])
+const ongoingRanking = ref<NovelRankingItem[]>([])
 const activeCategory = ref(0)
 const currentChannel = ref<number>(Channel.MALE)
 const searchKeyword = ref('')
@@ -272,15 +310,25 @@ const finishedNovels = computed(() => {
 const fetchData = async () => {
   loading.value = true
   try {
+    // 核心数据和排行榜独立请求，避免排行榜失败影响主内容
     const [hotRes, latestRes, catRes] = await Promise.all([
       getHotNovels({ pageNum: 1, pageSize: 12 }),
       searchNovels({ pageNum: 1, pageSize: 10 }),
       getAllCategories()
     ])
-    
+
     hotNovels.value = hotRes.data?.list || []
     latestNovels.value = latestRes.data?.list || []
     categories.value = catRes.data || []
+
+    // 排行榜数据独立获取，失败不影响主内容
+    Promise.allSettled([
+      getNovelCollectRanking(5),
+      getNovelOngoingRanking(5)
+    ]).then(([collectRes, ongoingRes]) => {
+      if (collectRes.status === 'fulfilled') collectRanking.value = collectRes.value.data?.items || []
+      if (ongoingRes.status === 'fulfilled') ongoingRanking.value = ongoingRes.value.data?.items || []
+    })
   } catch (error) {
     console.error('Failed to fetch data:', error)
   } finally {

@@ -12,7 +12,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
         "com.wang.common"
 })
 @EntityScan("com.wang.pojo")
-@EnableFeignClients
+@EnableFeignClients(basePackages = "com.wang.common.feign")
 @MapperScan("com.wang.manage.mapper")
 public class AuthorServerApplication {
 

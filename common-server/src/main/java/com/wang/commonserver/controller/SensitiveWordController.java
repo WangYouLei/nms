@@ -124,11 +124,11 @@ public class SensitiveWordController {
 
     @PostMapping("/auditText")
     @ApiOperation("本地敏感词审核")
-    public AuditResultVO auditText(
+    public Result auditText(
             @RequestBody @ApiParam("待审核内容") Map<String, String> request) {
         String content = request.get("content");
         log.info("本地敏感词审核请求：length={}", content != null ? content.length() : 0);
         AuditResultVO result = sensitiveWordService.auditText(content, true);
-        return result;
+        return Result.success(result);
     }
 }

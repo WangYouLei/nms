@@ -76,3 +76,10 @@ export function uploadFile(
 export function deleteFile(fileUrl: string) {
   return request.delete('/common-server/file/delete', { fileUrl })
 }
+
+/**
+ * 获取文件内容
+ */
+export function getFileContent(fileUrl: string) {
+  return request.get<string>('/common-server/file/content', { fileUrl })
+}

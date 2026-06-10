@@ -18,7 +18,7 @@ public interface NovelMapper extends BaseMapper<Novel> {
      * @param novel 小说信息
      * @return 影响行数
      */
-    int update(Novel novel);
+    int updateSelective(Novel novel);
 
     /**
      * 分页查询热门小说（支持分类筛选）
@@ -27,7 +27,7 @@ public interface NovelMapper extends BaseMapper<Novel> {
      * @param pageSize 每页数量
      * @return 热门小说列表
      */
-    List<Novel> selectHotNovelsByPage(@Param("categoryId") Integer categoryId,
+    List<Novel> selectHotNovelsByPage(@Param("categoryId") Long categoryId,  
                                        @Param("offset") Integer offset,
                                        @Param("pageSize") Integer pageSize);
 
@@ -36,7 +36,7 @@ public interface NovelMapper extends BaseMapper<Novel> {
      * @param categoryId 分类ID（可选）
      * @return 总数
      */
-    Integer countHotNovels(@Param("categoryId") Integer categoryId);
+    Long countHotNovels(@Param("categoryId") Long categoryId);
 
 
     /**
@@ -46,8 +46,8 @@ public interface NovelMapper extends BaseMapper<Novel> {
      * @param pageSize 每页数量
      * @return 小说列表
      */
-    List<Novel> selectNovelsByCategoryId(@Param("categoryId") Integer categoryId,
-                                          @Param("offset") Integer offset,
+    List<Novel> selectNovelsByCategoryId(@Param("categoryId") Long categoryId,
+                                          @Param("offset") Integer offset,      
                                           @Param("pageSize") Integer pageSize);
 
     /**
@@ -55,7 +55,7 @@ public interface NovelMapper extends BaseMapper<Novel> {
      * @param categoryId 分类ID
      * @return 总数
      */
-    Integer countNovelsByCategoryId(@Param("categoryId") Integer categoryId);
+    Long countNovelsByCategoryId(@Param("categoryId") Long categoryId);
 
     /**
      * 根据作者ID分页查询作品列表
@@ -64,8 +64,8 @@ public interface NovelMapper extends BaseMapper<Novel> {
      * @param pageSize 每页数量
      * @return 作品列表
      */
-    List<Novel> selectNovelsByAuthorId(@Param("authorId") Integer authorId,
-                                        @Param("offset") Integer offset,
+    List<Novel> selectNovelsByAuthorId(@Param("authorId") Long authorId,     
+                                        @Param("offset") Integer offset,        
                                         @Param("pageSize") Integer pageSize);
 
     /**
@@ -73,6 +73,6 @@ public interface NovelMapper extends BaseMapper<Novel> {
      * @param authorId 作者ID
      * @return 总数
      */
-    Integer countNovelsByAuthorIdInNovel(@Param("authorId") Integer authorId);
+    Long countNovelsByAuthorIdInNovel(@Param("authorId") Long authorId);
 
 }

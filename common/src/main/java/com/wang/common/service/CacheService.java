@@ -1,5 +1,9 @@
 package com.wang.common.service;
 
+import com.wang.common.model.ZSetEntry;
+
+import java.util.List;
+
 /**
  * 通用缓存服务接口
  * 提供统一的缓存操作方法
@@ -75,4 +79,53 @@ public interface CacheService {
      * @return 自减后的值
      */
     Long decrement(String key);
+
+    /**
+     * 添加或更新 Sorted Set 成员
+     * @param key 缓存键
+     * @param score 分数
+     * @param member 成员
+     */
+    void zAdd(String key, double score, String member);
+
+    /**
+     * Sorted Set 成员分数增量
+     * @param key 缓存键
+     * @param delta 增量（正数增加，负数减少）
+     * @param member 成员
+     * @return 增量后的分数
+     */
+    Double zIncrBy(String key, double delta, String member);
+
+    /**
+     * 获取 Sorted Set 指定范围的成员和分数（降序，从高到低）
+     * @param key 缓存键
+     * @param start 起始位置（0开始）
+     * @param end 结束位置（-1表示到末尾）
+     * @return 成员和分数列表
+     */
+    List<ZSetEntry> zRevRangeWithScores(String key, long start, long end);
+
+    /**
+     * 移除 Sorted Set 成员
+     * @param key 缓存键
+     * @param member 成员
+     */
+    void zRem(String key, String member);
+
+    /**
+     * 获取 Sorted Set 成员分数
+     * @param key 缓存键
+     * @param member 成员
+     * @return 分数，不存在返回 null
+     */
+    Double zScore(String key, String member);
+
+    /**
+     * 获取 Sorted Set 成员排名（降序，0开始）
+     * @param key 缓存键
+     * @param member 成员
+     * @return 排名，不存在返回 null
+     */
+    Long zRevRank(String key, String member);
 }

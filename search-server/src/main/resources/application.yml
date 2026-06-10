@@ -1,0 +1,73 @@
+spring:
+  application:
+    name: search-server
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        namespace: public
+        username: nacos
+        password: 123456
+      config:
+        server-addr: 127.0.0.1:8848
+        namespace: public
+        username: nacos
+        password: 123456
+        file-extension: yml
+        shared-configs:
+          - data-id: common-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 10000
+            read-timeout: 30000
+      circuitbreaker:
+        enabled: true
+    loadbalancer:
+      ribbon:
+        enabled: false
+
+  main:
+    allow-bean-definition-overriding: true
+
+  # Elasticsearch 配置
+  elasticsearch:
+    uris: https://localhost:9200
+    username: elastic
+    password: elastic
+    connection-timeout: 10s
+    socket-timeout: 60s
+
+  # RabbitMQ配置
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: auto
+        prefetch: 10
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000ms
+
+server:
+  port: 5270
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+# 日志级别
+logging:
+  level:
+    root: info
+    org.springframework.data.elasticsearch: debug

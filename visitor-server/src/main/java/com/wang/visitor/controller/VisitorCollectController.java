@@ -26,7 +26,7 @@ public class VisitorCollectController {
 
     @PostMapping("/add/{novelId}")
     @ApiOperation("添加收藏")
-    public Result addCollect(@PathVariable Integer novelId) {
+    public Result addCollect(@PathVariable Long novelId) {
         LoginUser loginUser = RoleContextUtil.getCurrentUser();
         if (loginUser == null) {
             return Result.error("请先登录");
@@ -37,7 +37,7 @@ public class VisitorCollectController {
 
     @DeleteMapping("/remove/{novelId}")
     @ApiOperation("取消收藏")
-    public Result removeCollect(@PathVariable Integer novelId) {
+    public Result removeCollect(@PathVariable Long novelId) {
         LoginUser loginUser = RoleContextUtil.getCurrentUser();
         if (loginUser == null) {
             return Result.error("请先登录");
@@ -59,7 +59,7 @@ public class VisitorCollectController {
 
     @GetMapping("/check/{novelId}")
     @ApiOperation("检查是否已收藏")
-    public Result checkCollect(@PathVariable Integer novelId) {
+    public Result checkCollect(@PathVariable Long novelId) {
         LoginUser loginUser = RoleContextUtil.getCurrentUser();
         if (loginUser == null) {
             return Result.success(false);

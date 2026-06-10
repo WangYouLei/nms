@@ -3,6 +3,8 @@ package com.wang.novel.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.config.DefaultUrlConfig;
+import com.wang.common.service.CacheService;
+import com.wang.common.constants.CacheConstants;
 import com.wang.common.utils.RoleContextUtil;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
@@ -10,13 +12,16 @@ import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import org.springframework.beans.BeanUtils;
-import com.wang.novel.mapper.AuthorMapper;
+import com.wang.common.feign.AuthorServiceFeign;
+import com.wang.common.feign.SearchServiceFeign;
+import com.wang.novel.event.NovelEventPublisher;
 import com.wang.novel.mapper.NovelCategoryMapper;
 import com.wang.novel.mapper.NovelCategoryRelationMapper;
 import com.wang.novel.mapper.NovelMapper;
 import com.wang.novel.service.NovelService;
 import com.wang.pojo.dto.NovelDTO;
 import com.wang.pojo.dto.NovelSearchDTO;
+import com.wang.pojo.dto.SearchDTO;
 import com.wang.pojo.entity.Novel;
 import com.wang.pojo.entity.NovelCategory;
 import com.wang.pojo.entity.NovelCategoryRelation;
@@ -34,7 +39,9 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -50,8 +57,11 @@ public class NovelServiceImpl implements NovelService {
     private final NovelMapper novelMapper;
     private final NovelCategoryMapper novelCategoryMapper;
     private final NovelCategoryRelationMapper novelCategoryRelationMapper;
-    private final AuthorMapper authorMapper;
+    private final AuthorServiceFeign authorServiceFeign;
+    private final SearchServiceFeign searchServiceFeign;
+    private final NovelEventPublisher novelEventPublisher;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final CacheService cacheService;
 
     // 缓存Key前缀
     private static final String CACHE_KEY_NOVEL_DETAIL = "novel:detail:";
@@ -70,19 +80,25 @@ public class NovelServiceImpl implements NovelService {
     public NovelServiceImpl(NovelMapper novelMapper,
                             NovelCategoryMapper novelCategoryMapper,
                             NovelCategoryRelationMapper novelCategoryRelationMapper,
-                            AuthorMapper authorMapper,
-                            RedisTemplate<String, Object> redisTemplate) {
+                            AuthorServiceFeign authorServiceFeign,
+                            SearchServiceFeign searchServiceFeign,
+                            NovelEventPublisher novelEventPublisher,
+                            RedisTemplate<String, Object> redisTemplate,
+                            CacheService cacheService) {
         this.novelMapper = novelMapper;
         this.novelCategoryMapper = novelCategoryMapper;
         this.novelCategoryRelationMapper = novelCategoryRelationMapper;
-        this.authorMapper = authorMapper;
+        this.authorServiceFeign = authorServiceFeign;
+        this.searchServiceFeign = searchServiceFeign;
+        this.novelEventPublisher = novelEventPublisher;
         this.redisTemplate = redisTemplate;
+        this.cacheService = cacheService;
     }
 
     // ==================== Common - 公共方法 ====================
 
     @Override
-    public Result getNovelDetail(Integer novelId) {
+    public Result getNovelDetail(Long novelId) {
         // 参数校验
         if (novelId == null || novelId < 1) {
             return Result.error("小说ID无效");
@@ -95,6 +111,13 @@ public class NovelServiceImpl implements NovelService {
         try {
             Object cached = redisTemplate.opsForValue().get(cacheKey);
             if (cached != null) {
+                // 检查小说是否已被逻辑删除（查DB确保一致性，缓存可能过期）
+                Novel checkNovel = novelMapper.selectById(novelId);
+                if (checkNovel == null || (checkNovel.getIsDel() != null && checkNovel.getIsDel())) {
+                    log.warn("缓存命中但小说已被删除，清除缓存：ID={}", novelId);
+                    redisTemplate.delete(cacheKey);
+                    return Result.error("小说不存在");
+                }
                 log.info("从缓存获取小说详情：ID={}", novelId);
                 return Result.success(cached);
             }
@@ -111,6 +134,18 @@ public class NovelServiceImpl implements NovelService {
             return Result.error("小说不存在");
         }
 
+        // 检查小说是否已被逻辑删除
+        if (novel.getIsDel() != null && novel.getIsDel()) {
+            log.warn("小说已被删除：ID={}", novelId);
+            // 删除缓存中的脏数据
+            try {
+                redisTemplate.delete(cacheKey);
+            } catch (Exception e) {
+                log.warn("删除缓存失败：{}", e.getMessage());
+            }
+            return Result.error("小说不存在");
+        }
+
         // 3. 查询小说关联的分类（多对多，可能有多条记录）
         List<NovelCategoryVO> categoryVOList = new ArrayList<>();
         LambdaQueryWrapper<NovelCategoryRelation> relationWrapper = new LambdaQueryWrapper<>();
@@ -119,7 +154,7 @@ public class NovelServiceImpl implements NovelService {
 
         if (!relations.isEmpty()) {
             // 提取所有分类ID
-            List<Integer> categoryIds = relations.stream()
+            List<Long> categoryIds = relations.stream()
                     .map(NovelCategoryRelation::getCategoryId)
                     .collect(Collectors.toList());
             // 批量查询分类
@@ -145,16 +180,51 @@ public class NovelServiceImpl implements NovelService {
 
     /**
      * 统一搜索小说列表
-     * 权限控制：
-     * - Author: 只能搜索自己的小说
-     * - Manager/Visitor: 可以搜索所有小说，支持按authorId筛选
-     * 搜索条件：
-     * - keyword: 关键词搜索（模糊匹配名称、副名称、标签）
-     * - name/subName/isHot/isFinished: 精确条件筛选
-     * - authorId: 按作者ID筛选（仅Manager/Visitor可用）
+     * 优先调用 search-server（ES搜索），降级回 MySQL LIKE 查询
      */
     @Override
     public Result searchNovels(NovelSearchDTO dto) {
+        // 优先尝试 ES 搜索（通过 search-server）
+        try {
+            SearchDTO searchDTO = convertToSearchDTO(dto);
+            Result esResult = searchServiceFeign.searchNovels(searchDTO);
+            if (esResult.getCode() == BizCodeEnum.SUCCESS.getCode() && esResult.getData() != null) {
+                log.info("ES搜索小说成功：keyword={}", dto.getKeyword());
+                return esResult;
+            }
+            log.warn("ES搜索返回异常，降级到MySQL搜索：{}", esResult.getMsg());
+        } catch (Exception e) {
+            log.warn("ES搜索失败，降级到MySQL搜索：{}", e.getMessage());
+        }
+
+        // 降级：MySQL LIKE 查询
+        return searchNovelsFromMySQL(dto);
+    }
+
+    /**
+     * 将 NovelSearchDTO 转换为 SearchDTO
+     */
+    private SearchDTO convertToSearchDTO(NovelSearchDTO dto) {
+        SearchDTO searchDTO = new SearchDTO();
+        searchDTO.setKeyword(dto.getKeyword());
+        searchDTO.setName(dto.getName());
+        searchDTO.setSubName(dto.getSubName());
+        searchDTO.setAuthorId(dto.getAuthorId());
+        searchDTO.setIsHot(dto.getIsHot());
+        searchDTO.setIsFinished(dto.getIsFinished());
+        searchDTO.setCategoryId(dto.getCategoryId());
+        searchDTO.setCategoryType(dto.getCategoryType());
+        searchDTO.setTag(dto.getTag());
+        searchDTO.setSortBy(dto.getSortBy());
+        searchDTO.setPageNum(dto.getPageNum());
+        searchDTO.setPageSize(dto.getPageSize());
+        return searchDTO;
+    }
+
+    /**
+     * MySQL LIKE 查询（降级方案）
+     */
+    private Result searchNovelsFromMySQL(NovelSearchDTO dto) {
         // 参数校验
         Integer pageNum = dto.getPageNum();
         Integer pageSize = dto.getPageSize();
@@ -300,6 +370,14 @@ public class NovelServiceImpl implements NovelService {
         int result = novelMapper.insert(novel);
         if (result == 1) {
             log.info("新增小说成功：ID={}", novel.getId());
+            // 发布小说创建事件，同步ES索引
+            try {
+                novelEventPublisher.publishNovelUpdated(novel.getId(), "CREATE");
+            } catch (Exception e) {
+                log.error("发布小说创建事件失败，不影响主业务：novelId={}, error={}", novel.getId(), e.getMessage());
+            }
+            // 更新排行榜 ZSET
+            updateRankingOnNovelCreate(novel);
             return Result.success(novel);
         } else {
             log.error("新增小说失败：名称={}", novel.getName());
@@ -308,7 +386,7 @@ public class NovelServiceImpl implements NovelService {
     }
 
     @Override
-    public Result deleteNovel(Integer id) {
+    public Result deleteNovel(Long id) {
         // 获取当前登录用户信息
         LoginUser loginUser = RoleContextUtil.getCurrentUser();
 
@@ -331,9 +409,24 @@ public class NovelServiceImpl implements NovelService {
 
         // 执行逻辑删除操作
         novel.setIsDel(true);
-        int result = novelMapper.update(novel);
+        int result = novelMapper.updateSelective(novel);
         if (result == 1) {
             log.info("{}的ID={}, 逻辑删除小说成功：小说ID={}", loginUser.getRole(),loginUser.getId(),id);
+            // 清除小说详情缓存
+            try {
+                redisTemplate.delete(CACHE_KEY_NOVEL_DETAIL + id);
+                log.info("已清除小说详情缓存：ID={}", id);
+            } catch (Exception e) {
+                log.warn("清除缓存失败：{}", e.getMessage());
+            }
+            // 发布小说删除事件，同步ES索引
+            try {
+                novelEventPublisher.publishNovelUpdated(id, "DELETE");
+            } catch (Exception e) {
+                log.error("发布小说删除事件失败，不影响主业务：novelId={}, error={}", id, e.getMessage());
+            }
+            // 更新排行榜 ZSET
+            updateRankingOnNovelDelete(novel);
             return Result.success(BizCodeEnum.SUCCESS);
         } else {
             log.error("{}的ID={},逻辑删除小说失败：小说ID={}",  loginUser.getRole(),loginUser.getId(),id);
@@ -375,9 +468,17 @@ public class NovelServiceImpl implements NovelService {
         novel.setUpdateTime(LocalDateTime.now());
 
         // 执行更新操作
-        int result = novelMapper.update(novel);
+        int result = novelMapper.updateSelective(novel);
         if (result == 1) {
             log.info("修改小说成功：ID={}", novel.getId());
+            // 发布小说更新事件，同步ES索引
+            try {
+                novelEventPublisher.publishNovelUpdated(novel.getId(), "UPDATE");
+            } catch (Exception e) {
+                log.error("发布小说更新事件失败，不影响主业务：novelId={}, error={}", novel.getId(), e.getMessage());
+            }
+            // 更新最新更新榜 ZSET
+            cacheService.zAdd(CacheConstants.RANKING_NOVEL_LATEST, System.currentTimeMillis(), String.valueOf(novel.getId()));
             return Result.success(novel);
         } else {
             log.error("修改小说失败：ID={}", novel.getId());
@@ -388,7 +489,7 @@ public class NovelServiceImpl implements NovelService {
     // ==================== Visitor - 访客端方法 ====================
 
     @Override
-    public Result getHotNovels(Integer pageNum, Integer pageSize, Integer categoryId) {
+    public Result getHotNovels(Integer pageNum, Integer pageSize, Long categoryId) {
         // 参数校验
         if (pageNum == null || pageNum < 1) {
             pageNum = 1;
@@ -417,9 +518,9 @@ public class NovelServiceImpl implements NovelService {
         List<Novel> novels = novelMapper.selectHotNovelsByPage(categoryId, offset, pageSize);
 
         // 查询总数
-        Integer total = novelMapper.countHotNovels(categoryId);
+        Long total = novelMapper.countHotNovels(categoryId);
         if (total == null) {
-            total = 0;
+            total = 0L;
         }
 
         List<NovelListVO> voList = novels.stream()
@@ -438,7 +539,7 @@ public class NovelServiceImpl implements NovelService {
     }
 
 @Override
-    public Result getNovelsByCategory(Integer pageNum, Integer pageSize, Integer categoryId, String sortBy, Boolean isFinished) {
+    public Result getNovelsByCategory(Integer pageNum, Integer pageSize, Long categoryId, String sortBy, Boolean isFinished) {
         if (categoryId == null) {
             return Result.error("分类ID不能为空");
         }
@@ -466,7 +567,7 @@ public class NovelServiceImpl implements NovelService {
         }
 
         // 提取小说ID列表
-        List<Integer> novelIds = relations.stream()
+        List<Long> novelIds = relations.stream()
                 .map(NovelCategoryRelation::getNovelId)
                 .collect(Collectors.toList());
 
@@ -539,20 +640,41 @@ public class NovelServiceImpl implements NovelService {
         // 设置作者ID
         vo.setAuthorId(novel.getAuthorId());
         
-        // 设置作者头像：优先使用冗余字段，为空时从author表查询
+        // 设置作者头像：优先使用冗余字段，为空时通过Feign调用author-server获取
         if (StringUtils.hasText(novel.getAuthorAvatar())) {
             vo.setAuthorAvatar(novel.getAuthorAvatar());
         } else if (novel.getAuthorId() != null) {
-            String avatar = authorMapper.selectAvatarById(novel.getAuthorId());
-            vo.setAuthorAvatar(avatar != null ? avatar : DefaultUrlConfig.AUTHOR_AVATAR_URL);
+            try {
+                Result avatarResult = authorServiceFeign.getAuthorAvatar(novel.getAuthorId());
+                if (avatarResult.getCode() == BizCodeEnum.SUCCESS.getCode() && avatarResult.getData() != null) {
+                    vo.setAuthorAvatar((String) avatarResult.getData());
+                } else {
+                    vo.setAuthorAvatar(DefaultUrlConfig.AUTHOR_AVATAR_URL);
+                }
+            } catch (Exception e) {
+                log.warn("Feign调用获取作者头像失败，使用默认头像：authorId={}, error={}", novel.getAuthorId(), e.getMessage());
+                vo.setAuthorAvatar(DefaultUrlConfig.AUTHOR_AVATAR_URL);
+            }
         } else {
             vo.setAuthorAvatar(DefaultUrlConfig.AUTHOR_AVATAR_URL);
         }
         
-        // 设置作者作品数量
+        // 设置作者作品数量：通过Feign调用author-server获取
         if (novel.getAuthorId() != null) {
-            Integer novelCount = authorMapper.countNovelsByAuthorId(novel.getAuthorId());
-            vo.setAuthorNovelCount(novelCount != null ? novelCount : 0);
+            try {
+                Result basicResult = authorServiceFeign.getAuthorBasicInfo(novel.getAuthorId());
+                if (basicResult.getCode() == BizCodeEnum.SUCCESS.getCode() && basicResult.getData() != null) {
+                    @SuppressWarnings("unchecked")
+                    java.util.Map<String, Object> basicInfo = (java.util.Map<String, Object>) basicResult.getData();
+                    Object novelCount = basicInfo.get("novelCount");
+                    vo.setAuthorNovelCount(novelCount != null ? ((Number) novelCount).intValue() : 0);
+                } else {
+                    vo.setAuthorNovelCount(0);
+                }
+            } catch (Exception e) {
+                log.warn("Feign调用获取作者基本信息失败：authorId={}, error={}", novel.getAuthorId(), e.getMessage());
+                vo.setAuthorNovelCount(0);
+            }
         } else {
             vo.setAuthorNovelCount(0);
         }
@@ -590,14 +712,33 @@ public class NovelServiceImpl implements NovelService {
     // ==================== Visitor - 作者详情 ====================
 
     @Override
-    public Result getAuthorDetail(Integer authorId, Integer pageNum, Integer pageSize) {
+    public Result getAuthorDetail(Long authorId, Integer pageNum, Integer pageSize) {
         // 参数校验
         if (authorId == null || authorId < 1) {
             return Result.error("作者ID无效");
         }
 
-        // 查询作者基本信息
-        Author author = authorMapper.selectAuthorBasicInfo(authorId);
+        // 通过Feign调用author-server获取作者基本信息
+        Author author = null;
+        try {
+            Result basicResult = authorServiceFeign.getAuthorBasicInfo(authorId);
+            if (basicResult.getCode() == BizCodeEnum.SUCCESS.getCode() && basicResult.getData() != null) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> basicInfo = (java.util.Map<String, Object>) basicResult.getData();
+                author = new Author();
+                author.setId(((Number) basicInfo.get("id")).longValue());
+                author.setName((String) basicInfo.get("name"));
+                author.setAvatar((String) basicInfo.get("avatar"));
+                Object rankObj = basicInfo.get("rank");
+                author.setRank(rankObj != null ? ((Number) rankObj).intValue() : null);
+                author.setIntroduction((String) basicInfo.get("introduction"));
+                Object novelCountObj = basicInfo.get("novelCount");
+                author.setNovelCount(novelCountObj != null ? ((Number) novelCountObj).intValue() : null);
+            }
+        } catch (Exception e) {
+            log.warn("Feign调用获取作者基本信息失败：authorId={}, error={}", authorId, e.getMessage());
+        }
+
         if (author == null) {
             log.warn("作者不存在：ID={}", authorId);
             return Result.error("作者不存在");
@@ -618,9 +759,9 @@ public class NovelServiceImpl implements NovelService {
 
         // 查询作者作品列表
         List<Novel> novels = novelMapper.selectNovelsByAuthorId(authorId, offset, pageSize);
-        Integer total = novelMapper.countNovelsByAuthorIdInNovel(authorId);
+        Long total = novelMapper.countNovelsByAuthorIdInNovel(authorId);
         if (total == null) {
-            total = 0;
+            total = 0L;
         }
 
         // 转换作品列表为VO
@@ -636,10 +777,150 @@ public class NovelServiceImpl implements NovelService {
         vo.setRank(author.getRank());
         vo.setRankName(getRankName(author.getRank()));
         vo.setIntroduction(author.getIntroduction());
-        vo.setNovelCount(total);
+        vo.setNovelCount(total.intValue());
         vo.setNovels(novelVOList);
 
         log.info("获取作者详情成功：ID={}, 作品数={}", authorId, total);
         return Result.success(vo);
+    }
+
+    @Override
+    public Result getNovelAuthorId(Long novelId) {
+        log.info("[内部调用] 获取小说作者ID：novelId={}", novelId);
+        Novel novel = novelMapper.selectById(novelId);
+        if (novel == null || novel.getIsDel()) {
+            log.warn("[内部调用] 小说不存在：novelId={}", novelId);
+            return Result.error("小说不存在");
+        }
+        return Result.success(novel.getAuthorId());
+    }
+
+    @Override
+    public Result batchGetNovelAuthorIds(List<Long> novelIds) {
+        log.info("[内部调用] 批量获取小说作者ID：count={}", novelIds.size());
+        if (novelIds.isEmpty()) {
+            return Result.success(new HashMap<>());
+        }
+        List<Novel> novels = novelMapper.selectBatchIds(novelIds);
+        Map<Long, Long> authorIdMap = new HashMap<>();
+        for (Novel novel : novels) {
+            if (novel != null && !novel.getIsDel()) {
+                authorIdMap.put(novel.getId(), novel.getAuthorId());
+            }
+        }
+        log.info("[内部调用] 批量获取小说作者ID完成：请求{}个，返回{}个", novelIds.size(), authorIdMap.size());
+        return Result.success(authorIdMap);
+    }
+
+    @Override
+    public Result getNovelBasicInfo(Long novelId) {
+        log.info("[内部调用] 获取小说基本信息：novelId={}", novelId);
+        Novel novel = novelMapper.selectById(novelId);
+        if (novel == null || novel.getIsDel()) {
+            log.warn("[内部调用] 小说不存在：novelId={}", novelId);
+            return Result.error("小说不存在");
+        }
+
+        java.util.Map<String, Object> basicInfo = new java.util.HashMap<>();
+        basicInfo.put("id", novel.getId());
+        basicInfo.put("name", novel.getName());
+        basicInfo.put("subName", novel.getSubName());
+        basicInfo.put("url", novel.getUrl());
+        basicInfo.put("tags", novel.getTags());
+        basicInfo.put("introduction", novel.getIntroduction());
+        basicInfo.put("authorId", novel.getAuthorId());
+        basicInfo.put("authorName", novel.getAuthorName());
+        basicInfo.put("authorAvatar", novel.getAuthorAvatar());
+        basicInfo.put("authorRank", novel.getAuthorRank());
+        basicInfo.put("chapterCount", novel.getChapterCount());
+        basicInfo.put("allWordCount", novel.getAllWordCount());
+        basicInfo.put("collectCount", novel.getCollectCount());
+        basicInfo.put("isFinished", novel.getIsFinished());
+        basicInfo.put("isHot", novel.getIsHot());
+        basicInfo.put("isDel", novel.getIsDel());
+        basicInfo.put("updateTime", novel.getUpdateTime());
+
+        // 查询关联的分类信息
+        List<Long> categoryIds = new ArrayList<>();
+        List<String> categoryNames = new ArrayList<>();
+        List<String> categoryNamesKeyword = new ArrayList<>();
+        Integer categoryType = null;
+
+        LambdaQueryWrapper<NovelCategoryRelation> relationWrapper = new LambdaQueryWrapper<>();
+        relationWrapper.eq(NovelCategoryRelation::getNovelId, novelId);
+        List<NovelCategoryRelation> relations = novelCategoryRelationMapper.selectList(relationWrapper);
+
+        if (!relations.isEmpty()) {
+            List<Long> catIds = relations.stream()
+                    .map(NovelCategoryRelation::getCategoryId)
+                    .collect(Collectors.toList());
+            List<NovelCategory> categories = novelCategoryMapper.selectBatchIds(catIds);
+            for (NovelCategory cat : categories) {
+                categoryIds.add(cat.getId());
+                categoryNames.add(cat.getType());
+                categoryNamesKeyword.add(cat.getType());
+                // 取第一个分类的频道类型
+                if (categoryType == null && cat.getCategory() != null) {
+                    categoryType = cat.getCategory();
+                }
+            }
+        }
+
+        basicInfo.put("categoryIds", categoryIds);
+        basicInfo.put("categoryNames", categoryNames);
+        basicInfo.put("categoryNamesKeyword", categoryNamesKeyword);
+        basicInfo.put("categoryType", categoryType);
+
+        return Result.success(basicInfo);
+    }
+
+    /**
+     * 小说创建时更新排行榜 ZSET
+     */
+    private void updateRankingOnNovelCreate(Novel novel) {
+        try {
+            // 新书榜：score = 创建时间戳
+            cacheService.zAdd(CacheConstants.RANKING_NOVEL_NEW,
+                    novel.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                    String.valueOf(novel.getId()));
+            // 最新更新榜：score = 更新时间戳
+            cacheService.zAdd(CacheConstants.RANKING_NOVEL_LATEST,
+                    novel.getUpdateTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                    String.valueOf(novel.getId()));
+            // 连载榜：score = 章节数（初始为0）
+            if (!novel.getIsFinished()) {
+                cacheService.zAdd(CacheConstants.RANKING_NOVEL_ONGOING,
+                        novel.getChapterCount() != null ? novel.getChapterCount() : 0,
+                        String.valueOf(novel.getId()));
+            }
+            // 收藏榜：score = 收藏数（初始为0）
+            cacheService.zAdd(CacheConstants.RANKING_NOVEL_COLLECT,
+                    novel.getCollectCount() != null ? novel.getCollectCount() : 0,
+                    String.valueOf(novel.getId()));
+            // 作者高产榜：score = 作品数+1
+            cacheService.zIncrBy(CacheConstants.RANKING_AUTHOR_PRODUCTIVE, 1, String.valueOf(novel.getAuthorId()));
+            log.info("排行榜ZSET更新成功（小说创建）：novelId={}", novel.getId());
+        } catch (Exception e) {
+            log.error("排行榜ZSET更新失败（小说创建）：novelId={}, error={}", novel.getId(), e.getMessage());
+        }
+    }
+
+    /**
+     * 小说删除时更新排行榜 ZSET
+     */
+    private void updateRankingOnNovelDelete(Novel novel) {
+        try {
+            String novelIdStr = String.valueOf(novel.getId());
+            // 从所有小说排行榜中移除
+            cacheService.zRem(CacheConstants.RANKING_NOVEL_COLLECT, novelIdStr);
+            cacheService.zRem(CacheConstants.RANKING_NOVEL_ONGOING, novelIdStr);
+            cacheService.zRem(CacheConstants.RANKING_NOVEL_LATEST, novelIdStr);
+            cacheService.zRem(CacheConstants.RANKING_NOVEL_NEW, novelIdStr);
+            // 作者高产榜：score = 作品数-1
+            cacheService.zIncrBy(CacheConstants.RANKING_AUTHOR_PRODUCTIVE, -1, String.valueOf(novel.getAuthorId()));
+            log.info("排行榜ZSET更新成功（小说删除）：novelId={}", novel.getId());
+        } catch (Exception e) {
+            log.error("排行榜ZSET更新失败（小说删除）：novelId={}, error={}", novel.getId(), e.getMessage());
+        }
     }
 }

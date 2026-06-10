@@ -6,7 +6,8 @@ import type {
   CommentQueryDTO,
   SensitiveWordVO,
   SensitiveWordDTO,
-  SensitiveWordQueryDTO
+  SensitiveWordQueryDTO,
+  AuditResultVO
 } from '@/types/comment'
 
 // ==================== 评论接口 ====================
@@ -15,7 +16,7 @@ import type {
  * 发表评论
  */
 export function addComment(data: CommentDTO) {
-  return request.post<number>('/comment-server/comment/add', data)
+  return request.post<CommentVO>('/comment-server/comment/add', data)
 }
 
 /**
@@ -166,7 +167,7 @@ export function managerAuditComment(id: number, auditLevel: number) {
  * 管理员批量删除评论
  */
 export function managerBatchDeleteComment(ids: number[]) {
-  return request.delete('/comment-server/manager/comment/batch-delete', ids as any)
+  return request.delete('/comment-server/manager/comment/batch-delete', undefined, { data: ids })
 }
 
 /**
@@ -242,9 +243,7 @@ export function detectSensitiveWords(content: string) {
  * 过滤文本中的敏感词
  */
 export function filterSensitiveWords(content: string, replacement: string = '*') {
-  return request.post<string>('/common-server/sensitive-word/filter', { content }, {
-    params: { replacement }
-  })
+  return request.post<string>('/common-server/sensitive-word/filter', { content, replacement })
 }
 
 /**
@@ -252,4 +251,34 @@ export function filterSensitiveWords(content: string, replacement: string = '*')
  */
 export function refreshSensitiveWordCache() {
   return request.post('/common-server/sensitive-word/refresh-cache')
+}
+
+/**
+ * 批量添加敏感词
+ */
+export function batchAddSensitiveWords(words: string[], category?: number, level?: number, creatorId?: number) {
+  return request.post('/common-server/sensitive-word/batch-add', words, {
+    params: { category, level, creatorId }
+  })
+}
+
+/**
+ * 批量删除敏感词
+ */
+export function batchDeleteSensitiveWords(ids: number[]) {
+  return request.delete('/common-server/sensitive-word/batch-delete', undefined, { data: ids })
+}
+
+/**
+ * 获取敏感词详情
+ */
+export function getSensitiveWordDetail(id: number) {
+  return request.get<SensitiveWordVO>(`/common-server/sensitive-word/detail/${id}`)
+}
+
+/**
+ * 本地敏感词审核
+ */
+export function auditTextBySensitiveWord(content: string) {
+  return request.post<AuditResultVO>('/common-server/sensitive-word/auditText', { content })
 }

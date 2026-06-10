@@ -10,12 +10,12 @@ public class VisitorFollowDTO {
     /**
      * 访客ID
      */
-    private Integer visitorId;
+    private Long visitorId;
 
     /**
      * 作者ID
      */
-    private Integer authorId;
+    private Long authorId;
 
     /**
      * 作者名称

@@ -35,20 +35,20 @@ public class AuthorController {
 
     @PostMapping("logout")
     @ApiOperation("作者退出登入")
-    public Result logout(Integer id){
+    public Result logout(Long id){
         log.info("作者退出登入,id= {}", id);
         return authorService.logout(id);
     }
 
     @GetMapping("info/{id}")
     @ApiOperation("获取作者信息")
-    public Result getAuthorInfo(@PathVariable Integer id){
+    public Result getAuthorInfo(@PathVariable Long id){
         log.info("获取作者信息请求：ID={}", id);
         return authorService.getAuthorInfo(id);
     }
     @GetMapping("getNameAndAvatar/{id}")
     @ApiOperation("获取作者公开信息（访客端）")
-    public Result getNameAndAvatar(@PathVariable Integer id){
+    public Result getNameAndAvatar(@PathVariable Long id){
         log.info("获取作者公开信息请求：ID={}", id);
         return authorService.getNameAndAvatar(id);
     }
@@ -64,7 +64,7 @@ public class AuthorController {
 
     @DeleteMapping("delete/{id}")
     @ApiOperation("作者注销（逻辑删除）")
-    public Result deleteAuthor(@PathVariable Integer id){
+    public Result deleteAuthor(@PathVariable Long id){
         log.info("作者注销请求：ID={}", id);
         return authorService.deleteAuthor(id);
     }
@@ -81,7 +81,7 @@ public class AuthorController {
     @PostMapping("/updatePassword")
     @ApiOperation("修改作者密码")
     public Result updatePassword(
-            @ApiParam("作者ID") @RequestParam Integer id,
+            @ApiParam("作者ID") @RequestParam Long id,
             @ApiParam("旧密码") @RequestParam String oldPassword,
             @ApiParam("新密码") @RequestParam String newPassword) {
         log.info("修改作者密码请求：ID={}", id);

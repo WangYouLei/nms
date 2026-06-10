@@ -62,9 +62,9 @@
         </el-button>
       </div>
 
-      <el-table :data="commentList" v-loading="loading" stripe @selection-change="handleSelectionChange">
+      <el-table :data="commentList" v-loading="loading" stripe @selection-change="handleSelectionChange" style="width: 100%">
         <el-table-column type="selection" width="50" />
-        <el-table-column label="用户" width="150">
+        <el-table-column label="用户" width="180">
           <template #default="{ row }">
             <div class="flex items-center gap-2">
               <el-avatar :size="32" :src="getAvatarUrl(row.userAvatar)">
@@ -79,10 +79,10 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="评论内容" min-width="300">
+        <el-table-column label="评论内容" min-width="350">
           <template #default="{ row }">
-            <div class="py-2">
-              <p class="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">{{ row.content }}</p>
+            <div class="py-2 overflow-hidden">
+              <p class="text-sm text-gray-700 dark:text-gray-300 line-clamp-3 break-words">{{ row.content }}</p>
               <div class="mt-1 text-xs text-gray-400">
                 <span v-if="row.targetTypeName">{{ row.targetTypeName }}ID: {{ row.targetId }}</span>
                 <span class="mx-2">|</span>
@@ -100,7 +100,7 @@
         </el-table-column>
         <el-table-column prop="replyCount" label="回复数" width="80" />
         <el-table-column prop="createTime" label="发布时间" width="160" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button size="small" link type="primary" @click="handleViewDetail(row)">详情</el-button>
             <el-dropdown trigger="click" @command="(cmd: string) => handleAudit(row, cmd)">
@@ -357,5 +357,31 @@ onMounted(() => {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+:deep(.el-table) {
+  table-layout: fixed;
+}
+
+:deep(.el-table__body) {
+  width: 100% !important;
+}
+
+:deep(.el-table__cell) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.el-table__cell .cell) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 评论内容列允许换行 */
+:deep(.el-table__cell:nth-child(3) .cell) {
+  white-space: normal;
+  overflow: visible;
 }
 </style>

@@ -76,6 +76,12 @@ export interface NovelListVO {
   updateTime: string
   /** 分类名称 */
   categoryName?: string
+  /** 评论数量 */
+  commentCount?: number
+  /** 阅读数量 */
+  readCount?: number
+  /** 小说简介 */
+  introduction?: string
 }
 
 /**
@@ -176,17 +182,30 @@ export interface AuthorDetailVO {
 }
 
 /**
+ * 作者排行榜项
+ */
+export interface AuthorRankingItem {
+  /** 排名 */
+  rank: number
+  /** 作者ID */
+  id: number
+  /** 作者名称 */
+  name: string
+  /** 作者等级 */
+  authorRank: number
+  /** 等级名称 */
+  rankName: string
+  /** 作品数量 */
+  novelCount: number
+  /** 头像 */
+  avatar?: string
+}
+
+/**
  * 作者排行榜VO
  */
 export interface AuthorRankingVO {
-  /** 作者ID */
-  authorId: number
-  /** 作者名称 */
-  authorName: string
-  /** 作品数量 */
-  novelCount: number
-  /** 作者等级 */
-  rank: number
+  items: AuthorRankingItem[]
 }
 
 /**
@@ -286,19 +305,44 @@ export interface TrendVO {
 }
 
 /**
- * 小说排行榜VO
+ * 小说排行榜项
  */
-export interface NovelRankingVO {
+export interface NovelRankingItem {
+  /** 排名 */
+  rank: number
   /** 小说ID */
-  novelId: number
+  id: number
   /** 小说名称 */
-  novelName: string
+  name: string
   /** 作者名称 */
   authorName: string
+  /** 作者头像 */
+  authorAvatar?: string
+  /** 作者等级 */
+  authorRank?: number
   /** 章节数量 */
   chapterCount: number
   /** 是否完结 */
   isFinished: boolean
+  /** 是否热门 */
+  isHot: boolean
+  /** 链接 */
+  url?: string
+  /** 更新时间 */
+  updateTime: string
+  /** 收藏数 */
+  collectCount?: number
+  /** 总字数 */
+  allWordCount?: number
+  /** 评分 */
+  score?: number
+}
+
+/**
+ * 小说排行榜VO
+ */
+export interface NovelRankingVO {
+  items: NovelRankingItem[]
 }
 
 /**
@@ -317,6 +361,8 @@ export interface NovelStatisticsVO {
 export interface VisitorCollectVO {
   /** 收藏记录ID */
   id: number
+  /** 访客ID */
+  visitorId: number
   /** 小说ID */
   novelId: number
   /** 小说名称 */
@@ -356,5 +402,19 @@ export interface VisitorFollowVO {
   /** 作者简介 */
   authorIntroduction?: string
   /** 关注时间 */
+  createTime: string
+  /** 更新时间 */
+  updateTime?: string
+}
+
+export interface VisitorReadingProgressVO {
+  id: number
+  novelId: number
+  novelName: string
+  novelUrl?: string
+  authorName?: string
+  chapterId: number
+  chapterOrder: number
+  lastReadTime: string
   createTime: string
 }

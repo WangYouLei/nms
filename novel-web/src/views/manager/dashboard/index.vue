@@ -94,8 +94,8 @@
         </div>
         <div v-else class="space-y-2">
           <div 
-            v-for="(novel, index) in ongoingRanking" 
-            :key="novel.novelId"
+            v-for="(novel, index) in ongoingRanking"
+            :key="novel.id"
             class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
             <span 
@@ -110,7 +110,7 @@
               {{ index + 1 }}
             </span>
             <div class="flex-1 min-w-0">
-              <p class="font-medium text-gray-800 dark:text-gray-200 truncate">{{ novel.novelName }}</p>
+              <p class="font-medium text-gray-800 dark:text-gray-200 truncate">{{ novel.name }}</p>
               <p class="text-sm text-gray-500">{{ novel.authorName }}</p>
             </div>
             <span class="text-sm text-gray-400 flex-shrink-0">{{ novel.chapterCount }}章</span>
@@ -134,7 +134,7 @@
         <div v-else class="space-y-2">
           <div 
             v-for="(author, index) in authorRanking" 
-            :key="author.authorId"
+            :key="author.id"
             class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
             <span 
@@ -149,9 +149,129 @@
               {{ index + 1 }}
             </span>
             <div class="flex-1">
-              <p class="font-medium text-gray-800 dark:text-gray-200">{{ author.authorName }}</p>
+              <p class="font-medium text-gray-800 dark:text-gray-200">{{ author.name }}</p>
             </div>
             <span class="text-sm text-gray-400 flex-shrink-0">{{ author.novelCount }}部作品</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 新增排行榜 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- 收藏榜 -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+            <el-icon class="text-yellow-500" :size="18"><StarFilled /></el-icon>
+            收藏榜
+          </h3>
+          <span class="text-xs text-gray-400">TOP 10</span>
+        </div>
+        
+        <div v-if="collectRanking.length === 0" class="text-center py-8 text-gray-400">
+          暂无数据
+        </div>
+        <div v-else class="space-y-2">
+          <div 
+            v-for="(novel, index) in collectRanking" 
+            :key="novel.id"
+            class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <span 
+              class="w-7 h-7 flex items-center justify-center rounded-lg text-sm font-bold flex-shrink-0"
+              :class="{
+                'bg-yellow-400 text-white': index === 0,
+                'bg-gray-300 text-white': index === 1,
+                'bg-amber-600 text-white': index === 2,
+                'bg-gray-100 dark:bg-gray-700 text-gray-500': index > 2
+              }"
+            >
+              {{ index + 1 }}
+            </span>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-gray-800 dark:text-gray-200 truncate">{{ novel.name }}</p>
+              <p class="text-sm text-gray-500">{{ novel.authorName }}</p>
+            </div>
+            <span class="text-sm text-gray-400 flex-shrink-0">{{ novel.collectCount ?? 0 }}收藏</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 最新更新榜 -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+            <el-icon class="text-blue-500" :size="18"><Clock /></el-icon>
+            最新更新榜
+          </h3>
+          <span class="text-xs text-gray-400">TOP 10</span>
+        </div>
+        
+        <div v-if="latestRanking.length === 0" class="text-center py-8 text-gray-400">
+          暂无数据
+        </div>
+        <div v-else class="space-y-2">
+          <div 
+            v-for="(novel, index) in latestRanking" 
+            :key="novel.id"
+            class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <span 
+              class="w-7 h-7 flex items-center justify-center rounded-lg text-sm font-bold flex-shrink-0"
+              :class="{
+                'bg-yellow-400 text-white': index === 0,
+                'bg-gray-300 text-white': index === 1,
+                'bg-amber-600 text-white': index === 2,
+                'bg-gray-100 dark:bg-gray-700 text-gray-500': index > 2
+              }"
+            >
+              {{ index + 1 }}
+            </span>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-gray-800 dark:text-gray-200 truncate">{{ novel.name }}</p>
+              <p class="text-sm text-gray-500">{{ novel.authorName }}</p>
+            </div>
+            <span class="text-sm text-gray-400 flex-shrink-0">{{ novel.chapterCount }}章</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 新书榜 -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+            <el-icon class="text-purple-500" :size="18"><Promotion /></el-icon>
+            新书榜
+          </h3>
+          <span class="text-xs text-gray-400">TOP 10</span>
+        </div>
+        
+        <div v-if="newRanking.length === 0" class="text-center py-8 text-gray-400">
+          暂无数据
+        </div>
+        <div v-else class="space-y-2">
+          <div 
+            v-for="(novel, index) in newRanking" 
+            :key="novel.id"
+            class="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <span 
+              class="w-7 h-7 flex items-center justify-center rounded-lg text-sm font-bold flex-shrink-0"
+              :class="{
+                'bg-yellow-400 text-white': index === 0,
+                'bg-gray-300 text-white': index === 1,
+                'bg-amber-600 text-white': index === 2,
+                'bg-gray-100 dark:bg-gray-700 text-gray-500': index > 2
+              }"
+            >
+              {{ index + 1 }}
+            </span>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-gray-800 dark:text-gray-200 truncate">{{ novel.name }}</p>
+              <p class="text-sm text-gray-500">{{ novel.authorName }}</p>
+            </div>
+            <span class="text-sm text-gray-400 flex-shrink-0">{{ novel.chapterCount }}章</span>
           </div>
         </div>
       </div>
@@ -230,11 +350,12 @@
 import { reactive, ref, onMounted } from 'vue'
 import { 
   Reading, User, Avatar, Folder, Refresh, Calendar, 
-  TrendCharts, Medal, DataAnalysis, Operation, Document, List
+  TrendCharts, Medal, DataAnalysis, Operation, Document, List,
+  StarFilled, Clock, Promotion
 } from '@element-plus/icons-vue'
 import StatisticsCard from '@/components/business/statistics-card.vue'
-import { getDashboardOverview, getNovelOngoingRanking, getAuthorProductiveRanking } from '@/api'
-import type { DashboardOverviewVO, NovelRankingVO, AuthorRankingVO } from '@/types'
+import { getDashboardOverview, getNovelOngoingRanking, getAuthorProductiveRanking, getNovelCollectRanking, getNovelLatestRanking, getNovelNewRanking } from '@/api/manager'
+import type { DashboardOverviewVO, NovelRankingItem, AuthorRankingItem } from '@/types'
 
 const overview = reactive<DashboardOverviewVO>({
   novelCount: 0,
@@ -248,20 +369,32 @@ const overview = reactive<DashboardOverviewVO>({
   finishedNovelCount: 0
 })
 
-const ongoingRanking = ref<NovelRankingVO[]>([])
-const authorRanking = ref<AuthorRankingVO[]>([])
+const ongoingRanking = ref<NovelRankingItem[]>([])
+const authorRanking = ref<AuthorRankingItem[]>([])
+const collectRanking = ref<NovelRankingItem[]>([])
+const latestRanking = ref<NovelRankingItem[]>([])
+const newRanking = ref<NovelRankingItem[]>([])
 
 const fetchData = async () => {
   try {
-    const [overviewRes, novelRes, authorRes] = await Promise.all([
-      getDashboardOverview(),
-      getNovelOngoingRanking(10),
-      getAuthorProductiveRanking(10)
-    ])
-    
+    // 概览数据单独获取，排行榜用 allSettled 避免单点故障
+    const overviewRes = await getDashboardOverview()
     Object.assign(overview, overviewRes.data)
-    ongoingRanking.value = novelRes.data || []
-    authorRanking.value = authorRes.data || []
+
+    const results = await Promise.allSettled([
+      getNovelOngoingRanking(10),
+      getAuthorProductiveRanking(10),
+      getNovelCollectRanking(10),
+      getNovelLatestRanking(10),
+      getNovelNewRanking(10)
+    ])
+
+    const [novelRes, authorRes, collectRes, latestRes, newRes] = results
+    if (novelRes.status === 'fulfilled') ongoingRanking.value = novelRes.value.data?.items || []
+    if (authorRes.status === 'fulfilled') authorRanking.value = authorRes.value.data?.items || []
+    if (collectRes.status === 'fulfilled') collectRanking.value = collectRes.value.data?.items || []
+    if (latestRes.status === 'fulfilled') latestRanking.value = latestRes.value.data?.items || []
+    if (newRes.status === 'fulfilled') newRanking.value = newRes.value.data?.items || []
   } catch (error) {
     console.error('Failed to fetch data:', error)
   }

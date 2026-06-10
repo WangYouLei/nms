@@ -16,10 +16,18 @@ export interface Novel {
   authorId: number
   /** 作者名称 */
   authorName?: string
+  /** 作者头像 */
+  authorAvatar?: string
+  /** 作者等级 */
+  authorRank?: number
   /** 封面图片路径 */
   url?: string
   /** 小说章节数 */
   chapterCount?: number
+  /** 总字数 */
+  allWordCount?: number
+  /** 收藏数量 */
+  collectCount?: number
   /** 是否完结 */
   isFinished: boolean
   /** 是否热门 */
@@ -44,6 +52,8 @@ export interface NovelChapter {
   title: string
   /** 章节内容URL */
   contentUrl: string
+  /** 章节字数 */
+  wordCount?: number
   /** 章节顺序 */
   chapterOrder: number
   /** 创建时间 */
@@ -80,6 +90,8 @@ export interface NovelCategoryRelation {
   novelId: number
   /** 分类ID */
   categoryId: number
+  /** 创建时间 */
+  createTime?: string
 }
 
 /**
@@ -98,6 +110,8 @@ export interface Author {
   email?: string
   /** 作者头像地址 */
   avatar?: string
+  /** 简介 */
+  introduction?: string
   /** 等级：1-执笔者，2-织梦师，3-造界者，4-渡舟人，5-燃灯者 */
   rank: number
   /** 作品数量 */

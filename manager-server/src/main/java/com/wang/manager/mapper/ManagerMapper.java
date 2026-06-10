@@ -12,5 +12,5 @@ public interface ManagerMapper extends BaseMapper<Manager> {
      * @param manager 管理员信息
      * @return 影响行数
      */
-    int update(Manager manager);
+    int updateSelective(Manager manager);
 }

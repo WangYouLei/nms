@@ -145,11 +145,21 @@
             {{ currentAudit?.aimTypeName }} (ID: {{ currentAudit?.aimId }})
           </p>
         </div>
+        <div v-if="currentAudit?.aimContent">
+          <p class="text-sm text-gray-500">审核对象内容</p>
+          <p class="mt-1 text-gray-800 dark:text-gray-200 whitespace-pre-wrap bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+            {{ currentAudit?.aimContent }}
+          </p>
+        </div>
         <div v-if="currentAudit?.aiResult">
           <p class="text-sm text-gray-500">AI审核意见</p>
           <p class="mt-1 text-gray-800 dark:text-gray-200 whitespace-pre-wrap bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
             {{ currentAudit?.aiResult }}
           </p>
+        </div>
+        <div v-if="currentAudit?.submitterName">
+          <p class="text-sm text-gray-500">提交者</p>
+          <p class="mt-1 text-gray-800 dark:text-gray-200">{{ currentAudit?.submitterName }}</p>
         </div>
         <el-input
           v-model="auditReason"

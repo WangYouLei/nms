@@ -52,6 +52,27 @@ public interface DashboardService {
      */
     Result getAuthorProductiveRanking(Integer limit);
 
+    /**
+     * 小说收藏榜
+     * @param limit 返回数量
+     * @return 排行榜
+     */
+    Result getNovelCollectRanking(Integer limit);
+
+    /**
+     * 最新更新榜
+     * @param limit 返回数量
+     * @return 排行榜
+     */
+    Result getNovelLatestRanking(Integer limit);
+
+    /**
+     * 新书榜
+     * @param limit 返回数量
+     * @return 排行榜
+     */
+    Result getNovelNewRanking(Integer limit);
+
     // ==================== 趋势统计 ====================
 
     /**

@@ -99,7 +99,7 @@ public class ManagerServiceImpl implements ManagerService {
      * @return 退出结果
      */
     @Override
-    public Result logout(Integer managerId) {
+    public Result logout(Long managerId) {
         log.info("管理员退出登录：ID={}", managerId);
         
         if (managerId == null) {
@@ -177,7 +177,7 @@ public class ManagerServiceImpl implements ManagerService {
      * 删除管理员
      */
     @Override
-    public Result deleteManager(Integer id) {
+    public Result deleteManager(Long id) {
         log.info("删除管理员：ID={}", id);
 
         // 检查管理员是否存在
@@ -219,7 +219,7 @@ public class ManagerServiceImpl implements ManagerService {
         // 设置更新时间
         existingManager.setUpdateTime(LocalDateTime.now());
 
-        int result = managerMapper.update(existingManager);
+        int result = managerMapper.updateSelective(existingManager);
         if (result == 1) {
             log.info("修改管理员信息成功：ID={}", existingManager.getId());
             ManagerVO vo = new ManagerVO();
@@ -321,7 +321,7 @@ public class ManagerServiceImpl implements ManagerService {
      * 修改管理员密码
      */
     @Override
-    public Result updatePassword(Integer id, String newPassword) {
+    public Result updatePassword(Long id, String newPassword) {
         log.info("修改管理员密码：ID={}", id);
 
         // 检查管理员是否存在
@@ -336,7 +336,7 @@ public class ManagerServiceImpl implements ManagerService {
         manager.setPassword(hashedPassword);
         LoginUser loginUser = RoleContextUtil.getCurrentUser();
 
-        int result = managerMapper.update(manager);
+        int result = managerMapper.updateSelective(manager);
         if (result == 1) {
             log.info("修改管理员密码成功：被修改ID={}，修改者ID={}", id,loginUser.getId());
             return Result.success("密码修改成功");
@@ -347,7 +347,7 @@ public class ManagerServiceImpl implements ManagerService {
     }
 
     @Override
-    public Result getNameAndAvatar(Integer id) {
+    public Result getNameAndAvatar(Long id) {
         log.info("获取管理员名称和头像：ID={}", id);
         
         // 先从缓存获取
@@ -373,5 +373,33 @@ public class ManagerServiceImpl implements ManagerService {
         log.info("管理员名称和头像已缓存：key={}", cacheKey);
         
         return Result.success(map);
+    }
+
+    @Override
+    public Result getManagerAvatar(Long managerId) {
+        log.info("[内部调用] 获取管理员头像：managerId={}", managerId);
+        Manager manager = managerMapper.selectById(managerId);
+        if (manager == null) {
+            log.warn("[内部调用] 管理员不存在：managerId={}", managerId);
+            return Result.error("管理员不存在");
+        }
+        return Result.success(manager.getAvatar());
+    }
+
+    @Override
+    public Result batchGetManagerAvatars(List<Long> managerIds) {
+        log.info("[内部调用] 批量获取管理员头像：count={}", managerIds.size());
+        if (managerIds.isEmpty()) {
+            return Result.success(new HashMap<>());
+        }
+        List<Manager> managers = managerMapper.selectBatchIds(managerIds);
+        Map<Long, String> avatarMap = new HashMap<>();
+        for (Manager manager : managers) {
+            if (manager != null) {
+                avatarMap.put(manager.getId(), manager.getAvatar());
+            }
+        }
+        log.info("[内部调用] 批量获取管理员头像完成：请求{}个，返回{}个", managerIds.size(), avatarMap.size());
+        return Result.success(avatarMap);
     }
 }

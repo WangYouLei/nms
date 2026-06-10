@@ -33,35 +33,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/minio/, '')
       },
-      '/api/common-server': {
-        target: 'http://localhost:5220',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/common-server/, '')
-      },
-      '/api/novel-server': {
-        target: 'http://localhost:5250',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/novel-server/, '')
-      },
-      '/api/author-server': {
-        target: 'http://localhost:5200',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/author-server/, '')
-      },
-      '/api/visitor-server': {
-        target: 'http://localhost:5210',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/visitor-server/, '')
-      },
-      '/api/manager-server': {
-        target: 'http://localhost:5280',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/manager-server/, '')
-      },
-      '/api/comment-server': {
-        target: 'http://localhost:5260',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/comment-server/, '')
+      // 所有API请求统一走网关
+      '/api': {
+        target: 'http://localhost:5100',
+        changeOrigin: true
       }
     }
   },

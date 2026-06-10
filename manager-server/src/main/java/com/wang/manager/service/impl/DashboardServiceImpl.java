@@ -3,6 +3,7 @@ package com.wang.manager.service.impl;
 import com.wang.common.result.Result;
 import com.wang.common.service.CacheService;
 import com.wang.common.constants.CacheConstants;
+import com.wang.common.model.ZSetEntry;
 import com.wang.manager.mapper.StatisticsMapper;
 import com.wang.manager.service.DashboardService;
 import com.wang.pojo.vo.AuthorRankingVO;
@@ -16,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +33,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     private final StatisticsMapper statisticsMapper;
     private final CacheService cacheService;
+    private static final int RANKING_LIMIT_MAX = 100;
 
     public DashboardServiceImpl(StatisticsMapper statisticsMapper, CacheService cacheService) {
         this.statisticsMapper = statisticsMapper;
@@ -213,81 +217,83 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public Result getNovelOngoingRanking(Integer limit) {
         log.info("连载榜：limit={}", limit);
-
-        // 先从缓存获取
-        String cacheKey = CacheConstants.buildRankingKey("novel:ongoing", limit);
-        NovelRankingVO cachedVo = cacheService.get(cacheKey, NovelRankingVO.class);
-        if (cachedVo != null) {
-            log.info("从缓存获取连载榜");
-            return Result.success(cachedVo);
-        }
-
-        List<LinkedHashMap<String, Object>> dataList = statisticsMapper.rankNovelsByOngoing(limit);
-
-        NovelRankingVO vo = new NovelRankingVO();
-        List<NovelRankingVO.Item> items = new java.util.ArrayList<>();
-        
-        int rank = 1;
-        for (LinkedHashMap<String, Object> map : dataList) {
-            NovelRankingVO.Item item = new NovelRankingVO.Item();
-            item.setRank(rank++);
-            item.setId(getIntValue(map, "id"));
-            item.setName((String) map.get("name"));
-            item.setAuthorName((String) map.get("authorName"));
-            item.setChapterCount(getIntValue(map, "chapterCount"));
-            item.setIsFinished(getBoolValue(map, "isFinished"));
-            item.setIsHot(getBoolValue(map, "isHot"));
-            item.setUrl((String) map.get("url"));
-            item.setUpdateTime((String) map.get("updateTime"));
-            items.add(item);
-        }
-        vo.setItems(items);
-
-        // 存入缓存
-        cacheService.set(cacheKey, vo, CacheConstants.RANKING_TTL);
-        log.info("连载榜已缓存");
-
-        log.info("连载榜获取完成：结果数={}", items.size());
-        return Result.success(vo);
+        return buildNovelRankingFromZSet(CacheConstants.RANKING_NOVEL_ONGOING, limit, "连载榜");
     }
 
     @Override
     public Result getAuthorProductiveRanking(Integer limit) {
         log.info("作者高产榜：limit={}", limit);
 
-        // 先从缓存获取
-        String cacheKey = CacheConstants.buildRankingKey("author:productive", limit);
-        AuthorRankingVO cachedVo = cacheService.get(cacheKey, AuthorRankingVO.class);
-        if (cachedVo != null) {
-            log.info("从缓存获取作者高产榜");
-            return Result.success(cachedVo);
+        limit = sanitizeLimit(limit);
+
+        // 从 Redis ZSET 读取排行榜
+        List<ZSetEntry> entries = cacheService.zRevRangeWithScores(
+                CacheConstants.RANKING_AUTHOR_PRODUCTIVE, 0, limit - 1);
+
+        if (entries.isEmpty()) {
+            log.info("作者高产榜 ZSET 为空，返回空列表");
+            AuthorRankingVO vo = new AuthorRankingVO();
+            vo.setItems(new ArrayList<>());
+            return Result.success(vo);
         }
 
-        List<LinkedHashMap<String, Object>> dataList = statisticsMapper.rankAuthorsByProductive(limit);
+        // 批量获取作者详情
+        List<Long> authorIds = entries.stream()
+                .map(e -> Long.parseLong(e.getMember()))
+                .collect(Collectors.toList());
+        List<LinkedHashMap<String, Object>> dataList = statisticsMapper.batchGetAuthorsByIds(authorIds);
 
-        AuthorRankingVO vo = new AuthorRankingVO();
-        List<AuthorRankingVO.Item> items = new java.util.ArrayList<>();
-
-        int rank = 1;
+        // 构建详情映射
+        Map<Long, LinkedHashMap<String, Object>> detailMap = new HashMap<>();
         for (LinkedHashMap<String, Object> map : dataList) {
+            Long id = getLongValue(map, "id");
+            if (id != null) {
+                detailMap.put(id, map);
+            }
+        }
+
+        // 组装排行榜 VO
+        AuthorRankingVO vo = new AuthorRankingVO();
+        List<AuthorRankingVO.Item> items = new ArrayList<>();
+        int rank = 1;
+        for (ZSetEntry entry : entries) {
+            Long authorId = Long.parseLong(entry.getMember());
+            LinkedHashMap<String, Object> detail = detailMap.get(authorId);
+            if (detail == null) {
+                continue;
+            }
             AuthorRankingVO.Item item = new AuthorRankingVO.Item();
             item.setRank(rank++);
-            item.setId(getIntValue(map, "id"));
-            item.setName((String) map.get("name"));
-            item.setAuthorRank(getIntValue(map, "authorRank"));
-            item.setRankName((String) map.get("rankName"));
-            item.setNovelCount(getIntValue(map, "novelCount"));
-            item.setAvatar((String) map.get("avatar"));
+            item.setId(authorId);
+            item.setName((String) detail.get("name"));
+            item.setAuthorRank(getIntValue(detail, "authorRank"));
+            item.setRankName((String) detail.get("rankName"));
+            item.setNovelCount(getIntValue(detail, "novelCount"));
+            item.setAvatar((String) detail.get("avatar"));
             items.add(item);
         }
         vo.setItems(items);
 
-        // 存入缓存
-        cacheService.set(cacheKey, vo, CacheConstants.RANKING_TTL);
-        log.info("作者高产榜已缓存");
-
         log.info("作者高产榜获取完成：结果数={}", items.size());
         return Result.success(vo);
+    }
+
+    @Override
+    public Result getNovelCollectRanking(Integer limit) {
+        log.info("小说收藏榜：limit={}", limit);
+        return buildNovelRankingFromZSet(CacheConstants.RANKING_NOVEL_COLLECT, limit, "小说收藏榜");
+    }
+
+    @Override
+    public Result getNovelLatestRanking(Integer limit) {
+        log.info("最新更新榜：limit={}", limit);
+        return buildNovelRankingFromZSet(CacheConstants.RANKING_NOVEL_LATEST, limit, "最新更新榜");
+    }
+
+    @Override
+    public Result getNovelNewRanking(Integer limit) {
+        log.info("新书榜：limit={}", limit);
+        return buildNovelRankingFromZSet(CacheConstants.RANKING_NOVEL_NEW, limit, "新书榜");
     }
 
     // ==================== 趋势统计 ====================
@@ -443,6 +449,17 @@ public class DashboardServiceImpl implements DashboardService {
         return null;
     }
 
+    private Long getLongValue(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number num) {
+            return num.longValue();
+        }
+        return null;
+    }
+
     private Boolean getBoolValue(Map<String, Object> map, String key) {
         Object value = map.get(key);
         if (value == null) {
@@ -455,5 +472,65 @@ public class DashboardServiceImpl implements DashboardService {
             return num.intValue() == 1;
         }
         return false;
+    }
+
+    private int sanitizeLimit(Integer limit) {
+        if (limit == null || limit < 1) {
+            return 10;
+        }
+        return Math.min(limit, RANKING_LIMIT_MAX);
+    }
+
+    private Result buildNovelRankingFromZSet(String zsetKey, Integer limit, String rankingName) {
+        limit = sanitizeLimit(limit);
+
+        List<ZSetEntry> entries = cacheService.zRevRangeWithScores(zsetKey, 0, limit - 1);
+        if (entries.isEmpty()) {
+            NovelRankingVO vo = new NovelRankingVO();
+            vo.setItems(new ArrayList<>());
+            return Result.success(vo);
+        }
+
+        List<Long> novelIds = entries.stream()
+                .map(e -> Long.parseLong(e.getMember()))
+                .collect(Collectors.toList());
+        List<LinkedHashMap<String, Object>> dataList = statisticsMapper.batchGetNovelsByIds(novelIds);
+
+        Map<Long, LinkedHashMap<String, Object>> detailMap = new HashMap<>();
+        for (LinkedHashMap<String, Object> map : dataList) {
+            Long id = getLongValue(map, "id");
+            if (id != null) {
+                detailMap.put(id, map);
+            }
+        }
+
+        NovelRankingVO vo = new NovelRankingVO();
+        List<NovelRankingVO.Item> items = new ArrayList<>();
+        int rank = 1;
+        for (ZSetEntry entry : entries) {
+            Long novelId = Long.parseLong(entry.getMember());
+            LinkedHashMap<String, Object> detail = detailMap.get(novelId);
+            if (detail == null) {
+                continue;
+            }
+            NovelRankingVO.Item item = new NovelRankingVO.Item();
+            item.setRank(rank++);
+            item.setId(novelId);
+            item.setName((String) detail.get("name"));
+            item.setAuthorName((String) detail.get("authorName"));
+            item.setChapterCount(getIntValue(detail, "chapterCount"));
+            item.setCollectCount(getIntValue(detail, "collectCount"));
+            item.setAllWordCount(getIntValue(detail, "allWordCount"));
+            item.setIsFinished(getBoolValue(detail, "isFinished"));
+            item.setIsHot(getBoolValue(detail, "isHot"));
+            item.setUrl((String) detail.get("url"));
+            item.setUpdateTime((String) detail.get("updateTime"));
+            item.setScore(entry.getScore());
+            items.add(item);
+        }
+        vo.setItems(items);
+
+        log.info("{}获取完成：结果数={}", rankingName, items.size());
+        return Result.success(vo);
     }
 }

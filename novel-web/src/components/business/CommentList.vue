@@ -138,20 +138,36 @@ const handleCommentSubmit = async (content: string) => {
       rootId: replyTo.value?.rootId || replyTo.value?.id
     }
 
-    await addComment(dto)
-    ElMessage.success('评论发表成功')
+    const res = await addComment(dto)
+    const comment = res.data
+    
+    // 根据审核状态显示不同的提示
+    if (comment && comment.auditLevel === 0) {
+      // auditLevel=0 表示有敏感词，需要人工审核
+      ElMessage.warning('涉及敏感词，等待人工判断')
+    } else {
+      ElMessage.success('评论发表成功')
+    }
+    
     replyTo.value = null
     fetchComments()
   } catch (error: any) {
     console.error('Failed to add comment:', error)
-    // 从错误中获取后端返回的消息并提供更准确的反馈
+    // 从错误中获取后端返回的消息和错误码
     const errorMessage = error?.response?.data?.msg || '评论发表失败'
+    const errorCode = error?.response?.data?.code
     
-    // 检查错误信息中是否包含预设的特定关键词，以提供更直观的反馈
-    if (errorMessage.includes('高危')) {
-      ElMessage.error('您的评论内容包含敏感词汇，不允许发布')
-    } else if (errorMessage.includes('AI审核')) {
-      ElMessage.warning('您的评论内容AI审核未通过，建议修改后重试')
+    // 根据错误码提供更直观的反馈
+    if (errorCode === 50004) {
+      // 高危敏感词
+      ElMessage.error('涉及高危敏感词，禁止发布！')
+    } else if (errorCode === 50003) {
+      // 低危敏感词，等待人工审核
+      ElMessage.warning('涉及敏感词，等待人工判断')
+    } else if (errorMessage.includes('高危')) {
+      ElMessage.error('涉及高危敏感词，禁止发布！')
+    } else if (errorMessage.includes('敏感词')) {
+      ElMessage.warning('涉及敏感词，等待人工判断')
     } else {
       ElMessage.error(errorMessage)
     }

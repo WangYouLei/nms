@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 敏感词服务实现类
@@ -123,18 +124,26 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
     public Result batchAddSensitiveWord(Set<String> words, Integer category, Integer level, Long creatorId) {
         log.info("批量添加敏感词：count={}", words.size());
 
-        int successCount = 0;
-        int duplicateCount = 0;
-        List<SensitiveWordVO> addedWords = new ArrayList<>();
+        if (words.isEmpty()) {
+            return Result.success(Map.of("successCount", 0, "duplicateCount", 0, "addedWords", List.of()));
+        }
 
+        // 批量查询已存在的敏感词（一次查询替代N次查询）
+        List<String> wordList = new ArrayList<>(words);
+        List<SensitiveWord> existingWords = sensitiveWordMapper.selectByWords(wordList);
+        Set<String> existingWordSet = existingWords.stream()
+                .map(SensitiveWord::getWord)
+                .collect(Collectors.toSet());
+
+        int duplicateCount = existingWordSet.size();
+
+        // 构建待插入的实体列表（过滤已存在的）
+        LocalDateTime now = LocalDateTime.now();
+        List<SensitiveWord> entitiesToInsert = new ArrayList<>();
         for (String word : words) {
-            // 检查是否已存在
-            SensitiveWord existing = sensitiveWordMapper.selectByWord(word);
-            if (existing != null) {
-                duplicateCount++;
+            if (existingWordSet.contains(word)) {
                 continue;
             }
-
             SensitiveWord entity = new SensitiveWord();
             entity.setWord(word);
             entity.setCategory(category != null ? category : SensitiveCategoryEnum.OTHER.getValue());
@@ -142,12 +151,20 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
             entity.setStatus(EnableStatusEnum.ENABLED.getValue());
             entity.setSource(DataSourceEnum.MANAGER.getValue());
             entity.setCreatorId(creatorId);
-            entity.setCreateTime(LocalDateTime.now());
-            entity.setUpdateTime(LocalDateTime.now());
+            entity.setCreateTime(now);
+            entity.setUpdateTime(now);
+            entitiesToInsert.add(entity);
+        }
 
-            int result = sensitiveWordMapper.insert(entity);
-            if (result == 1) {
-                successCount++;
+        // 批量插入（一次INSERT替代N次INSERT）
+        int successCount = 0;
+        List<SensitiveWordVO> addedWords = new ArrayList<>();
+        if (!entitiesToInsert.isEmpty()) {
+            sensitiveWordMapper.insertBatch(entitiesToInsert);
+            successCount = entitiesToInsert.size();
+
+            // 批量更新DFA树
+            for (SensitiveWord entity : entitiesToInsert) {
                 dfaUtil.addWord(entity.getWord());
                 wordLevelMap.put(entity.getWord(), entity.getLevel());
                 addedWords.add(convertToVO(entity));
@@ -188,7 +205,7 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
         BeanUtils.copyProperties(dto, existing, "id", "createTime", "source", "creatorId");
         existing.setUpdateTime(LocalDateTime.now());
 
-        int result = sensitiveWordMapper.update(existing);
+        int result = sensitiveWordMapper.updateSelective(existing);
         if (result == 1) {
             // 更新DFA树
             dfaUtil.addWord(existing.getWord());
@@ -231,19 +248,18 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
     public Result batchDeleteSensitiveWord(Set<Long> ids) {
         log.info("批量删除敏感词：count={}", ids.size());
 
-        int successCount = 0;
-        for (Long id : ids) {
-            int result = sensitiveWordMapper.deleteById(id);
-            if (result == 1) {
-                successCount++;
-            }
+        if (ids.isEmpty()) {
+            return Result.success(Map.of("deletedCount", 0));
         }
+
+        // 批量删除（一次DELETE替代N次DELETE）
+        int deletedCount = sensitiveWordMapper.deleteBatchIds(ids);
 
         // 刷新DFA树
         initDFA();
 
-        log.info("批量删除敏感词完成：成功{}个", successCount);
-        return Result.success(Map.of("deletedCount", successCount));
+        log.info("批量删除敏感词完成：成功{}个", deletedCount);
+        return Result.success(Map.of("deletedCount", deletedCount));
     }
 
     @Override
@@ -315,7 +331,7 @@ public class SensitiveWordServiceImpl implements SensitiveWordService {
         entity.setStatus(status);
         entity.setUpdateTime(LocalDateTime.now());
 
-        int result = sensitiveWordMapper.update(entity);
+        int result = sensitiveWordMapper.updateSelective(entity);
         if (result == 1) {
             // 刷新DFA树
             initDFA();

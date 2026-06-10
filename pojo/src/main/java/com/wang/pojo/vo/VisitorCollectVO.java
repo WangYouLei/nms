@@ -14,10 +14,10 @@ import java.time.LocalDateTime;
 public class VisitorCollectVO {
 
     @ApiModelProperty("收藏记录ID")
-    private Integer id;
+    private Long id;
 
     @ApiModelProperty("小说ID")
-    private Integer novelId;
+    private Long novelId;
 
     @ApiModelProperty("小说名称")
     private String novelName;

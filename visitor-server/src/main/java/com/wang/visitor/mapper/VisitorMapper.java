@@ -14,5 +14,5 @@ public interface VisitorMapper extends BaseMapper<Visitor> {
      * @param visitor 访客信息
      * @return 影响行数
      */
-    int update(Visitor visitor);
+    int updateSelective(Visitor visitor);
 }

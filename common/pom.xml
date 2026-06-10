@@ -15,6 +15,12 @@
     <packaging>jar</packaging>
     
     <dependencies>
+        <!-- POJO依赖（Feign接口需要引用DTO/VO） -->
+        <dependency>
+            <groupId>com.wang</groupId>
+            <artifactId>pojo</artifactId>
+        </dependency>
+
         <!-- Lombok依赖，提供@Slf4j等注解 -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -65,6 +71,24 @@
         <dependency>
             <groupId>de.mkammerer</groupId>
             <artifactId>argon2-jvm</artifactId>
+        </dependency>
+
+        <!-- OpenFeign -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
+        <!-- Spring Cloud CircuitBreaker + Resilience4j（Feign Fallback 依赖此组件） -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+        </dependency>
+
+        <!-- Resilience4j 的 io.github.resilience4j:resilience4j-timelimiter 需要此依赖 -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-timelimiter</artifactId>
         </dependency>
 
         <!-- 测试依赖 -->

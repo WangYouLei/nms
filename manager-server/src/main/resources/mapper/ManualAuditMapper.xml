@@ -3,7 +3,7 @@
 <mapper namespace="com.wang.manager.mapper.ManualAuditMapper">
 
     <!-- 动态更新审核记录，只更新非 null 且非空的字段 -->
-    <update id="update" parameterType="com.wang.pojo.entity.ManualAudit">
+    <update id="updateSelective" parameterType="com.wang.pojo.entity.ManualAudit">
         UPDATE manual_audit
         <set>
             <if test="result != null">

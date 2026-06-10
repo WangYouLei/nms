@@ -49,6 +49,22 @@ export interface NovelSearchDTO extends PaginationParams {
 }
 
 /**
+ * 搜索DTO
+ */
+export interface SearchDTO extends PaginationParams {
+  keyword?: string
+  name?: string
+  subName?: string
+  authorId?: number
+  isHot?: boolean
+  isFinished?: boolean
+  categoryId?: number
+  categoryType?: number
+  tag?: string
+  sortBy?: string
+}
+
+/**
  * 小说章节DTO
  */
 export interface NovelChapterDTO {
@@ -206,6 +222,19 @@ export interface PasswordUpdateEmailDTO {
   code: string
   /** 新密码 */
   newPassword: string
+}
+
+/**
+ * 人工审核DTO
+ */
+export interface ManualAuditDTO {
+  id?: number
+  aimId: number
+  aimType: number
+  result?: number
+  refusalReason?: string
+  managerId?: number
+  managerName?: string
 }
 
 /**

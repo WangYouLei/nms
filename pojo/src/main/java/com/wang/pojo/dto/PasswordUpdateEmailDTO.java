@@ -8,7 +8,7 @@ public class PasswordUpdateEmailDTO {
     /**
      * 主键ID（已登录用户修改密码时使用）
      */
-    private Integer id;
+    private Long id;
     /**
      * 账号（忘记密码场景使用，与id二选一）
      */

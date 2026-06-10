@@ -59,9 +59,9 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
         int result = visitorFollowMapper.insert(follow);
         if (result == 1) {
             // 删除相关缓存
-            String checkKey = CacheConstants.buildFollowCheckKey(dto.getVisitorId().intValue(), dto.getAuthorId().intValue());
-            String countKey = CacheConstants.buildFollowCountKey(dto.getVisitorId().intValue());
-            String fansKey = CacheConstants.buildFansCountKey(dto.getAuthorId().intValue());
+            String checkKey = CacheConstants.buildFollowCheckKey(dto.getVisitorId(), dto.getAuthorId());
+            String countKey = CacheConstants.buildFollowCountKey(dto.getVisitorId());
+            String fansKey = CacheConstants.buildFansCountKey(dto.getAuthorId());
             cacheService.delete(checkKey);
             cacheService.delete(countKey);
             cacheService.delete(fansKey);
@@ -76,7 +76,7 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
 
     @Override
     @Transactional
-    public Result unfollow(Integer visitorId, Integer authorId) {
+    public Result unfollow(Long visitorId, Long authorId) {
         log.info("取消关注：visitorId={}, authorId={}", visitorId, authorId);
 
         LambdaQueryWrapper<VisitorFollow> queryWrapper = new LambdaQueryWrapper<>();
@@ -102,7 +102,7 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
     }
 
     @Override
-    public Result checkFollow(Integer visitorId, Integer authorId) {
+    public Result checkFollow(Long visitorId, Long authorId) {
         log.info("检查是否关注：visitorId={}, authorId={}", visitorId, authorId);
         
         // 先从缓存获取
@@ -124,7 +124,7 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
     }
 
     @Override
-    public Result getMyFollows(Integer visitorId, Integer pageNum, Integer pageSize) {
+    public Result getMyFollows(Long visitorId, Integer pageNum, Integer pageSize) {
         log.info("获取我的关注列表：visitorId={}", visitorId);
 
         LambdaQueryWrapper<VisitorFollow> queryWrapper = new LambdaQueryWrapper<>();
@@ -151,7 +151,7 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
     }
 
     @Override
-    public Result getFollowers(Integer authorId, Integer pageNum, Integer pageSize) {
+    public Result getFollowers(Long authorId, Integer pageNum, Integer pageSize) {
         log.info("获取作者粉丝列表：authorId={}", authorId);
 
         LambdaQueryWrapper<VisitorFollow> queryWrapper = new LambdaQueryWrapper<>();
@@ -178,7 +178,7 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
     }
 
     @Override
-    public Result getMyFollowCount(Integer visitorId) {
+    public Result getMyFollowCount(Long visitorId) {
         log.info("获取我的关注数量：visitorId={}", visitorId);
         
         // 先从缓存获取
@@ -200,7 +200,7 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
     }
 
     @Override
-    public Result getFollowerCount(Integer authorId) {
+    public Result getFollowerCount(Long authorId) {
         log.info("获取作者粉丝数量：authorId={}", authorId);
         
         // 先从缓存获取

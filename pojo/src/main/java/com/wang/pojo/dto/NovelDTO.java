@@ -10,7 +10,7 @@ public class NovelDTO implements Serializable {
     /**
      * 主键ID
      */
-    private Integer id;
+    private Long id;
     /**
      * 小说名称
      */
@@ -49,7 +49,7 @@ public class NovelDTO implements Serializable {
     /**
      * 作者ID（关联管理人表）
      */
-    private Integer authorId;
+    private Long authorId;
 
     /**
      * 图片路径

@@ -111,7 +111,7 @@ export function getNovelsByAuthor(authorId: number, params?: { pageNum?: number;
  * 获取作者详情（访客端）
  * 包含作者信息和作品列表
  */
-export function getAuthorDetail(authorId: number, params?: { pageNum?: number; pageSize?: number }) {
+export function getVisitorAuthorDetail(authorId: number, params?: { pageNum?: number; pageSize?: number }) {
   return request.get<AuthorDetailVO>(`/novel-server/visitor/author/${authorId}`, params)
 }
 

@@ -16,7 +16,7 @@ public interface VisitorCollectService {
      * @param novelId 小说ID
      * @return 操作结果
      */
-    Result addCollect(Integer visitorId, Integer novelId);
+    Result addCollect(Long visitorId, Long novelId);
 
     /**
      * 取消收藏
@@ -24,14 +24,14 @@ public interface VisitorCollectService {
      * @param novelId 小说ID
      * @return 操作结果
      */
-    Result removeCollect(Integer visitorId, Integer novelId);
+    Result removeCollect(Long visitorId, Long novelId);
 
     /**
      * 获取用户收藏列表
      * @param visitorId 用户ID
      * @return 收藏列表
      */
-    Result getCollectList(Integer visitorId);
+    Result getCollectList(Long visitorId);
 
     /**
      * 检查是否已收藏
@@ -39,12 +39,12 @@ public interface VisitorCollectService {
      * @param novelId 小说ID
      * @return 是否已收藏
      */
-    Result checkCollect(Integer visitorId, Integer novelId);
+    Result checkCollect(Long visitorId, Long novelId);
 
     /**
      * 获取用户收藏数量
      * @param visitorId 用户ID
      * @return 收藏数量
      */
-    Result getCollectCount(Integer visitorId);
+    Result getCollectCount(Long visitorId);
 }

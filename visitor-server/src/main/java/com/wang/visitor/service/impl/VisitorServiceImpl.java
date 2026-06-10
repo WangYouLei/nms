@@ -11,8 +11,8 @@ import com.wang.common.utils.JWTUtil;
 import com.wang.common.service.TokenService;
 import com.wang.common.service.CacheService;
 import com.wang.common.constants.CacheConstants;
-import com.wang.visitor.feign.CaptchaServiceFeign;
-import com.wang.visitor.feign.EmailServiceFeign;
+import com.wang.common.feign.CaptchaServiceFeign;
+import com.wang.common.feign.EmailServiceFeign;
 import com.wang.visitor.mapper.VisitorMapper;
 import com.wang.visitor.service.VisitorService;
 import com.wang.pojo.dto.PasswordUpdateEmailDTO;
@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -168,7 +169,7 @@ public class VisitorServiceImpl implements VisitorService {
      * @return 退出结果
      */
     @Override
-    public Result logout(Integer visitorId) {
+    public Result logout(Long visitorId) {
         log.info("访客退出登录：ID={}", visitorId);
         
         if (visitorId == null) {
@@ -188,7 +189,7 @@ public class VisitorServiceImpl implements VisitorService {
      * @return 访客信息
      */
     @Override
-    public Result getVisitorInfo(Integer visitorId) {
+    public Result getVisitorInfo(Long visitorId) {
         log.info("获取访客信息：ID={}", visitorId);
 
         // 先从缓存获取
@@ -239,7 +240,7 @@ public class VisitorServiceImpl implements VisitorService {
         // 设置更新时间
         existingVisitor.setUpdateTime(LocalDateTime.now());
 
-        int result = visitorMapper.update(existingVisitor);
+        int result = visitorMapper.updateSelective(existingVisitor);
         if (result > 0) {
             // 删除缓存
             String detailKey = CacheConstants.buildVisitorDetailKey(visitorDTO.getId());
@@ -267,7 +268,7 @@ public class VisitorServiceImpl implements VisitorService {
      * @return 修改结果
      */
     @Override
-    public Result updatePassword(Integer visitorId, String oldPassword, String newPassword) {
+    public Result updatePassword(Long visitorId, String oldPassword, String newPassword) {
         log.info("修改访客密码：ID={}", visitorId);
 
         // 1. 检查访客是否存在
@@ -289,7 +290,7 @@ public class VisitorServiceImpl implements VisitorService {
         visitor.setPassword(hashedPassword);
         visitor.setUpdateTime(LocalDateTime.now());
 
-        int result = visitorMapper.update(visitor);
+        int result = visitorMapper.updateSelective(visitor);
         if (result == 1) {
             log.info("修改访客密码成功：ID={}", visitorId);
             return Result.success("密码修改成功");
@@ -308,7 +309,7 @@ public class VisitorServiceImpl implements VisitorService {
         }
         
         // 获取用户ID：优先使用ID，否则通过账号查询
-        Integer userId = passwordUpdateEmailDTO.getId();
+        Long userId = passwordUpdateEmailDTO.getId();
         if (userId == null && passwordUpdateEmailDTO.getAccount() != null) {
             // 忘记密码场景：通过账号查找用户
             LambdaQueryWrapper<Visitor> queryWrapper = new LambdaQueryWrapper<>();
@@ -336,7 +337,7 @@ public class VisitorServiceImpl implements VisitorService {
         visitor.setPassword(Argon2idUtil.hash(passwordUpdateEmailDTO.getNewPassword()));
         visitor.setUpdateTime(LocalDateTime.now());
 
-        int number = visitorMapper.update(visitor);
+        int number = visitorMapper.updateSelective(visitor);
 
         if(number != 1){
             log.info("访客密码修改失败，id={}", userId);
@@ -405,7 +406,7 @@ public class VisitorServiceImpl implements VisitorService {
     }
 
     @Override
-    public Result getNameAndAvatar(Integer visitorId) {
+    public Result getNameAndAvatar(Long visitorId) {
         log.info("获取访客名称和头像：ID={}", visitorId);
         
         // 先从缓存获取
@@ -431,5 +432,33 @@ public class VisitorServiceImpl implements VisitorService {
         log.info("访客名称和头像已缓存：key={}", cacheKey);
         
         return Result.success(map);
+    }
+
+    @Override
+    public Result getVisitorAvatar(Long visitorId) {
+        log.info("[内部调用] 获取访客头像：visitorId={}", visitorId);
+        Visitor visitor = visitorMapper.selectById(visitorId);
+        if (visitor == null || Boolean.TRUE.equals(visitor.getIsDel())) {
+            log.warn("[内部调用] 访客不存在：visitorId={}", visitorId);
+            return Result.error("访客不存在");
+        }
+        return Result.success(visitor.getAvatar());
+    }
+
+    @Override
+    public Result batchGetVisitorAvatars(List<Long> visitorIds) {
+        log.info("[内部调用] 批量获取访客头像：count={}", visitorIds.size());
+        if (visitorIds.isEmpty()) {
+            return Result.success(new HashMap<>());
+        }
+        List<Visitor> visitors = visitorMapper.selectBatchIds(visitorIds);
+        Map<Long, String> avatarMap = new HashMap<>();
+        for (Visitor visitor : visitors) {
+            if (visitor != null && !Boolean.TRUE.equals(visitor.getIsDel())) {
+                avatarMap.put(visitor.getId(), visitor.getAvatar());
+            }
+        }
+        log.info("[内部调用] 批量获取访客头像完成：请求{}个，返回{}个", visitorIds.size(), avatarMap.size());
+        return Result.success(avatarMap);
     }
 }

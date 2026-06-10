@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.enums.UserRole;
+import com.wang.common.event.AuthorUpdatedEvent;
+import com.wang.manage.event.AuthorEventPublisher;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.utils.Argon2idUtil;
@@ -11,7 +13,8 @@ import com.wang.common.utils.JWTUtil;
 import com.wang.common.service.TokenService;
 import com.wang.common.service.CacheService;
 import com.wang.common.constants.CacheConstants;
-import com.wang.manage.feign.CommonServiceFeignService;
+import com.wang.common.feign.CaptchaServiceFeign;
+import com.wang.common.feign.EmailServiceFeign;
 import com.wang.manage.mapper.AuthorMapper;
 import com.wang.manage.service.AuthorService;
 import com.wang.pojo.dto.AuthorDTO;
@@ -25,6 +28,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import java.time.LocalDateTime;
 
 /**
@@ -34,19 +41,25 @@ import java.time.LocalDateTime;
 @Service
 public class AuthorServiceImpl implements AuthorService {
 
-    private final CommonServiceFeignService commonServiceFeignService;
+    private final EmailServiceFeign emailServiceFeign;
+    private final CaptchaServiceFeign captchaServiceFeign;
     private final AuthorMapper authorMapper;
     private final TokenService tokenService;
     private final CacheService cacheService;
+    private final AuthorEventPublisher authorEventPublisher;
 
     public AuthorServiceImpl(AuthorMapper authorMapper, 
-                             CommonServiceFeignService commonServiceFeignService,
+                             EmailServiceFeign emailServiceFeign,
+                             CaptchaServiceFeign captchaServiceFeign,
                              TokenService tokenService,
-                             CacheService cacheService) {
+                             CacheService cacheService,
+                             AuthorEventPublisher authorEventPublisher) {
         this.authorMapper = authorMapper;
-        this.commonServiceFeignService = commonServiceFeignService;
+        this.emailServiceFeign = emailServiceFeign;
+        this.captchaServiceFeign = captchaServiceFeign;
         this.tokenService = tokenService;
         this.cacheService = cacheService;
+        this.authorEventPublisher = authorEventPublisher;
     }
 
     /**
@@ -59,14 +72,14 @@ public class AuthorServiceImpl implements AuthorService {
         log.info("作者注册：账号={}", registerDTO.getAccount());
 
         // 1. 验证图形验证码
-        Result captchaResult = commonServiceFeignService.verify(registerDTO.getCaptchaToken(), registerDTO.getCaptchaCode());
+        Result captchaResult = captchaServiceFeign.verify(registerDTO.getCaptchaToken(), registerDTO.getCaptchaCode());
         if (!"success".equals(captchaResult.getMsg())) {
             log.warn("图形验证码验证失败：token={},captchaCode={}", registerDTO.getCaptchaToken(),registerDTO.getCaptchaCode());
             return Result.error("图形验证码错误或已过期");
         }
 
         // 2. 验证邮箱验证码
-        Result emailResult = commonServiceFeignService.verifyCode(registerDTO.getEmail(), registerDTO.getEmailCode());
+        Result emailResult = emailServiceFeign.verifyCode(registerDTO.getEmail(), registerDTO.getEmailCode());
         if (!"success".equals(emailResult.getMsg())) {
             log.warn("邮箱验证码验证失败：email={}", registerDTO.getEmail());
             return Result.error("邮箱验证码错误或已过期");
@@ -161,7 +174,7 @@ public class AuthorServiceImpl implements AuthorService {
      * @return 退出结果
      */
     @Override
-    public Result logout(Integer authorId) {
+    public Result logout(Long authorId) {
         log.info("作者退出登录：ID={}", authorId);
         
         if (authorId == null) {
@@ -181,7 +194,7 @@ public class AuthorServiceImpl implements AuthorService {
      * @return 作者信息
      */
     @Override
-    public Result getAuthorInfo(Integer id) {
+    public Result getAuthorInfo(Long id) {
         log.info("获取作者信息：ID={}", id);
 
         // 先从缓存获取
@@ -217,7 +230,7 @@ public class AuthorServiceImpl implements AuthorService {
      * @return 删除结果
      */
     @Override
-    public Result deleteAuthor(Integer id) {
+    public Result deleteAuthor(Long id) {
         log.info("删除作者：ID={}", id);
 
         //检查作者是否存在
@@ -229,9 +242,15 @@ public class AuthorServiceImpl implements AuthorService {
 
         //执行逻辑删除操作
         author.setIsDel(true);
-        int result = authorMapper.update(author);
+        int result = authorMapper.updateSelective(author);
         if (result == 1) {
             log.info("删除作者成功：ID={}, 姓名={}", id, author.getName());
+
+            // 发布作者删除事件，通知 search-server 同步 ES 索引
+            authorEventPublisher.publishAuthorUpdated(
+                    new AuthorUpdatedEvent(author.getId(), "DELETE")
+            );
+
             return Result.success("删除成功");
         } else {
             log.error("删除作者失败：ID={}", id);
@@ -261,7 +280,7 @@ public class AuthorServiceImpl implements AuthorService {
         // 设置更新时间
         author.setUpdateTime(LocalDateTime.now());
 
-        int result = authorMapper.update(author);
+        int result = authorMapper.updateSelective(author);
         if (result == 1) {
             // 删除缓存
             String detailKey = CacheConstants.buildAuthorDetailKey(authorDTO.getId());
@@ -269,6 +288,12 @@ public class AuthorServiceImpl implements AuthorService {
             cacheService.delete(detailKey);
             cacheService.delete(nameAvatarKey);
             log.info("修改作者信息成功，已删除缓存：ID={}", author.getId());
+
+            // 发布作者信息变更事件，通知其他服务同步冗余字段
+            authorEventPublisher.publishAuthorUpdated(
+                    new AuthorUpdatedEvent(author.getId(), author.getName(), author.getAvatar(), author.getRank())
+            );
+
             return Result.success("修改成功");
         } else {
             log.error("修改作者信息失败：ID={}", author.getId());
@@ -286,7 +311,7 @@ public class AuthorServiceImpl implements AuthorService {
      * @return 修改结果
      */
     @Override
-    public Result updatePassword(Integer id, String oldPassword, String newPassword) {
+    public Result updatePassword(Long id, String oldPassword, String newPassword) {
         log.info("修改作者密码：ID={}", id);
 
         // 1. 检查作者是否存在
@@ -308,7 +333,7 @@ public class AuthorServiceImpl implements AuthorService {
         author.setPassword(hashedPassword);
         author.setUpdateTime(LocalDateTime.now());
 
-        int result = authorMapper.update(author);
+        int result = authorMapper.updateSelective(author);
         if (result == 1) {
             log.info("修改作者密码成功：ID={}", id);
             return Result.success("密码修改成功");
@@ -321,13 +346,13 @@ public class AuthorServiceImpl implements AuthorService {
     @Override
     public Result updatePasswordByEmail(PasswordUpdateEmailDTO passwordUpdateEmailDTO) {
         // 验证邮箱验证码
-        Result result = commonServiceFeignService.verifyCode(passwordUpdateEmailDTO.getEmail(), passwordUpdateEmailDTO.getCode());
+        Result result = emailServiceFeign.verifyCode(passwordUpdateEmailDTO.getEmail(), passwordUpdateEmailDTO.getCode());
         if(!"success".equals(result.getMsg())){
             return result;
         }
         
         // 获取用户ID：优先使用ID，否则通过账号查询
-        Integer userId = passwordUpdateEmailDTO.getId();
+        Long userId = passwordUpdateEmailDTO.getId();
         if (userId == null && passwordUpdateEmailDTO.getAccount() != null) {
             // 忘记密码场景：通过账号查找用户
             LambdaQueryWrapper<Author> queryWrapper = new LambdaQueryWrapper<>();
@@ -355,7 +380,7 @@ public class AuthorServiceImpl implements AuthorService {
         author.setPassword(Argon2idUtil.hash(passwordUpdateEmailDTO.getNewPassword()));
         author.setUpdateTime(LocalDateTime.now());
 
-        int number = authorMapper.update(author);
+        int number = authorMapper.updateSelective(author);
 
         if(number != 1){
             log.info("作者密码修改失败，id={}", userId);
@@ -367,7 +392,7 @@ public class AuthorServiceImpl implements AuthorService {
     }
 
     @Override
-    public Result getNameAndAvatar(Integer id) {
+    public Result getNameAndAvatar(Long id) {
         // 先从缓存获取
         String cacheKey = CacheConstants.buildAuthorNameAvatarKey(id);
         VisitorAuthorVO cachedVo = cacheService.get(cacheKey, VisitorAuthorVO.class);
@@ -395,5 +420,52 @@ public class AuthorServiceImpl implements AuthorService {
         log.info("作者名称和头像已缓存：key={}", cacheKey);
         
         return Result.success(vo);
+    }
+
+    @Override
+    public Result getAuthorAvatar(Long authorId) {
+        log.info("[内部调用] 获取作者头像：authorId={}", authorId);
+        Author author = authorMapper.selectById(authorId);
+        if (author == null || author.getIsDel()) {
+            log.warn("[内部调用] 作者不存在：authorId={}", authorId);
+            return Result.error("作者不存在");
+        }
+        return Result.success(author.getAvatar());
+    }
+
+    @Override
+    public Result batchGetAuthorAvatars(List<Long> authorIds) {
+        log.info("[内部调用] 批量获取作者头像：count={}", authorIds.size());
+        if (authorIds.isEmpty()) {
+            return Result.success(new HashMap<>());
+        }
+        List<Author> authors = authorMapper.selectBatchIds(authorIds);
+        Map<Long, String> avatarMap = new HashMap<>();
+        for (Author author : authors) {
+            if (author != null && !author.getIsDel()) {
+                avatarMap.put(author.getId(), author.getAvatar());
+            }
+        }
+        log.info("[内部调用] 批量获取作者头像完成：请求{}个，返回{}个", authorIds.size(), avatarMap.size());
+        return Result.success(avatarMap);
+    }
+
+    @Override
+    public Result getAuthorBasicInfo(Long authorId) {
+        log.info("[内部调用] 获取作者基本信息：authorId={}", authorId);
+        Author author = authorMapper.selectById(authorId);
+        if (author == null || author.getIsDel()) {
+            log.warn("[内部调用] 作者不存在：authorId={}", authorId);
+            return Result.error("作者不存在");
+        }
+
+        Map<String, Object> basicInfo = new HashMap<>();
+        basicInfo.put("id", author.getId());
+        basicInfo.put("name", author.getName());
+        basicInfo.put("avatar", author.getAvatar());
+        basicInfo.put("rank", author.getRank());
+        basicInfo.put("introduction", author.getIntroduction());
+        basicInfo.put("novelCount", author.getNovelCount() != null ? author.getNovelCount() : 0);
+        return Result.success(basicInfo);
     }
 }

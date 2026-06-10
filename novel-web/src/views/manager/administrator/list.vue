@@ -14,7 +14,9 @@
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column label="头像" width="80">
           <template #default="{ row }">
-            <el-avatar :src="row.avatar" />
+            <el-avatar :src="getAvatarUrl(row.avatar)">
+              {{ row.name?.charAt(0) }}
+            </el-avatar>
           </template>
         </el-table-column>
         <el-table-column prop="name" label="昵称" width="120" />
@@ -71,6 +73,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
 import { getManagerPage, addManager, updateManager, deleteManager, updateManagerPassword } from '@/api'
 import { formatDateTime } from '@/utils/format'
+import { getAvatarUrl } from '@/utils/file-url'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import type { ManagerVO } from '@/types'
 

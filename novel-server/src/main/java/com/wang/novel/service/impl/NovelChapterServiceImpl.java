@@ -8,12 +8,15 @@ import com.wang.common.enums.FileUploadTypeEnum;
 import com.wang.common.enums.UserRole;
 import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
-import com.wang.novel.feign.AiAuditServiceFeign;
-import com.wang.novel.feign.FileServiceFeign;
-import com.wang.novel.feign.SensitiveWordServiceFeign;
+import com.wang.common.feign.AiAuditServiceFeign;
+import com.wang.common.service.CacheService;
+import com.wang.common.constants.CacheConstants;
+import com.wang.common.feign.FileServiceFeign;
+import com.wang.common.feign.SensitiveWordServiceFeign;
 import com.wang.novel.mapper.NovelChapterMapper;
 import com.wang.novel.mapper.NovelMapper;
 import com.wang.novel.service.NovelChapterService;
+import com.wang.pojo.dto.AiCommentAuditDTO;
 import com.wang.pojo.entity.Novel;
 import com.wang.pojo.entity.NovelChapter;
 import com.wang.pojo.vo.AuditResultVO;
@@ -21,7 +24,8 @@ import com.wang.pojo.vo.NovelChapterVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -45,23 +49,29 @@ public class NovelChapterServiceImpl implements NovelChapterService {
     private final FileServiceFeign fileServiceFeign;
     private final SensitiveWordServiceFeign sensitiveWordServiceFeign;
     private final AiAuditServiceFeign aiAuditServiceFeign;
+    private final CacheService cacheService;
+    private final TransactionTemplate transactionTemplate;
 
     public NovelChapterServiceImpl(NovelChapterMapper novelChapterMapper,
                                    NovelMapper novelMapper,
                                    FileServiceFeign fileServiceFeign,
                                    SensitiveWordServiceFeign sensitiveWordServiceFeign,
-                                   AiAuditServiceFeign aiAuditServiceFeign) {
+                                   AiAuditServiceFeign aiAuditServiceFeign,
+                                   CacheService cacheService,
+                                   PlatformTransactionManager transactionManager) {
         this.novelChapterMapper = novelChapterMapper;
         this.novelMapper = novelMapper;
         this.fileServiceFeign = fileServiceFeign;
         this.sensitiveWordServiceFeign = sensitiveWordServiceFeign;
         this.aiAuditServiceFeign = aiAuditServiceFeign;
+        this.cacheService = cacheService;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     // ==================== Common - 公共方法（无权限校验） ====================
 
     @Override
-    public Result getChapterList(Integer novelId) {
+    public Result getChapterList(Long novelId) {
         LambdaQueryWrapper<NovelChapter> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(NovelChapter::getNovelId, novelId)
                 .orderByAsc(NovelChapter::getChapterOrder);
@@ -78,7 +88,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
     }
 
     @Override
-    public Result getChapterDetail(Integer chapterId) {
+    public Result getChapterDetail(Long chapterId) {
         NovelChapter chapter = novelChapterMapper.selectById(chapterId);
         if (chapter == null) {
             return Result.buildResult(BizCodeEnum.NOVEL_CHAPTER_NOT_FOUND);
@@ -88,22 +98,22 @@ public class NovelChapterServiceImpl implements NovelChapterService {
     }
 
     @Override
-    public Result getChapterContent(Integer chapterId) {
+    public Result getChapterContent(Long chapterId) {
         log.info("获取章节内容，章节ID: {}", chapterId);
-        
+
         NovelChapter chapter = novelChapterMapper.selectById(chapterId);
         if (chapter == null) {
             log.warn("章节不存在，章节ID: {}", chapterId);
             return Result.buildResult(BizCodeEnum.NOVEL_CHAPTER_NOT_FOUND);
         }
 
-        log.info("章节信息: id={}, title={}, contentUrl={}", 
+        log.info("章节信息: id={}, title={}, contentUrl={}",
                 chapter.getId(), chapter.getTitle(), chapter.getContentUrl());
 
         // 使用 FileServiceFeign 获取内容
         Result contentResult = fileServiceFeign.getFileContent(chapter.getContentUrl());
         log.info("文件服务返回结果: code={}, msg={}", contentResult.getCode(), contentResult.getMsg());
-        
+
         String content = (String) contentResult.getData();
         if (content == null) {
             log.error("获取章节内容失败，章节ID: {}, contentUrl: {}", chapterId, chapter.getContentUrl());
@@ -111,7 +121,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         }
 
         log.info("成功获取章节内容，章节ID: {}, 内容长度: {}", chapterId, content.length());
-        
+
         NovelChapterVO vo = convertToVO(chapter);
         vo.setContent(content);
         return Result.success(vo);
@@ -120,8 +130,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
     // ==================== Author/Manager - 作者/管理端方法（需权限校验） ====================
 
     @Override
-    @Transactional
-    public Result uploadChapter(Integer novelId, String title, Integer wordCount, MultipartFile file) {
+    public Result uploadChapter(Long novelId, String title, Integer wordCount, MultipartFile file) {
         LoginUser loginUser = getLoginUser();
         // 权限校验：只有作者可以上传章节
         if (!UserRole.AUTHOR.equals(loginUser.getRole())) {
@@ -140,7 +149,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         }
 
         try {
-            // 使用 FileServiceFeign 上传文件
+            // === 事务外：Feign 远程调用（文件上传 + 内容审核） ===
             Result uploadResult = fileServiceFeign.uploadFile(
                     file,
                     FileUploadTypeEnum.NOVEL_CHAPTER.getCode(),
@@ -157,21 +166,25 @@ public class NovelChapterServiceImpl implements NovelChapterService {
             // 获取章节内容进行敏感词审核
             Result contentResult = fileServiceFeign.getFileContent(contentUrl);
             String content = (String) contentResult.getData();
-            
+
             if (content != null && !content.isEmpty()) {
                 // 本地敏感词审核
                 Map<String, String> request = new HashMap<>();
                 request.put("content", content);
-                AuditResultVO auditResultVO = sensitiveWordServiceFeign.auditText(request);
+                AuditResultVO auditResultVO = (AuditResultVO) sensitiveWordServiceFeign.auditText(request).getData();
                 if (!auditResultVO.getPassed()) {
                     // 删除已上传的文件
                     fileServiceFeign.deleteFile(contentUrl);
-                    // 拒绝高危敏感词
                     return Result.buildResult(BizCodeEnum.SENSITIVE_WORD);
                 }
 
                 // AI 审核
-                Result aiAuditResult = aiAuditServiceFeign.auditWithAi(content, null, AuditAimTypeEnum.CHAPTER.getValue(), auditResultVO);
+                AiCommentAuditDTO aiAuditDTO = new AiCommentAuditDTO();
+                aiAuditDTO.setContent(content);
+                aiAuditDTO.setAimId(null);
+                aiAuditDTO.setAimType(AuditAimTypeEnum.CHAPTER.getValue());
+                aiAuditDTO.setLocalResult(auditResultVO);
+                Result aiAuditResult = aiAuditServiceFeign.auditWithAi(aiAuditDTO);
                 if (aiAuditResult.getCode() != BizCodeEnum.SUCCESS.getCode()) {
                     // 删除已上传的文件
                     fileServiceFeign.deleteFile(contentUrl);
@@ -179,8 +192,13 @@ public class NovelChapterServiceImpl implements NovelChapterService {
                 }
             }
 
-            // 保存章节记录
-            return saveChapterRecord(novel, title, contentUrl, getNextChapterOrder(novelId), wordCount);
+            // === 事务内：数据库操作 ===
+            final String finalContentUrl = contentUrl;
+            return transactionTemplate.execute(status -> {
+                // 重新查询 novel，确保事务内数据一致
+                Novel freshNovel = novelMapper.selectById(novelId);
+                return saveChapterRecord(freshNovel, title, finalContentUrl, getNextChapterOrder(novelId), wordCount);
+            });
         } catch (Exception e) {
             log.error("上传新章节异常", e);
             return Result.error("上传新章节失败：" + e.getMessage());
@@ -188,16 +206,14 @@ public class NovelChapterServiceImpl implements NovelChapterService {
     }
 
     @Override
-    @Transactional
-    public Result deleteChapter(Integer id) {
+    public Result deleteChapter(Long id) {
         LoginUser loginUser = getLoginUser();
 
         // 权限校验：作者只能删除自己的章节
         boolean isAuthor = UserRole.AUTHOR.equals(loginUser.getRole());
-        
+
         NovelChapter chapter;
         if (isAuthor) {
-            // 作者需要检查章节所有权
             chapter = checkChapterOwnership(id, loginUser.getId());
             if (chapter == null) {
                 return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
@@ -205,19 +221,25 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         } else {
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }
-        
-        Novel novel = novelMapper.selectById(chapter.getNovelId());
 
-        // 删除文件
+        // === 事务外：Feign 远程调用（删除文件） ===
         fileServiceFeign.deleteFile(chapter.getContentUrl());
 
-        // 删除数据库记录
-        int result = novelChapterMapper.deleteById(id);
-        if (result == 1) {
-            // 更新小说章节数和总字数
-            updateNovelChapterCount(novel, -1);
-            updateNovelAllWordCount(novel, -(chapter.getWordCount() != null ? chapter.getWordCount() : 0));
+        // === 事务内：数据库操作 ===
+        Novel novel = novelMapper.selectById(chapter.getNovelId());
+        Integer result = transactionTemplate.execute(status -> {
+            int rows = novelChapterMapper.deleteById(id);
+            if (rows == 1) {
+                updateNovelChapterCount(novel, -1);
+                updateNovelAllWordCount(novel, -(chapter.getWordCount() != null ? chapter.getWordCount() : 0));
+            }
+            return rows;
+        });
+
+        if (result != null && result == 1) {
             log.info("删除章节成功：章节ID={}", id);
+            cacheService.zIncrBy(CacheConstants.RANKING_NOVEL_ONGOING, -1, String.valueOf(novel.getId()));
+            cacheService.zAdd(CacheConstants.RANKING_NOVEL_LATEST, System.currentTimeMillis(), String.valueOf(novel.getId()));
             return Result.success(BizCodeEnum.SUCCESS);
         } else {
             log.error("删除章节失败：章节ID={}", id);
@@ -226,7 +248,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
     }
 
     // 更新章节信息（包括章节内容）
-    public Result updateChapter(Integer id, String title, Integer chapterOrder, Integer wordCount, String oldFileUrl, MultipartFile file) {
+    public Result updateChapter(Long id, String title, Integer chapterOrder, Integer wordCount, String oldFileUrl, MultipartFile file) {
         LoginUser loginUser = getLoginUser();
 
         // 权限校验：检查章节所有权
@@ -241,7 +263,6 @@ public class NovelChapterServiceImpl implements NovelChapterService {
 
         // 更新标题
         if (StringUtils.hasText(title) && !title.equals(chapter.getTitle())) {
-            // 检查标题是否重复
             if (isTitleExists(chapter.getNovelId(), title, id)) {
                 return Result.error("章节标题已存在");
             }
@@ -261,15 +282,13 @@ public class NovelChapterServiceImpl implements NovelChapterService {
             chapter.setWordCount(wordCount);
         }
 
-        // 更新章节内容文件（如果提供了新文件）
+        // === 事务外：Feign 远程调用（文件上传 + 内容审核） ===
         if (file != null && !file.isEmpty()) {
             try {
-                // 上传新文件
                 Result uploadResult = fileServiceFeign.uploadFile(
                         file,
                         FileUploadTypeEnum.NOVEL_CHAPTER.getCode(),
                         chapter.getNovelId(),
-                        // 传入旧文件URL，由 FileServiceFeign 处理删除
                         oldFileUrl
                 );
 
@@ -277,25 +296,25 @@ public class NovelChapterServiceImpl implements NovelChapterService {
                     return Result.error("更新章节文件失败");
                 }
 
-                // 更新内容URL
                 String newContentUrl = (String) uploadResult.getData();
 
-                // 获取章节内容进行敏感词审核
                 Result contentResult = fileServiceFeign.getFileContent(newContentUrl);
                 String content = (String) contentResult.getData();
 
                 if (content != null && !content.isEmpty()) {
-                    // 本地敏感词审核
                     Map<String, String> request = new HashMap<>();
                     request.put("content", content);
-                    AuditResultVO auditResultVO = sensitiveWordServiceFeign.auditText(request);
+                    AuditResultVO auditResultVO = (AuditResultVO) sensitiveWordServiceFeign.auditText(request).getData();
                     if (!auditResultVO.getPassed()) {
-                        // 拒绝高危敏感词
                         return Result.buildResult(BizCodeEnum.SENSITIVE_WORD);
                     }
 
-                    // AI 审核
-                    Result aiAuditResult = aiAuditServiceFeign.auditWithAi(content, id.longValue(), AuditAimTypeEnum.CHAPTER.getValue(), auditResultVO);
+                    AiCommentAuditDTO aiAuditDTO = new AiCommentAuditDTO();
+                    aiAuditDTO.setContent(content);
+                    aiAuditDTO.setAimId(id);
+                    aiAuditDTO.setAimType(AuditAimTypeEnum.CHAPTER.getValue());
+                    aiAuditDTO.setLocalResult(auditResultVO);
+                    Result aiAuditResult = aiAuditServiceFeign.auditWithAi(aiAuditDTO);
                     if (aiAuditResult.getCode() != BizCodeEnum.SUCCESS.getCode()) {
                         return Result.buildResult(BizCodeEnum.SENSITIVE_WORD);
                     }
@@ -311,16 +330,23 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         // 更新时间
         chapter.setUpdateTime(LocalDateTime.now());
 
-        // 更新数据库
-        int result = novelChapterMapper.update(chapter);
-        if (result == 1) {
-            // 如果字数有变化，更新小说总字数
-            if (wordCountChanged && wordCount != null) {
+        // === 事务内：数据库操作 ===
+        final boolean finalWordCountChanged = wordCountChanged;
+        final Integer finalWordCount = wordCount;
+        final Integer finalOldWordCount = oldWordCount;
+        Integer result = transactionTemplate.execute(status -> {
+            int rows = novelChapterMapper.updateSelective(chapter);
+            if (rows == 1 && finalWordCountChanged && finalWordCount != null) {
                 Novel novel = novelMapper.selectById(chapter.getNovelId());
-                int delta = wordCount - oldWordCount;
+                int delta = finalWordCount - finalOldWordCount;
                 updateNovelAllWordCount(novel, delta);
             }
+            return rows;
+        });
+
+        if (result != null && result == 1) {
             log.info("更新章节成功：章节ID={}", chapter.getId());
+            cacheService.zAdd(CacheConstants.RANKING_NOVEL_LATEST, System.currentTimeMillis(), String.valueOf(chapter.getNovelId()));
             return Result.success(convertToVO(chapter));
         } else {
             log.error("更新章节失败：章节ID={}", chapter.getId());
@@ -330,19 +356,11 @@ public class NovelChapterServiceImpl implements NovelChapterService {
 
     // ==================== 私有方法 ====================
 
-    /**
-     * 获取当前登录用户
-     */
     private LoginUser getLoginUser() {
         return RoleContextUtil.getCurrentUser();
     }
 
-    /**
-     * 检查小说所有权
-     *
-     * @return 成功返回 Novel，失败返回 null
-     */
-    private Novel checkNovelOwnership(Integer novelId, Integer userId) {
+    private Novel checkNovelOwnership(Long novelId, Long userId) {
         Novel novel = novelMapper.selectById(novelId);
         if (novel == null) {
             return null;
@@ -353,12 +371,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         return novel;
     }
 
-    /**
-     * 检查章节所有权（通过章节ID）
-     *
-     * @return 成功返回 NovelChapter，失败返回 null
-     */
-    private NovelChapter checkChapterOwnership(Integer chapterId, Integer userId) {
+    private NovelChapter checkChapterOwnership(Long chapterId, Long userId) {
         NovelChapter chapter = novelChapterMapper.selectById(chapterId);
         if (chapter == null) {
             return null;
@@ -371,26 +384,17 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         return chapter;
     }
 
-    /**
-     * 检查章节标题是否已存在
-     *
-     * @param excludeId 排除的章节ID（更新时使用）
-     */
-    private boolean isTitleExists(Integer novelId, String title, Integer excludeId) {
+    private boolean isTitleExists(Long novelId, String title, Long excludeId) {
         LambdaQueryWrapper<NovelChapter> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(NovelChapter::getNovelId, novelId)
                 .eq(NovelChapter::getTitle, title);
         if (excludeId != null) {
-            //忽略掉当前章节
             wrapper.ne(NovelChapter::getId, excludeId);
         }
         return novelChapterMapper.selectCount(wrapper) > 0;
     }
 
-    /**
-     * 获取下一个章节序号
-     */
-    private int getNextChapterOrder(Integer novelId) {
+    private int getNextChapterOrder(Long novelId) {
         LambdaQueryWrapper<NovelChapter> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(NovelChapter::getNovelId, novelId)
                 .orderByDesc(NovelChapter::getChapterOrder)
@@ -399,9 +403,6 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         return (lastChapter == null) ? 1 : lastChapter.getChapterOrder() + 1;
     }
 
-/**
-     * 保存章节记录到数据库
-     */
     private Result saveChapterRecord(Novel novel, String title, String contentUrl, int order, Integer wordCount) {
         NovelChapter chapter = new NovelChapter();
         chapter.setNovelId(novel.getId());
@@ -414,10 +415,11 @@ public class NovelChapterServiceImpl implements NovelChapterService {
 
         int result = novelChapterMapper.insert(chapter);
         if (result == 1) {
-            // 更新小说章节数和总字数
             updateNovelChapterCount(novel, 1);
             updateNovelAllWordCount(novel, wordCount != null ? wordCount : 0);
             log.info("保存章节成功：章节ID={}, 字数={}", chapter.getId(), wordCount);
+            cacheService.zIncrBy(CacheConstants.RANKING_NOVEL_ONGOING, 1, String.valueOf(novel.getId()));
+            cacheService.zAdd(CacheConstants.RANKING_NOVEL_LATEST, System.currentTimeMillis(), String.valueOf(novel.getId()));
             return Result.success(chapter);
         } else {
             log.error("保存章节记录失败");
@@ -425,34 +427,21 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         }
     }
 
-    /**
-     * 更新小说章节数
-     *
-     * @param delta 变化量（+1 或 -1）
-     */
     private void updateNovelChapterCount(Novel novel, int delta) {
         int newCount = (novel.getChapterCount() == null ? 0 : novel.getChapterCount()) + delta;
         novel.setChapterCount(Math.max(0, newCount));
         novel.setUpdateTime(LocalDateTime.now());
-        novelMapper.update(novel);
+        novelMapper.updateSelective(novel);
     }
 
-    /**
-     * 更新小说总字数
-     *
-     * @param delta 变化量（正数增加，负数减少）
-     */
     private void updateNovelAllWordCount(Novel novel, int delta) {
         int newWordCount = (novel.getAllWordCount() == null ? 0 : novel.getAllWordCount()) + delta;
         novel.setAllWordCount(Math.max(0, newWordCount));
         novel.setUpdateTime(LocalDateTime.now());
-        novelMapper.update(novel);
+        novelMapper.updateSelective(novel);
         log.info("更新小说总字数：小说ID={}, 变化量={}, 新总字数={}", novel.getId(), delta, newWordCount);
     }
 
-    /**
-     * 转换为 VO
-     */
     private NovelChapterVO convertToVO(NovelChapter chapter) {
         NovelChapterVO vo = new NovelChapterVO();
         BeanUtils.copyProperties(chapter, vo);

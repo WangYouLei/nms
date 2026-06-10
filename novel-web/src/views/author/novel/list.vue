@@ -11,9 +11,9 @@
     <!-- 筛选 -->
     <div class="bg-white dark:bg-gray-800 rounded-lg p-4 mb-4">
       <el-radio-group v-model="filterStatus" @change="fetchNovels">
-        <el-radio-button label="">全部</el-radio-button>
-        <el-radio-button label="false">连载中</el-radio-button>
-        <el-radio-button label="true">已完结</el-radio-button>
+        <el-radio-button value="">全部</el-radio-button>
+        <el-radio-button value="false">连载中</el-radio-button>
+        <el-radio-button value="true">已完结</el-radio-button>
       </el-radio-group>
     </div>
     

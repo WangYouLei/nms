@@ -104,7 +104,7 @@ public class VisitorManageServiceImpl implements VisitorManageService {
     }
 
     @Override
-    public Result getVisitorInfo(Integer id) {
+    public Result getVisitorInfo(Long id) {
         log.info("获取访客详情：ID={}", id);
 
         Visitor visitor = visitorMapper.selectById(id);

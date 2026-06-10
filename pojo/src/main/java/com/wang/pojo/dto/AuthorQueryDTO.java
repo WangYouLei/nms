@@ -18,7 +18,7 @@ public class AuthorQueryDTO implements Serializable {
      * 作者ID
      */
     @ApiModelProperty("作者ID")
-    private Integer id;
+    private Long id;
 
     /**
      * 昵称（模糊查询）

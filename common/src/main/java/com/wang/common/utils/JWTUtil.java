@@ -4,7 +4,6 @@ package com.wang.common.utils;
 import com.wang.common.model.LoginUser;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,7 +16,7 @@ public class JWTUtil {
     /**
      * JWT密钥
      */
-    private static final String JWT_SECRET = "wangwangwangwangwangwangwangwangwangwangwangwang";
+    private static final String JWT_SECRET = "aB3$dE6&gH9*jK2@mN5#pQ8$rT1^wZ4!yC7";
 
     /**
      * JWT 有效时间（毫秒）
@@ -51,15 +50,15 @@ public class JWTUtil {
     public static String geneJsonWebToken(LoginUser loginUser) {
         try {
             String compact = Jwts.builder()
-                    .setSubject(JWT_SUBJECT)
+                    .subject(JWT_SUBJECT)
                     .claim("id", loginUser.getId())
                     .claim("name", loginUser.getName())
                     .claim("avatar", loginUser.getAvatar())
                     .claim("account", loginUser.getAccount())
                     .claim("role", loginUser.getRole() != null ? loginUser.getRole().getCode() : null)
-                    .setIssuedAt(new Date())
-                    .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRED))
-                    .signWith(Keys.hmacShaKeyFor(JWT_SECRET.getBytes(StandardCharsets.UTF_8)), SignatureAlgorithm.HS256)
+                    .issuedAt(new Date())
+                    .expiration(new Date(System.currentTimeMillis() + JWT_EXPIRED))
+                    .signWith(Keys.hmacShaKeyFor(JWT_SECRET.getBytes(StandardCharsets.UTF_8)))
                     .compact();
             return JWT_PREFIX + compact;
         } catch (Exception e) {

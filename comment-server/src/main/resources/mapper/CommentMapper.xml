@@ -3,7 +3,7 @@
 <mapper namespace="com.wang.comment.mapper.CommentMapper">
 
     <!-- 动态更新评论信息，只更新非 null 且非空的字段 -->
-    <update id="update" parameterType="com.wang.pojo.entity.Comment">
+    <update id="updateSelective" parameterType="com.wang.pojo.entity.Comment">
         UPDATE comment
         <set>
             <if test="content != null and content != ''">

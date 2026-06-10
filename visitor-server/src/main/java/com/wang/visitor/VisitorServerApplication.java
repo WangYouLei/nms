@@ -13,7 +13,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
         "com.wang.common"
 })
 @EntityScan("com.wang.pojo")
-@EnableFeignClients
+@EnableFeignClients(basePackages = "com.wang.common.feign")
 @EnableDiscoveryClient
 @MapperScan("com.wang.visitor.mapper")
 public class VisitorServerApplication {

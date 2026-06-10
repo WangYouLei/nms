@@ -61,6 +61,10 @@
               <p class="text-2xl font-bold text-primary">{{ totalChapters }}</p>
               <p class="text-sm text-gray-500">章节</p>
             </div>
+            <div>
+              <p class="text-2xl font-bold text-primary">{{ followerCount }}</p>
+              <p class="text-sm text-gray-500">粉丝</p>
+            </div>
           </div>
         </div>
       </div>
@@ -72,27 +76,27 @@
           <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200">TA的作品</h3>
           <span class="text-sm text-gray-400">({{ novels.length }}本)</span>
         </div>
-        
+
         <div v-if="novels.length === 0" class="text-center py-12 text-gray-400">
           <el-icon :size="48" class="mb-3"><Document /></el-icon>
           <p>暂无作品</p>
         </div>
-        
+
         <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          <div 
-            v-for="novel in novels" 
+          <div
+            v-for="novel in novels"
             :key="novel.id"
             class="group cursor-pointer"
             @click="goToNovel(novel.id)"
           >
             <div class="relative overflow-hidden rounded-xl shadow-md group-hover:shadow-lg transition-shadow">
-              <img 
-                :src="getImageUrl(novel.url)" 
+              <img
+                :src="getImageUrl(novel.url)"
                 :alt="novel.name"
                 class="w-full aspect-[3/4] object-cover group-hover:scale-105 transition-transform duration-300"
               />
               <!-- 完结标签 -->
-              <span 
+              <span
                 v-if="novel.isFinished"
                 class="absolute top-2 right-2 px-2 py-1 bg-green-500 text-white text-xs font-medium rounded-lg"
               >
@@ -103,6 +107,32 @@
               <p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{{ novel.name }}</p>
               <p class="text-xs text-gray-500">{{ novel.chapterCount }}章</p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 粉丝列表 -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6 mt-6">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-1 h-5 bg-gradient-primary rounded-full"></div>
+          <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200">粉丝列表</h3>
+          <span class="text-sm text-gray-400">({{ followerCount }}人)</span>
+        </div>
+
+        <div v-if="followerList.length === 0" class="text-center py-12 text-gray-400">
+          <p>暂无粉丝</p>
+        </div>
+
+        <div v-else class="flex flex-wrap gap-4">
+          <div
+            v-for="follower in followerList"
+            :key="follower.visitorId"
+            class="flex items-center gap-3 bg-gray-50 dark:bg-gray-700 rounded-xl px-4 py-3"
+          >
+            <el-avatar :size="36" :src="getImageUrl(follower.avatar, '/default-avatar.png')">
+              {{ follower.name?.charAt(0) }}
+            </el-avatar>
+            <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ follower.name }}</span>
           </div>
         </div>
       </div>
@@ -120,8 +150,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Loading, Document, Warning, Plus } from '@element-plus/icons-vue'
-import { getAuthorDetail } from '@/api/novel'
-import { addFollow, removeFollow, checkFollow } from '@/api/follow'
+import { getVisitorAuthorDetail } from '@/api/novel'
+import { addFollow, removeFollow, checkFollow, getFollowerCount, getFollowerList } from '@/api/follow'
 import { getImageUrl } from '@/utils/file-url'
 import { useUserStore } from '@/stores'
 import { ElMessage } from 'element-plus'
@@ -136,6 +166,8 @@ const author = ref<AuthorDetailVO | null>(null)
 const novels = ref<NovelListVO[]>([])
 const isFollowing = ref(false)
 const followLoading = ref(false)
+const followerCount = ref(0)
+const followerList = ref<{ visitorId: number; name: string; avatar?: string }[]>([])
 
 // 通过小说列表计算章节数
 const totalChapters = computed(() => {
@@ -208,15 +240,30 @@ const fetchAuthor = async () => {
 
   loading.value = true
   try {
-    const res = await getAuthorDetail(authorId, { pageNum: 1, pageSize: 100 })
+    const res = await getVisitorAuthorDetail(authorId, { pageNum: 1, pageSize: 100 })
     author.value = res.data
     novels.value = res.data?.novels || []
-    
+
     // 检查关注状态
     if (userStore.isLoggedIn) {
       const followRes = await checkFollow(authorId, userStore.userId!)
       isFollowing.value = followRes.data || false
     }
+
+    // 获取粉丝数量和粉丝列表
+    const [countRes, listRes] = await Promise.all([
+      getFollowerCount(authorId),
+      getFollowerList(authorId, 1, 10)
+    ])
+    followerCount.value = countRes.data || 0
+
+    // 后端 VisitorFollowVO 不包含访客名称/头像，直接用 visitorId 展示
+    const records = listRes.data?.list || []
+    followerList.value = records.map(follow => ({
+      visitorId: follow.visitorId,
+      name: `访客${follow.visitorId}`,
+      avatar: undefined
+    }))
   } catch (error) {
     console.error('Failed to fetch author:', error)
   } finally {

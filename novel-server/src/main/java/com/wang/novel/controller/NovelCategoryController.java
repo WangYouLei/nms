@@ -51,14 +51,14 @@ public class NovelCategoryController {
 
     @GetMapping("/common/category/{id}")
     @ApiOperation("[Common] 根据ID查询分类")
-    public Result getCategoryById(@PathVariable Integer id) {
+    public Result getCategoryById(@PathVariable Long id) {
         log.info("[Common] 根据ID查询分类：id={}", id);
         return novelCategoryService.getCategoryById(id);
     }
 
     @GetMapping("/common/category/relation/{novelId}")
     @ApiOperation("[Common] 获取小说的分类")
-    public Result getNovelCategory(@PathVariable Integer novelId) {
+    public Result getNovelCategory(@PathVariable Long novelId) {
         log.info("[Common] 获取小说分类：小说ID={}", novelId);
         return novelCategoryService.getNovelCategory(novelId);
     }
@@ -81,7 +81,7 @@ public class NovelCategoryController {
 
     @DeleteMapping("/manager/category/delete/{id}")
     @ApiOperation("[Manager] 删除分类")
-    public Result deleteCategory(@PathVariable Integer id) {
+    public Result deleteCategory(@PathVariable Long id) {
         log.info("[Manager] 删除分类：ID={}", id);
         return novelCategoryService.deleteCategory(id);
     }

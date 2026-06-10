@@ -1,0 +1,247 @@
+server:
+  port: 5100
+
+spring:
+  application:
+    name: gateway-server
+
+  # WebFlux 请求体缓冲区大小，需大于下游服务的文件上传限制（common-server: 10MB）
+  codec:
+    max-in-memory-size: 20MB
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        namespace: public
+        username: nacos
+        password: 123456
+
+    gateway:
+      # 全局跨域配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+      # 路由配置
+      routes:
+        # 屏蔽所有服务的内部接口，禁止外部访问
+        # /internal/** 路径仅供微服务间 Feign 调用，不对外暴露
+        - id: block-internal-author
+          uri: no://op
+          predicates:
+            - Path=/api/author-server/internal/**
+          filters:
+            - SetStatus=403
+
+        - id: block-internal-visitor
+          uri: no://op
+          predicates:
+            - Path=/api/visitor-server/internal/**
+          filters:
+            - SetStatus=403
+
+        - id: block-internal-manager
+          uri: no://op
+          predicates:
+            - Path=/api/manager-server/internal/**
+          filters:
+            - SetStatus=403
+
+        - id: block-internal-novel
+          uri: no://op
+          predicates:
+            - Path=/api/novel-server/internal/**
+          filters:
+            - SetStatus=403
+
+        - id: block-internal-common
+          uri: no://op
+          predicates:
+            - Path=/api/common-server/internal/**
+          filters:
+            - SetStatus=403
+
+        - id: block-internal-comment
+          uri: no://op
+          predicates:
+            - Path=/api/comment-server/internal/**
+          filters:
+            - SetStatus=403
+
+        - id: block-internal-search
+          uri: no://op
+          predicates:
+            - Path=/api/search-server/internal/**
+          filters:
+            - SetStatus=403
+
+        - id: block-internal-ai
+          uri: no://op
+          predicates:
+            - Path=/api/ai-server/internal/**
+          filters:
+            - SetStatus=403
+
+        # 作者服务路由
+        - id: author-server
+          uri: lb://author-server
+          predicates:
+            - Path=/api/author-server/**
+          filters:
+            - StripPrefix=2
+
+        # 访客服务路由
+        - id: visitor-server
+          uri: lb://visitor-server
+          predicates:
+            - Path=/api/visitor-server/**
+          filters:
+            - StripPrefix=2
+
+        # 公共服务路由
+        - id: common-server
+          uri: lb://common-server
+          predicates:
+            - Path=/api/common-server/**
+          filters:
+            - StripPrefix=2
+
+        # AI服务路由
+        - id: ai-server
+          uri: lb://ai-server
+          predicates:
+            - Path=/api/ai-server/**
+          filters:
+            - StripPrefix=2
+
+        # 小说服务路由
+        - id: novel-server
+          uri: lb://novel-server
+          predicates:
+            - Path=/api/novel-server/**
+          filters:
+            - StripPrefix=2
+
+        # 评论服务路由
+        - id: comment-server
+          uri: lb://comment-server
+          predicates:
+            - Path=/api/comment-server/**
+          filters:
+            - StripPrefix=2
+
+        # 管理服务路由
+        - id: manager-server
+          uri: lb://manager-server
+          predicates:
+            - Path=/api/manager-server/**
+          filters:
+            - StripPrefix=2
+
+        # 搜索服务路由
+        - id: search-server
+          uri: lb://search-server
+          predicates:
+            - Path=/api/search-server/**
+          filters:
+            - StripPrefix=2
+
+
+        # AI Agent Python服务路由 (非Nacos注册，直连)
+        - id: novel-ai-agent
+          uri: http://localhost:5231
+          predicates:
+            - Path=/api/novel-ai-agent/**
+          filters:
+            - StripPrefix=2
+
+# 统一鉴权规则配置
+# 网关根据路径匹配规则校验JWT token和角色权限
+# 鉴权通过后将用户信息写入请求头（X-User-*）传递给下游服务
+auth:
+  rules:
+    # author-server：仅允许 AUTHOR
+    - path-patterns:
+        - /api/author-server/author/*/**
+      allowed-roles: AUTHOR
+      exclude-paths:
+        - /api/author-server/author/login
+        - /api/author-server/author/logout
+        - /api/author-server/author/register
+        - /api/author-server/author/getNameAndAvatar/*
+
+    # visitor-server：仅允许 VISITOR
+    - path-patterns:
+        - /api/visitor-server/visitor/*/**
+      allowed-roles: VISITOR
+      exclude-paths:
+        - /api/visitor-server/visitor/login
+        - /api/visitor-server/visitor/logout
+        - /api/visitor-server/visitor/register
+        - /api/visitor-server/visitor/getNameAndAvatar/*
+        - /api/visitor-server/visitor/follow/followerCount/*
+        - /api/visitor-server/visitor/follow/followers/*
+        - /api/visitor-server/visitor/reading-progress/count/*
+
+    # manager-server：仅允许 MANAGER
+    - path-patterns:
+        - /api/manager-server/manager/*/**
+      allowed-roles: MANAGER
+      exclude-paths:
+        - /api/manager-server/manager/login
+        - /api/manager-server/manager/logout
+        - /api/manager-server/manager/getNameAndAvatar/*
+
+    # novel-server：按路径前缀区分角色
+    - path-patterns:
+        - /api/novel-server/manager/**
+      allowed-roles: MANAGER
+    - path-patterns:
+        - /api/novel-server/author/**
+      allowed-roles: AUTHOR
+    - path-patterns:
+        - /api/novel-server/visitor/**
+      allowed-roles: VISITOR
+
+    # comment-server：管理端评论仅MANAGER，普通评论三种角色均可
+    - path-patterns:
+        - /api/comment-server/manager/comment/**
+      allowed-roles: MANAGER
+    - path-patterns:
+        - /api/comment-server/comment/*/**
+      allowed-roles: VISITOR,AUTHOR,MANAGER
+
+    # common-server：文件接口三种角色均可（排除预签名URL），敏感词接口仅MANAGER（排除检测/过滤/审核接口）
+    - path-patterns:
+        - /api/common-server/file/**
+      allowed-roles: VISITOR,AUTHOR,MANAGER
+      exclude-paths:
+        - /api/common-server/file/presigned-url
+    - path-patterns:
+        - /api/common-server/sensitive-word/**
+      allowed-roles: MANAGER
+      exclude-paths:
+        - /api/common-server/sensitive-word/detect
+        - /api/common-server/sensitive-word/filter
+        - /api/common-server/sensitive-word/auditText
+
+    # ai-server：仅允许 AUTHOR
+    - path-patterns:
+        - /api/ai-server/aiWriting/**
+        - /api/ai-server/continuation/**
+        - /api/ai-server/polishing/**
+        - /api/ai-server/knowledge/**
+        - /api/ai-server/aiAudit/**
+      allowed-roles: AUTHOR
+
+# 日志级别
+logging:
+  level:
+    root: info
+    org.springframework.cloud.gateway: debug

@@ -14,7 +14,7 @@ public class ManagerDTO implements Serializable {
     /**
      * 主键ID
      */
-    private Integer id;
+    private Long id;
 
     /**
      * 昵称
@@ -34,7 +34,7 @@ public class ManagerDTO implements Serializable {
     /**
      * 创建者ID
      */
-    private Integer createId;
+    private Long createId;
 
     /**
      * 头像

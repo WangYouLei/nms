@@ -120,9 +120,13 @@ const request = {
   put<T = any>(url: string, data?: object, config?: AxiosRequestConfig): Promise<Result<T>> {
     return service.put(url, data, config)
   },
-  
+
+  patch<T = any>(url: string, data?: object, config?: AxiosRequestConfig): Promise<Result<T>> {
+    return service.patch(url, data, config)
+  },
+
   delete<T = any>(url: string, params?: object, config?: AxiosRequestConfig): Promise<Result<T>> {
-    return service.delete(url, { params, ...config })
+    return service.delete(url, { ...config, params })
   },
   
   upload<T = any>(url: string, file: File, onProgress?: (progress: number) => void): Promise<Result<T>> {

@@ -15,9 +15,9 @@ import java.util.List;
 public class NovelCategoryRelationDTO {
 
     @ApiModelProperty("小说ID")
-    private Integer novelId;
+    private Long novelId;
 
     @ApiModelProperty("分类ID列表（支持批量设置多个分类）")
-    private List<Integer> categoryIds;
+    private List<Long> categoryIds;
 
 }

@@ -18,7 +18,7 @@ public class VisitorQueryDTO implements Serializable {
      * 访客ID
      */
     @ApiModelProperty("访客ID")
-    private Integer id;
+    private Long id;
 
     /**
      * 昵称（模糊查询）

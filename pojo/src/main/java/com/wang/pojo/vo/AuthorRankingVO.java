@@ -25,7 +25,7 @@ public class AuthorRankingVO implements Serializable {
         private Integer rank;
 
         @ApiModelProperty("作者ID")
-        private Integer id;
+        private Long id;
 
         @ApiModelProperty("作者名称")
         private String name;

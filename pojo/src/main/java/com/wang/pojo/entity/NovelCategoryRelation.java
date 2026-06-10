@@ -1,8 +1,7 @@
 package com.wang.pojo.entity;
 
-import jakarta.validation.constraints.NotNull;
-
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
@@ -21,21 +20,20 @@ public class NovelCategoryRelation implements Serializable {
     /**
     * 主键ID
     */
-    @NotNull(message="[主键ID]不能为空")
     @ApiModelProperty("主键ID")
     @TableId(value = "id", type = IdType.AUTO)
-    private Integer id;
+    private Long id;
     /**
     * 小说ID（关联小说表）
     */
-    @NotNull(message="[小说ID]不能为空")
     @ApiModelProperty("小说ID")
-    private Integer novelId;
+    private Long novelId;
     /**
     * 分类ID（关联分类表）
     */
-    @NotNull(message="[分类ID]不能为空")
     @ApiModelProperty("分类ID")
-    private Integer categoryId;
+    private Long categoryId;
+
+    private LocalDateTime createTime;
 
 }

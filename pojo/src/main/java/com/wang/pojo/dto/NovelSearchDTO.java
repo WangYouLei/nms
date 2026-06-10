@@ -18,16 +18,22 @@ public class NovelSearchDTO {
     private String subName;
 
     @ApiModelProperty("作者ID")
-    private Integer authorId;
-
-    @ApiModelProperty("是否删除")
-    private Boolean isDel;
+    private Long authorId;
 
     @ApiModelProperty("是否热门")
     private Boolean isHot;
 
     @ApiModelProperty("是否完结")
     private Boolean isFinished;
+
+    @ApiModelProperty("分类ID（按分类过滤）")
+    private Long categoryId;
+
+    @ApiModelProperty("频道类型（1男频/2女频）")
+    private Integer categoryType;
+
+    @ApiModelProperty("标签（按标签搜索）")
+    private String tag;
 
     @ApiModelProperty("排序方式：update-最新更新，collect-收藏最多，word-字数最多")
     private String sortBy;

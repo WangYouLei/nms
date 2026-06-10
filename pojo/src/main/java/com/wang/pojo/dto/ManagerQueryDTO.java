@@ -18,7 +18,7 @@ public class ManagerQueryDTO implements Serializable {
      * 管理员ID
      */
     @ApiModelProperty("管理员ID")
-    private Integer id;
+    private Long id;
 
     /**
      * 昵称（模糊查询）

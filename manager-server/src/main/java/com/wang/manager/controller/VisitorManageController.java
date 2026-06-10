@@ -41,7 +41,7 @@ public class VisitorManageController {
 
     @GetMapping("/info/{id}")
     @ApiOperation("获取访客详情")
-    public Result getVisitorInfo(@PathVariable Integer id) {
+    public Result getVisitorInfo(@PathVariable Long id) {
         log.info("获取访客详情请求：ID={}", id);
         return visitorManageService.getVisitorInfo(id);
     }

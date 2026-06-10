@@ -13,7 +13,7 @@ public class AuthorDTO implements Serializable {
     /**
      * 作者id
      */
-    private Integer id;
+    private Long id;
 
     /**
     * 作者昵称

@@ -1,6 +1,7 @@
 import request from '@/utils/request'
 import type { PageResult, ManagerVO, ManagerDTO, ManagerQueryDTO, DashboardOverviewVO, TrendVO, NovelRankingVO, AuthorRankingVO, NovelStatisticsVO, AuthorStatisticsVO, VisitorStatisticsVO } from '@/types'
 import type { ManualAuditVO, ManualAuditQueryDTO, AiAuditResult } from '@/types/comment'
+import type { ManualAuditDTO } from '@/types'
 
 // ==================== 管理员认证 ====================
 
@@ -104,14 +105,35 @@ export function getVisitorCountStatistics() {
  * 连载榜
  */
 export function getNovelOngoingRanking(limit?: number) {
-  return request.get<NovelRankingVO[]>('/manager-server/manager/dashboard/ranking/novel/ongoing', { limit })
+  return request.get<NovelRankingVO>('/manager-server/manager/dashboard/ranking/novel/ongoing', { limit })
 }
 
 /**
  * 作者高产榜
  */
 export function getAuthorProductiveRanking(limit?: number) {
-  return request.get<AuthorRankingVO[]>('/manager-server/manager/dashboard/ranking/author/productive', { limit })
+  return request.get<AuthorRankingVO>('/manager-server/manager/dashboard/ranking/author/productive', { limit })
+}
+
+/**
+ * 小说收藏榜
+ */
+export function getNovelCollectRanking(limit?: number) {
+  return request.get<NovelRankingVO>('/manager-server/manager/dashboard/ranking/novel/collect', { limit })
+}
+
+/**
+ * 最新更新榜
+ */
+export function getNovelLatestRanking(limit?: number) {
+  return request.get<NovelRankingVO>('/manager-server/manager/dashboard/ranking/novel/latest', { limit })
+}
+
+/**
+ * 新书榜
+ */
+export function getNovelNewRanking(limit?: number) {
+  return request.get<NovelRankingVO>('/manager-server/manager/dashboard/ranking/novel/new', { limit })
 }
 
 /**
@@ -251,13 +273,40 @@ export function deleteAuditRecord(id: number) {
   return request.delete(`/manager-server/manual-audit/delete/${id}`)
 }
 
+/**
+ * 创建审核记录
+ */
+export function createManualAudit(data: ManualAuditDTO) {
+  return request.post('/manager-server/manual-audit/create', data)
+}
+
+/**
+ * 获取指定管理员的审核记录
+ */
+export function getManagerAuditList(managerId: number, pageNum: number = 1, pageSize: number = 10) {
+  return request.get<PageResult<ManualAuditVO>>(`/manager-server/manual-audit/manager/${managerId}`, {
+    pageNum,
+    pageSize
+  })
+}
+
+/**
+ * 检查是否存在待审核记录
+ */
+export function checkPendingAudit(aimId: number, aimType: number) {
+  return request.get<boolean>('/manager-server/manual-audit/check-pending', {
+    aimId,
+    aimType
+  })
+}
+
 // ==================== AI审核 ====================
 
 /**
  * AI审核文本内容
  */
 export function aiAuditContent(content: string, aimId: number, aimType: number) {
-  return request.post<AiAuditResult>('/common-server/aiAudit/audit', {
+  return request.post<AiAuditResult>('/ai-server/aiAudit/audit', {
     content,
     aimId,
     aimType

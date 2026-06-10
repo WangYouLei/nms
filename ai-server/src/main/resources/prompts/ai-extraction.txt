@@ -1,0 +1,74 @@
+你是一位专业的小说分析师。请仔细阅读以下小说章节内容，提取其中的关键信息，用于构建小说的结构化知识库。
+
+## 章节内容
+${chapter_text}
+
+## 这篇小说的基本信息
+${novel_info}
+
+## 已有的知识条目（去重参考）
+${existing_knowledge}
+
+## 请提取以下5类知识信息
+
+### 1. 角色 (character)
+提取所有在本章中新出场或获得新信息的角色。对于已有角色，只提取新的变化信息。
+每项格式：
+- name: 角色姓名
+- aliases: 别名/外号（数组）
+- gender: 性别
+- age: 年龄或年龄段（如未明确说明填"未知"）
+- personality: 性格特征（数组，如["勇敢", "正直"]）
+- appearance: 外貌描述
+- background: 背景信息
+- abilities: 能力/技能（数组）
+- relationships: 与其他角色的关系（对象格式，如{"张三": "朋友"})
+- first_appearance_chapter_order: 首次出场章节序号
+- note: 特别说明（如果是已有角色的新变化）
+
+### 2. 场景 (setting)
+提取本章中出现的重要地点/场景。
+每项格式：
+- name: 场景名称
+- type: 场景类型（如"城市"/"建筑"/"自然景观"/"室内"等）
+- description: 场景描述
+- attributes: 场景特点（对象格式，如{"功能": "警察局"}）
+- first_appearance_chapter_order: 首次出现章节序号
+
+### 3. 剧情弧光 (plot)
+提取本章涉及的剧情线索。
+每项格式：
+- name: 剧情线索名称
+- type: 类型（"主线"/"支线"/"伏笔"）
+- description: 剧情描述
+- status: 当前状态（"开始"/"进行中"/"结束"/"待揭晓"）
+- key_events: 关键事件列表（数组格式 [{"description": "事件描述", "chapter_order": 序号}])
+- related_characters: 相关角色（名称数组）
+- related_settings: 相关场景（名称数组）
+
+### 4. 主题 (theme)
+如果本章涉及明显的主题表达，请提取。否则返回空数组。
+每项格式：
+- name: 主题名称
+- description: 主题描述说明
+- related_events: 相关事件（数组）
+
+### 5. 关键物品 (item)
+提取本章中出现的重要物品/道具。
+每项格式：
+- name: 物品名称
+- description: 物品描述与作用
+- status: 物品状态
+- first_appearance_chapter_order: 首次出现章节序号
+
+## 输出格式
+请严格按照JSON格式输出提取结果，不要包含任何其他文字：
+{
+  "characters": [...],
+  "settings": [...],
+  "plots": [...],
+  "themes": [...],
+  "items": [...]
+}
+
+如果某个类别没有提取到内容，返回空数组 []。

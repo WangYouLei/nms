@@ -17,7 +17,7 @@ public interface CommentMapper extends BaseMapper<Comment> {
      * @param comment 评论信息
      * @return 影响行数
      */
-    int update(Comment comment);
+    int updateSelective(Comment comment);
 
     /**
      * 增加回复数

@@ -14,5 +14,5 @@ public interface AuthorMapper extends BaseMapper<Author> {
      * @param author 作者信息
      * @return 影响行数
      */
-    int update(Author author);
+    int updateSelective(Author author);
 }

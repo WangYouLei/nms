@@ -5,10 +5,10 @@ export type { Result, PageResult, PaginationParams, CaptchaResult, LoginResult, 
 export type { Novel, NovelChapter, NovelCategory, NovelCategoryRelation, Author, Visitor, Manager } from './entity'
 
 // DTO类型
-export type { NovelDTO, NovelSearchDTO, NovelChapterDTO, NovelCategoryDTO, NovelCategoryRelationDTO, AuthorDTO, AuthorRegisterDTO, VisitorDTO, VisitorRegisterDTO, VisitorDeleteDTO, ManagerDTO, ManagerQueryDTO, PasswordUpdateEmailDTO, VisitorFollowDTO } from './dto'
+export type { NovelDTO, NovelSearchDTO, SearchDTO, NovelChapterDTO, NovelCategoryDTO, NovelCategoryRelationDTO, AuthorDTO, AuthorRegisterDTO, VisitorDTO, VisitorRegisterDTO, VisitorDeleteDTO, ManagerDTO, ManagerQueryDTO, PasswordUpdateEmailDTO, ManualAuditDTO, VisitorFollowDTO } from './dto'
 
 // VO类型
-export type { NovelDetailVO, NovelListVO, NovelChapterVO, NovelCategoryVO, AuthorVO, VisitorAuthorVO, AuthorDetailVO, AuthorRankingVO, AuthorStatisticsVO, VisitorVO, VisitorStatisticsVO, ManagerVO, DashboardOverviewVO, TrendVO, NovelRankingVO, NovelStatisticsVO, VisitorCollectVO, VisitorFollowVO } from './vo'
+export type { NovelDetailVO, NovelListVO, NovelChapterVO, NovelCategoryVO, AuthorVO, VisitorAuthorVO, AuthorDetailVO, AuthorRankingVO, AuthorRankingItem, AuthorStatisticsVO, VisitorVO, VisitorStatisticsVO, ManagerVO, DashboardOverviewVO, TrendVO, NovelRankingVO, NovelRankingItem, NovelStatisticsVO, VisitorCollectVO, VisitorFollowVO, VisitorReadingProgressVO } from './vo'
 
 // 评论类型
 export type { 
@@ -20,7 +20,8 @@ export type {
   SensitiveWordQueryDTO,
   ManualAuditVO,
   ManualAuditQueryDTO,
-  AiAuditResult
+  AiAuditResult,
+  AuditResultVO
 } from './comment'
 export { 
   CommentUserType, 
@@ -31,3 +32,7 @@ export {
   AuditAimType,
   AuditResult
 } from './comment'
+
+// AI写作助手类型
+export type { AiWritingDTO, AiWritingVO, StyleSummaryVO, ContinuationPlanDTO, ContinuationPlanVO, ContinuationGenerateDTO, ContinuationGenerateVO, KnowledgeItemRef, PolishRequestDTO, PolishResultVO, PolishChangeItem, KnowledgeItemVO, KnowledgeExtractDTO, KnowledgeExtractVO, KnowledgeExtractItemSummary, KnowledgeExtractBatchDTO } from './ai-writing'
+export { AiWritingType, KnowledgeItemStatus, PolishAspect } from './ai-writing'

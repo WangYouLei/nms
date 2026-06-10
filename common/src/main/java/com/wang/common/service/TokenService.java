@@ -32,7 +32,7 @@ public interface TokenService {
      * @param role 用户角色（visitor/author/manager）
      * @param userId 用户ID
      */
-    void deleteUserTokens(String role, Integer userId);
+    void deleteUserTokens(String role, Long userId);
 
     /**
      * 验证 token 是否有效
@@ -48,5 +48,5 @@ public interface TokenService {
      * @param userId 用户ID
      * @return Redis key
      */
-    String generateTokenKey(String role, Integer userId);
+    String generateTokenKey(String role, Long userId);
 }

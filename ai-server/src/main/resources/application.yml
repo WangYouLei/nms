@@ -1,0 +1,76 @@
+server:
+  port: 5230
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+spring:
+  application:
+    name: ai-server
+
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        namespace: public
+        username: nacos
+        password: 123456
+      config:
+        server-addr: 127.0.0.1:8848
+        namespace: public
+        username: nacos
+        password: 123456
+        file-extension: yml
+        shared-configs:
+          - data-id: common-config.yml
+            group: DEFAULT_GROUP
+            refresh: true
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 10000
+            read-timeout: 30000
+      circuitbreaker:
+        enabled: true
+    loadbalancer:
+      ribbon:
+        enabled: false
+
+  main:
+    allow-bean-definition-overriding: true
+
+  datasource:
+    username: root
+    password: 123456
+    url: jdbc:mysql://localhost:3306/nms?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&charset=utf8mb4
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 3000ms
+
+  ai:
+    dashscope:
+      api-key: ${Spring_ai_alibaba}
+
+
+model:
+  api-key: ${Spring_ai_alibaba}
+  text1: deepseek-v4-pro
+  voice1: sambert-zhide-v1
+
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+  mapper-locations: classpath:/mapper/*.xml
+
+logging:
+  level:
+    root: info

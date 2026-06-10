@@ -104,7 +104,7 @@ public class AuthorManageServiceImpl implements AuthorManageService {
     }
 
     @Override
-    public Result getAuthorInfo(Integer id) {
+    public Result getAuthorInfo(Long id) {
         log.info("获取作者详情：ID={}", id);
 
         Author author = authorMapper.selectById(id);

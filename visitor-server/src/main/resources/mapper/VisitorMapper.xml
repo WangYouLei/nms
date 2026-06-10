@@ -3,7 +3,7 @@
 <mapper namespace="com.wang.visitor.mapper.VisitorMapper">
 
     <!-- 动态更新访客信息，只更新非 null 且非空的字段 -->
-    <update id="update" parameterType="com.wang.pojo.entity.Visitor">
+    <update id="updateSelective" parameterType="com.wang.pojo.entity.Visitor">
         UPDATE visitor
         <set>
             <!-- String类型：判断非null且非空字符串 -->

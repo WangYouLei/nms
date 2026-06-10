@@ -15,7 +15,7 @@ public class AuthorVO implements Serializable {
     /**
      * ID
      */
-    private Integer id;
+    private Long id;
 
     /**
      * 作者昵称

@@ -15,5 +15,5 @@ public interface NovelChapterMapper extends BaseMapper<NovelChapter> {
      * @param novelChapter 章节信息
      * @return 影响行数
      */
-    int update(NovelChapter novelChapter);
+    int updateSelective(NovelChapter novelChapter);
 }

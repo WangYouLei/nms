@@ -1,18 +1,14 @@
 package com.wang.pojo.entity;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-import org.hibernate.validator.constraints.Length;
 
 /**
  * 管理员表
@@ -25,51 +21,39 @@ public class Manager implements Serializable {
     /**
      * 主键ID
      */
-    @NotNull(message = "[主键ID]不能为空")
     @ApiModelProperty("主键ID")
     @TableId(value = "id", type = IdType.AUTO)
-    private Integer id;
+    private Long id;
 
     /**
      * 昵称
      */
-    @Size(max = 64, message = "昵称长度不能超过64")
     @ApiModelProperty("昵称")
-    @Length(max = 64, message = "昵称长度不能超过64")
     private String name;
 
     /**
      * 账号
      */
-    @NotBlank(message = "[账号]不能为空")
-    @Size(max = 64, message = "账号长度不能超过64")
     @ApiModelProperty("账号")
-    @Length(max = 64, message = "账号长度不能超过64")
     private String account;
 
     /**
      * 密码
      */
-    @NotBlank(message = "[密码]不能为空")
-    @Size(max = 128, message = "密码长度不能超过128")
     @ApiModelProperty("密码")
-    @Length(max = 128, message = "密码长度不能超过128")
     private String password;
 
     /**
      * 头像
      */
-    @Size(max = 512, message = "头像URL长度不能超过512")
     @ApiModelProperty("头像")
-    @Length(max = 512, message = "头像URL长度不能超过512")
     private String avatar;
 
     /**
      * 创建者ID
      */
-    @NotNull(message = "[创建者ID]不能为空")
     @ApiModelProperty("创建者ID")
-    private Integer createId;
+    private Long createId;
 
     /**
      * 创建时间
@@ -82,5 +66,12 @@ public class Manager implements Serializable {
      */
     @ApiModelProperty("更新时间")
     private LocalDateTime updateTime;
+
+    /**
+     * 是否删除（false未删除，true已删除）
+     */
+    @ApiModelProperty("是否删除（false未删除，true已删除）")
+    @TableLogic
+    private Boolean isDel;
 
 }

@@ -68,7 +68,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
 
     @Override
     @Transactional
-    public Result executeAudit(Long id, Integer result, String refusalReason, Integer managerId, String managerName) {
+    public Result executeAudit(Long id, Integer result, String refusalReason, Long managerId, String managerName) {
         log.info("执行审核：id={}, result={}, managerId={}", id, result, managerId);
 
         ManualAudit entity = manualAuditMapper.selectById(id);
@@ -99,7 +99,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
         entity.setFirstAuditTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
 
-        int updateResult = manualAuditMapper.update(entity);
+        int updateResult = manualAuditMapper.updateSelective(entity);
         if (updateResult == 1) {
             log.info("审核执行成功：id={}, result={}", id, result);
             return Result.success(convertToVO(entity));
@@ -111,7 +111,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
 
     @Override
     @Transactional
-    public Result batchApprove(List<Long> ids, Integer managerId, String managerName) {
+    public Result batchApprove(List<Long> ids, Long managerId, String managerName) {
         log.info("批量审核通过：ids={}, managerId={}", ids, managerId);
 
         int successCount = 0;
@@ -130,7 +130,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
             entity.setFirstAuditTime(LocalDateTime.now());
             entity.setUpdateTime(LocalDateTime.now());
 
-            int result = manualAuditMapper.update(entity);
+            int result = manualAuditMapper.updateSelective(entity);
             if (result == 1) {
                 successCount++;
             }
@@ -145,7 +145,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
 
     @Override
     @Transactional
-    public Result batchReject(List<Long> ids, String refusalReason, Integer managerId, String managerName) {
+    public Result batchReject(List<Long> ids, String refusalReason, Long managerId, String managerName) {
         log.info("批量审核拒绝：ids={}, managerId={}", ids, managerId);
 
         if (refusalReason == null || refusalReason.trim().isEmpty()) {
@@ -169,7 +169,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
             entity.setFirstAuditTime(LocalDateTime.now());
             entity.setUpdateTime(LocalDateTime.now());
 
-            int result = manualAuditMapper.update(entity);
+            int result = manualAuditMapper.updateSelective(entity);
             if (result == 1) {
                 successCount++;
             }
@@ -261,7 +261,7 @@ public class ManualAuditServiceImpl implements ManualAuditService {
     }
 
     @Override
-    public Result getAuditByManagerId(Integer managerId, Integer pageNum, Integer pageSize) {
+    public Result getAuditByManagerId(Long managerId, Integer pageNum, Integer pageSize) {
         log.info("获取管理员的审核记录：managerId={}", managerId);
 
         LambdaQueryWrapper<ManualAudit> queryWrapper = new LambdaQueryWrapper<>();

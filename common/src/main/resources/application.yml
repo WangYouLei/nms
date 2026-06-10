@@ -2,8 +2,3 @@ spring:
   application:
     name: common
 
-  # DashScope AI 配置
-  ai:
-    dashscope:
-      api-key: ${Spring_ai_alibaba}
-

@@ -54,6 +54,14 @@ spring:
           max-idle: 8
           min-idle: 0
 
+  # RabbitMQ配置
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+
 server:
   port: 5200
   servlet:

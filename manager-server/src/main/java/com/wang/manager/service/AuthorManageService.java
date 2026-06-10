@@ -28,5 +28,5 @@ public interface AuthorManageService {
      * @param id 作者ID
      * @return 作者信息
      */
-    Result getAuthorInfo(Integer id);
+    Result getAuthorInfo(Long id);
 }

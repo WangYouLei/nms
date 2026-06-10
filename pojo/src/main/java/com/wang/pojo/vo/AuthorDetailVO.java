@@ -16,7 +16,7 @@ import java.util.List;
 public class AuthorDetailVO implements Serializable {
 
     @ApiModelProperty("作者ID")
-    private Integer id;
+    private Long id;
 
     @ApiModelProperty("作者昵称")
     private String name;

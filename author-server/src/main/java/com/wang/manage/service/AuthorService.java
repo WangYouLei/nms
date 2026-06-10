@@ -5,6 +5,8 @@ import com.wang.pojo.dto.AuthorDTO;
 import com.wang.pojo.dto.AuthorRegisterDTO;
 import com.wang.pojo.dto.PasswordUpdateEmailDTO;
 
+import java.util.List;
+
 
 public interface AuthorService {
     /**
@@ -28,14 +30,14 @@ public interface AuthorService {
      * @param id 作者ID
      * @return 作者信息
      */
-    Result getAuthorInfo(Integer id);
+    Result getAuthorInfo(Long id);
     
     /**
      * 逻辑删除作者
      * @param id 作者ID
      * @return 删除结果
      */
-    Result deleteAuthor(Integer id);
+    Result deleteAuthor(Long id);
     
     /**
      * 修改作者信息
@@ -52,7 +54,7 @@ public interface AuthorService {
      * @param newPassword 新密码
      * @return 修改结果
      */
-    Result updatePassword(Integer id, String oldPassword,String newPassword);
+    Result updatePassword(Long id, String oldPassword,String newPassword);
 
     /**
      * 修改作者密码（通过邮箱）
@@ -66,12 +68,33 @@ public interface AuthorService {
      * @param id 作者ID
      * @return 名称和头像
      */
-    Result getNameAndAvatar(Integer id);
+    Result getNameAndAvatar(Long id);
 
     /**
      * 作者退出登录
      * @param authorId 作者ID
      * @return 退出结果
      */
-    Result logout(Integer authorId);
+    Result logout(Long authorId);
+
+    /**
+     * 获取作者头像URL（供其他微服务Feign调用）
+     * @param authorId 作者ID
+     * @return 头像URL
+     */
+    Result getAuthorAvatar(Long authorId);
+
+    /**
+     * 批量获取作者头像URL（供其他微服务Feign调用，解决N+1查询问题）
+     * @param authorIds 作者ID列表
+     * @return 作者ID与头像URL的映射
+     */
+    Result batchGetAuthorAvatars(List<Long> authorIds);
+
+    /**
+     * 获取作者基本信息（供其他微服务Feign调用）
+     * @param authorId 作者ID
+     * @return 作者基本信息（名称、头像、等级、简介、作品数）
+     */
+    Result getAuthorBasicInfo(Long authorId);
 }

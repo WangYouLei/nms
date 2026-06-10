@@ -19,7 +19,7 @@ public interface FileService {
      * @param oldFileUrl 旧文件URL(如果是修改操作，就要上传)
      * @return 文件访问URL
      */
-    Result uploadFile(MultipartFile file, Integer code,Integer novelId,String oldFileUrl);
+    Result uploadFile(MultipartFile file, Integer code,Long novelId,String oldFileUrl);
 
 
     /**

@@ -149,15 +149,17 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Loading, Search, Check, ChatDotRound, ArrowDown, Close } from '@element-plus/icons-vue'
 import { getChapterList, getChapterContent, getChapterDetail } from '@/api'
+import { updateReadingProgress, getReadingProgress } from '@/api/reading-progress'
 import Reader from '@/components/business/reader.vue'
 import CommentList from '@/components/business/CommentList.vue'
-import { useNovelStore } from '@/stores'
+import { useNovelStore, useUserStore } from '@/stores'
 import { CommentTargetType } from '@/types/comment'
 import type { NovelChapterVO } from '@/types'
 
 const router = useRouter()
 const route = useRoute()
 const novelStore = useNovelStore()
+const userStore = useUserStore()
 
 const loading = ref(true)
 const chapters = ref<NovelChapterVO[]>([])
@@ -235,6 +237,15 @@ const fetchChapter = async () => {
     if (chapter.value) {
       novelStore.setCurrentChapter(chapter.value)
     }
+
+    // 更新阅读进度
+    if (userStore.isLoggedIn && chapter.value) {
+      updateReadingProgress(
+        Number(route.params.novelId),
+        chapter.value.id,
+        chapter.value.chapterOrder
+      ).catch(() => {})
+    }
   } catch (error) {
     console.error('Failed to fetch chapter:', error)
   } finally {
@@ -271,6 +282,29 @@ watch(() => route.params.chapterId, () => {
 
 onMounted(async () => {
   await fetchChapters()
+
+  // 如果未指定章节，尝试恢复阅读进度或跳转到第一章
+  if (!route.params.chapterId) {
+    if (userStore.isLoggedIn) {
+      try {
+        const res = await getReadingProgress(Number(route.params.novelId))
+        if (res.data?.chapterId) {
+          router.replace(`/read/${route.params.novelId}/${res.data.chapterId}`)
+          return
+        }
+      } catch {
+        // 无进度记录
+      }
+    }
+    // 无阅读进度，跳转到第一章
+    if (chapters.value.length > 0) {
+      router.replace(`/read/${route.params.novelId}/${chapters.value[0].id}`)
+      return
+    }
+    // 无章节，不调用 fetchChapter
+    return
+  }
+
   fetchChapter()
 })
 </script>

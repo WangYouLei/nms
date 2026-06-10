@@ -15,13 +15,13 @@ public class NovelChapterDTO implements Serializable {
      * 主键ID
      */
     @ApiModelProperty("主键ID")
-    private Integer id;
+    private Long id;
 
     /**
      * 小说ID
      */
     @ApiModelProperty("小说ID")
-    private Integer novelId;
+    private Long novelId;
 
     /**
      * 章节标题

@@ -37,7 +37,7 @@ public class RoleContextUtil {
      * 获取当前登录用户ID
      * @return 用户ID，未登录返回 null
      */
-    public static Integer getCurrentUserId() {
+    public static Long getCurrentUserId() {
         LoginUser user = THREAD_LOCAL.get();
         return user != null ? user.getId() : null;
     }

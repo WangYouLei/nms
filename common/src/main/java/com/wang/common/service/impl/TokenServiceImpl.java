@@ -59,7 +59,7 @@ public class TokenServiceImpl implements TokenService {
     }
 
     @Override
-    public void deleteUserTokens(String role, Integer userId) {
+    public void deleteUserTokens(String role, Long userId) {
         // 删除用户的所有 token（当前端的 token）
         String key = generateTokenKey(role, userId);
         deleteToken(key);
@@ -79,7 +79,7 @@ public class TokenServiceImpl implements TokenService {
     }
 
     @Override
-    public String generateTokenKey(String role, Integer userId) {
+    public String generateTokenKey(String role, Long userId) {
         // 格式：role:userId，如 "visitor:123"
         return role + ":" + userId;
     }

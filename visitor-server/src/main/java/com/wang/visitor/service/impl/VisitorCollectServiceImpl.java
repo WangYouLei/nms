@@ -2,13 +2,12 @@ package com.wang.visitor.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.wang.common.enums.BizCodeEnum;
+import com.wang.common.feign.NovelServiceFeign;
 import com.wang.common.result.Result;
 import com.wang.common.service.CacheService;
 import com.wang.common.constants.CacheConstants;
 import com.wang.visitor.mapper.VisitorCollectMapper;
-import com.wang.visitor.mapper.NovelMapper;
 import com.wang.visitor.service.VisitorCollectService;
-import com.wang.pojo.entity.Novel;
 import com.wang.pojo.entity.VisitorCollect;
 import com.wang.pojo.vo.VisitorCollectVO;
 import lombok.extern.slf4j.Slf4j;
@@ -28,20 +27,20 @@ import java.util.stream.Collectors;
 public class VisitorCollectServiceImpl implements VisitorCollectService {
 
     private final VisitorCollectMapper visitorCollectMapper;
-    private final NovelMapper novelMapper;
+    private final NovelServiceFeign novelServiceFeign;
     private final CacheService cacheService;
 
     public VisitorCollectServiceImpl(VisitorCollectMapper visitorCollectMapper,
-                                      NovelMapper novelMapper,
+                                      NovelServiceFeign novelServiceFeign,
                                       CacheService cacheService) {
         this.visitorCollectMapper = visitorCollectMapper;
-        this.novelMapper = novelMapper;
+        this.novelServiceFeign = novelServiceFeign;
         this.cacheService = cacheService;
     }
 
     @Override
     @Transactional
-    public Result addCollect(Integer visitorId, Integer novelId) {
+    public Result addCollect(Long visitorId, Long novelId) {
         // 检查是否已收藏
         LambdaQueryWrapper<VisitorCollect> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(VisitorCollect::getVisitorId, visitorId)
@@ -50,31 +49,34 @@ public class VisitorCollectServiceImpl implements VisitorCollectService {
             return Result.error("已收藏该小说");
         }
 
-        // 查询小说信息
-        Novel novel = novelMapper.selectById(novelId);
-        if (novel == null || novel.getIsDel()) {
+        // 通过Feign调用novel-server获取小说信息
+        Result novelResult = novelServiceFeign.getNovelBasicInfo(novelId);
+        if (novelResult.getCode() != BizCodeEnum.SUCCESS.getCode() || novelResult.getData() == null) {
             return Result.buildResult(BizCodeEnum.NOVEL_NOT_FOUND);
         }
+
+        @SuppressWarnings("unchecked")
+        java.util.Map<String, Object> novelInfo = (java.util.Map<String, Object>) novelResult.getData();
 
         // 创建收藏记录
         VisitorCollect collect = new VisitorCollect();
         collect.setVisitorId(visitorId);
         collect.setNovelId(novelId);
-        collect.setNovelName(novel.getName());
-        collect.setNovelUrl(novel.getUrl());
-        collect.setAuthorName(novel.getAuthorName());
-        collect.setAuthorAvatar(novel.getAuthorAvatar());
-        collect.setAuthorRank(novel.getAuthorRank());
+        collect.setNovelName((String) novelInfo.get("name"));
+        collect.setNovelUrl((String) novelInfo.get("url"));
+        collect.setAuthorName((String) novelInfo.get("authorName"));
+        collect.setAuthorAvatar((String) novelInfo.get("authorAvatar"));
+        Object authorRankObj = novelInfo.get("authorRank");
+        collect.setAuthorRank(authorRankObj != null ? ((Number) authorRankObj).intValue() : 1);
         collect.setCreateTime(LocalDateTime.now());
 
         int result = visitorCollectMapper.insert(collect);
         if (result == 1) {
-            // 删除相关缓存
             String checkKey = CacheConstants.buildCollectCheckKey(visitorId, novelId);
-            String countKey = CacheConstants.buildCollectCountKey(visitorId);
             cacheService.delete(checkKey);
-            cacheService.delete(countKey);
-            
+            cacheService.increment(CacheConstants.buildCollectCountKey(visitorId));
+            cacheService.increment(CacheConstants.buildNovelCollectCountKey(novelId));
+
             log.info("添加收藏成功：用户ID={}, 小说ID={}", visitorId, novelId);
             return Result.success("收藏成功");
         } else {
@@ -85,20 +87,20 @@ public class VisitorCollectServiceImpl implements VisitorCollectService {
 
     @Override
     @Transactional
-    public Result removeCollect(Integer visitorId, Integer novelId) {
+    public Result removeCollect(Long visitorId, Long novelId) {
         LambdaQueryWrapper<VisitorCollect> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(VisitorCollect::getVisitorId, visitorId)
                 .eq(VisitorCollect::getNovelId, novelId);
 
         int result = visitorCollectMapper.delete(queryWrapper);
         if (result == 1) {
-            // 删除相关缓存
             String checkKey = CacheConstants.buildCollectCheckKey(visitorId, novelId);
-            String countKey = CacheConstants.buildCollectCountKey(visitorId);
             cacheService.delete(checkKey);
-            cacheService.delete(countKey);
-            
+            cacheService.decrement(CacheConstants.buildCollectCountKey(visitorId));
+            cacheService.decrement(CacheConstants.buildNovelCollectCountKey(novelId));
+
             log.info("取消收藏成功：用户ID={}, 小说ID={}", visitorId, novelId);
+            cacheService.zIncrBy(CacheConstants.RANKING_NOVEL_COLLECT, -1, String.valueOf(novelId));
             return Result.success("取消收藏成功");
         } else {
             log.warn("取消收藏失败，记录不存在：用户ID={}, 小说ID={}", visitorId, novelId);
@@ -107,7 +109,7 @@ public class VisitorCollectServiceImpl implements VisitorCollectService {
     }
 
     @Override
-    public Result getCollectList(Integer visitorId) {
+    public Result getCollectList(Long visitorId) {
         LambdaQueryWrapper<VisitorCollect> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(VisitorCollect::getVisitorId, visitorId)
                 .orderByDesc(VisitorCollect::getCreateTime);
@@ -122,7 +124,7 @@ public class VisitorCollectServiceImpl implements VisitorCollectService {
     }
 
     @Override
-    public Result checkCollect(Integer visitorId, Integer novelId) {
+    public Result checkCollect(Long visitorId, Long novelId) {
         // 先从缓存获取
         String cacheKey = CacheConstants.buildCollectCheckKey(visitorId, novelId);
         Boolean cachedResult = cacheService.get(cacheKey, Boolean.class);
@@ -146,23 +148,15 @@ public class VisitorCollectServiceImpl implements VisitorCollectService {
     }
 
     @Override
-    public Result getCollectCount(Integer visitorId) {
-        // 先从缓存获取
-        String cacheKey = CacheConstants.buildCollectCountKey(visitorId);
-        Integer cachedCount = cacheService.get(cacheKey, Integer.class);
-        if (cachedCount != null) {
-            log.info("从缓存获取收藏数量");
-            return Result.success(cachedCount);
+    public Result getCollectCount(Long visitorId) {
+        String countKey = CacheConstants.buildCollectCountKey(visitorId);
+        Long count = cacheService.get(countKey, Long.class);
+        if (count != null && count >= 0) {
+            return Result.success(count);
         }
-        
-        // 缓存未命中，查询数据库
-        Integer count = visitorCollectMapper.countByVisitorId(visitorId);
-        
-        // 存入缓存
-        cacheService.set(cacheKey, count, CacheConstants.COUNT_TTL);
-        log.info("收藏数量已缓存");
-        
-        return Result.success(count);
+        Long dbCount = visitorCollectMapper.countByVisitorId(visitorId);
+        cacheService.set(countKey, dbCount, CacheConstants.COUNTER_TTL);
+        return Result.success(dbCount);
     }
 
     /**

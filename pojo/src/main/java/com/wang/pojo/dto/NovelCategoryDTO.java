@@ -13,7 +13,7 @@ import lombok.Data;
 public class NovelCategoryDTO {
 
     @ApiModelProperty("分类ID")
-    private Integer id;
+    private Long id;
 
 
     @ApiModelProperty("分类类型")

@@ -62,6 +62,21 @@ public final class CacheConstants {
     
     /** 排行榜 */
     public static final String RANKING_PREFIX = "ranking:";
+
+    /** 排行榜 ZSET Key - 小说收藏榜 */
+    public static final String RANKING_NOVEL_COLLECT = "ranking:novel:collect";
+
+    /** 排行榜 ZSET Key - 连载榜（仅连载中小说） */
+    public static final String RANKING_NOVEL_ONGOING = "ranking:novel:ongoing";
+
+    /** 排行榜 ZSET Key - 最新更新榜 */
+    public static final String RANKING_NOVEL_LATEST = "ranking:novel:latest";
+
+    /** 排行榜 ZSET Key - 新书榜 */
+    public static final String RANKING_NOVEL_NEW = "ranking:novel:new";
+
+    /** 排行榜 ZSET Key - 作者高产榜 */
+    public static final String RANKING_AUTHOR_PRODUCTIVE = "ranking:author:productive";
     
     /** 关注检查 */
     public static final String FOLLOW_CHECK_PREFIX = "follow:check:";
@@ -80,6 +95,12 @@ public final class CacheConstants {
     
     /** 小说收藏数量 */
     public static final String NOVEL_COLLECT_COUNT_PREFIX = "novel:collect:count:";
+
+    /** 阅读进度 */
+    public static final String READING_PROGRESS_PREFIX = "reading:progress:";
+
+    /** 小说在读人数（原子计数器） */
+    public static final String READING_COUNT_PREFIX = "reading:count:";
 
     // ==================== 缓存过期时间（秒） ====================
     
@@ -125,54 +146,60 @@ public final class CacheConstants {
     /** 默认过期时间：30分钟 */
     public static final long DEFAULT_TTL = 1800L;
 
+    /** 阅读进度过期时间：10分钟 */
+    public static final long READING_PROGRESS_TTL = 600L;
+
+    /** 原子计数器过期时间：24小时 */
+    public static final long COUNTER_TTL = 86400L;
+
     // ==================== 缓存键构建方法 ====================
     
     /**
      * 构建作者详情缓存键
      */
-    public static String buildAuthorDetailKey(Integer authorId) {
+    public static String buildAuthorDetailKey(Long authorId) {
         return AUTHOR_DETAIL_PREFIX + authorId;
     }
     
     /**
      * 构建作者名称头像缓存键
      */
-    public static String buildAuthorNameAvatarKey(Integer authorId) {
+    public static String buildAuthorNameAvatarKey(Long authorId) {
         return AUTHOR_NAME_AVATAR_PREFIX + authorId;
     }
     
     /**
      * 构建访客详情缓存键
      */
-    public static String buildVisitorDetailKey(Integer visitorId) {
+    public static String buildVisitorDetailKey(Long visitorId) {
         return VISITOR_DETAIL_PREFIX + visitorId;
     }
     
     /**
      * 构建访客名称头像缓存键
      */
-    public static String buildVisitorNameAvatarKey(Integer visitorId) {
+    public static String buildVisitorNameAvatarKey(Long visitorId) {
         return VISITOR_NAME_AVATAR_PREFIX + visitorId;
     }
     
     /**
      * 构建管理员详情缓存键
      */
-    public static String buildManagerDetailKey(Integer managerId) {
+    public static String buildManagerDetailKey(Long managerId) {
         return MANAGER_DETAIL_PREFIX + managerId;
     }
     
     /**
      * 构建管理员名称头像缓存键
      */
-    public static String buildManagerNameAvatarKey(Integer managerId) {
+    public static String buildManagerNameAvatarKey(Long managerId) {
         return MANAGER_NAME_AVATAR_PREFIX + managerId;
     }
     
     /**
      * 构建小说分类关联缓存键
      */
-    public static String buildNovelCategoryKey(Integer novelId) {
+    public static String buildNovelCategoryKey(Long novelId) {
         return NOVEL_CATEGORY_PREFIX + novelId;
     }
     
@@ -200,42 +227,50 @@ public final class CacheConstants {
     /**
      * 构建关注检查缓存键
      */
-    public static String buildFollowCheckKey(Integer visitorId, Integer authorId) {
+    public static String buildFollowCheckKey(Long visitorId, Long authorId) {
         return FOLLOW_CHECK_PREFIX + visitorId + ":" + authorId;
     }
     
     /**
      * 构建关注数量缓存键
      */
-    public static String buildFollowCountKey(Integer visitorId) {
+    public static String buildFollowCountKey(Long visitorId) {
         return FOLLOW_COUNT_PREFIX + visitorId;
     }
     
     /**
      * 构建粉丝数量缓存键
      */
-    public static String buildFansCountKey(Integer authorId) {
+    public static String buildFansCountKey(Long authorId) {
         return FANS_COUNT_PREFIX + authorId;
     }
     
     /**
      * 构建收藏检查缓存键
      */
-    public static String buildCollectCheckKey(Integer visitorId, Integer novelId) {
+    public static String buildCollectCheckKey(Long visitorId, Long novelId) {
         return COLLECT_CHECK_PREFIX + visitorId + ":" + novelId;
     }
     
     /**
      * 构建访客收藏数量缓存键
      */
-    public static String buildCollectCountKey(Integer visitorId) {
+    public static String buildCollectCountKey(Long visitorId) {
         return COLLECT_COUNT_PREFIX + visitorId;
     }
     
     /**
      * 构建小说收藏数量缓存键
      */
-    public static String buildNovelCollectCountKey(Integer novelId) {
+    public static String buildNovelCollectCountKey(Long novelId) {
         return NOVEL_COLLECT_COUNT_PREFIX + novelId;
+    }
+
+    public static String buildReadingProgressKey(Long visitorId, Long novelId) {
+        return READING_PROGRESS_PREFIX + visitorId + ":" + novelId;
+    }
+
+    public static String buildReadingCountKey(Long novelId) {
+        return READING_COUNT_PREFIX + novelId;
     }
 }

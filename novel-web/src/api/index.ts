@@ -24,3 +24,15 @@ export * from './comment'
 
 // 文件相关API
 export * from './file'
+
+// 排行榜API（不通过barrel export，直接从 @/api/ranking 导入，避免与manager同名冲突）
+// export * from './ranking'
+
+// 搜索API
+export * from './search'
+
+// 阅读进度API
+export * from './reading-progress'
+
+// AI写作助手API
+export * from './ai-writing'

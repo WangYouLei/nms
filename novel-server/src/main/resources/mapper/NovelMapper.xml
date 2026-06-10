@@ -17,7 +17,7 @@
     </select>
 
     <!-- 统计热门小说总数（支持分类筛选） -->
-    <select id="countHotNovels" resultType="java.lang.Integer">
+    <select id="countHotNovels" resultType="java.lang.Long">
         SELECT COUNT(DISTINCT n.id)
         FROM novel n
         LEFT JOIN novel_category_relation ncr ON n.id = ncr.novel_id
@@ -42,7 +42,7 @@
     </select>
 
     <!-- 统计分类下小说总数 -->
-    <select id="countNovelsByCategoryId" resultType="java.lang.Integer">
+    <select id="countNovelsByCategoryId" resultType="java.lang.Long">
         SELECT COUNT(*)
         FROM novel n
         INNER JOIN novel_category_relation ncr ON n.id= ncr.novel_id
@@ -51,7 +51,7 @@
     </select>
 
     <!-- 动态更新小说信息，只更新非 null 且非空的字段 -->
-    <update id="update" parameterType="com.wang.pojo.entity.Novel">
+    <update id="updateSelective" parameterType="com.wang.pojo.entity.Novel">
         UPDATE novel
         <set>
             <if test="name != null and name != ''">
@@ -105,7 +105,7 @@
     </select>
 
     <!-- 统计作者作品总数 -->
-    <select id="countNovelsByAuthorIdInNovel" resultType="java.lang.Integer">
+    <select id="countNovelsByAuthorIdInNovel" resultType="java.lang.Long">
         SELECT COUNT(*)
         FROM novel
         WHERE author_id = #{authorId}

@@ -36,7 +36,7 @@ public interface NovelCategoryService {
      * @param id 分类ID
      * @return 分类信息
      */
-    Result getCategoryById(Integer id);
+    Result getCategoryById(Long id);
 
     // ==================== Manager - 管理端方法 ====================
 
@@ -53,7 +53,7 @@ public interface NovelCategoryService {
     /**
      * 删除分类
      */
-    Result deleteCategory(Integer id);
+    Result deleteCategory(Long id);
 
     /**
      * 获取分类列表（分页）
@@ -68,5 +68,5 @@ public interface NovelCategoryService {
     /**
      * 获取小说的分类
      */
-    Result getNovelCategory(Integer novelId);
+    Result getNovelCategory(Long novelId);
 }

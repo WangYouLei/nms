@@ -22,19 +22,19 @@ public class VisitorFollow implements Serializable {
      */
     @ApiModelProperty("主键ID")
     @TableId(value = "id", type = IdType.AUTO)
-    private Integer id;
+    private Long id;
 
     /**
      * 访客ID
      */
     @ApiModelProperty("访客ID")
-    private Integer visitorId;
+    private Long visitorId;
 
     /**
      * 作者ID
      */
     @ApiModelProperty("作者ID")
-    private Integer authorId;
+    private Long authorId;
 
     /**
      * 作者名称（冗余）

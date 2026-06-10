@@ -30,21 +30,21 @@ public class NovelChapterController {
 
     @GetMapping("/common/chapter/list")
     @ApiOperation("[Common] 查询章节列表")
-    public Result getChapterList(@RequestParam Integer novelId) {
+    public Result getChapterList(@RequestParam Long novelId) {
         log.info("[Common] 查询章节列表：小说ID={}", novelId);
         return novelChapterService.getChapterList(novelId);
     }
 
     @GetMapping("/common/chapter/detail/{id}")
     @ApiOperation("[Common] 获取章节详情")
-    public Result getChapterDetail(@PathVariable Integer id) {
+    public Result getChapterDetail(@PathVariable Long id) {
         log.info("[Common] 获取章节详情：章节ID={}", id);
         return novelChapterService.getChapterDetail(id);
     }
 
     @GetMapping("/common/chapter/content/{id}")
     @ApiOperation("[Common] 获取章节内容")
-    public Result getChapterContent(@PathVariable Integer id) {
+    public Result getChapterContent(@PathVariable Long id) {
         log.info("[Common] 获取章节内容：章节ID={}", id);
         return novelChapterService.getChapterContent(id);
     }
@@ -54,7 +54,7 @@ public class NovelChapterController {
     @PostMapping("/author/chapter/upload")
     @ApiOperation("[Author] 上传新章节")
     public Result authorUploadChapter(
-            @RequestParam Integer novelId,
+            @RequestParam Long novelId,
             @RequestParam String title,
             @RequestParam Integer wordCount,
             @RequestParam("file") MultipartFile file) {
@@ -64,7 +64,7 @@ public class NovelChapterController {
 
     @DeleteMapping("/author/chapter/delete/{id}")
     @ApiOperation("[Author] 删除章节")
-    public Result authorDeleteChapter(@PathVariable Integer id) {
+    public Result authorDeleteChapter(@PathVariable Long id) {
         log.info("[Author] 删除章节：章节ID={}", id);
         return novelChapterService.deleteChapter(id);
     }
@@ -72,7 +72,7 @@ public class NovelChapterController {
     @PostMapping("/author/chapter/update")
     @ApiOperation("[Author] 更新章节信息及章节内容")
     public Result authorUpdateChapter(
-            @RequestParam Integer id,
+            @RequestParam Long id,
             @RequestParam String title,
             @RequestParam(required = false) Integer chapterOrder,
             @RequestParam(required = false) Integer wordCount,

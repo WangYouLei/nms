@@ -82,6 +82,30 @@ public class DashboardController {
         return dashboardService.getAuthorProductiveRanking(limit);
     }
 
+    @GetMapping("/ranking/novel/collect")
+    @ApiOperation("小说收藏榜")
+    public Result getNovelCollectRanking(
+            @ApiParam("返回数量") @RequestParam(defaultValue = "10") Integer limit) {
+        log.info("小说收藏榜：limit={}", limit);
+        return dashboardService.getNovelCollectRanking(limit);
+    }
+
+    @GetMapping("/ranking/novel/latest")
+    @ApiOperation("最新更新榜")
+    public Result getNovelLatestRanking(
+            @ApiParam("返回数量") @RequestParam(defaultValue = "10") Integer limit) {
+        log.info("最新更新榜：limit={}", limit);
+        return dashboardService.getNovelLatestRanking(limit);
+    }
+
+    @GetMapping("/ranking/novel/new")
+    @ApiOperation("新书榜")
+    public Result getNovelNewRanking(
+            @ApiParam("返回数量") @RequestParam(defaultValue = "10") Integer limit) {
+        log.info("新书榜：limit={}", limit);
+        return dashboardService.getNovelNewRanking(limit);
+    }
+
     // ==================== 趋势统计 ====================
 
     /**

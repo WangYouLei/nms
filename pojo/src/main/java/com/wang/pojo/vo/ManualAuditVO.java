@@ -39,7 +39,7 @@ public class ManualAuditVO {
     private String aiResult;
 
     @ApiModelProperty("审核管理员ID")
-    private Integer managerId;
+    private Long managerId;
 
     @ApiModelProperty("审核管理员昵称")
     private String managerName;

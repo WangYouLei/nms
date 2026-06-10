@@ -25,7 +25,7 @@ public class NovelRankingVO implements Serializable {
         private Integer rank;
 
         @ApiModelProperty("小说ID")
-        private Integer id;
+        private Long id;
 
         @ApiModelProperty("小说名称")
         private String name;
@@ -53,5 +53,14 @@ public class NovelRankingVO implements Serializable {
 
         @ApiModelProperty("更新时间")
         private String updateTime;
+
+        @ApiModelProperty("收藏数量")
+        private Integer collectCount;
+
+        @ApiModelProperty("总字数")
+        private Integer allWordCount;
+
+        @ApiModelProperty("排行榜分数")
+        private Double score;
     }
 }

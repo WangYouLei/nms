@@ -52,7 +52,7 @@ export const useAppStore = defineStore('app', () => {
       theme.value = savedTheme
       document.documentElement.classList.toggle('dark', savedTheme === 'dark')
     }
-    
+
     // 检测设备类型
     const isMobile = window.innerWidth < 768
     device.value = isMobile ? 'mobile' : 'desktop'

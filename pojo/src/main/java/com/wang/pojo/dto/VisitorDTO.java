@@ -14,7 +14,7 @@ import lombok.Data;
 public class VisitorDTO {
 
     @ApiModelProperty("访客ID")
-    private Integer id;
+    private Long id;
 
     @ApiModelProperty("访客名称")
     private String name;

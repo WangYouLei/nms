@@ -36,7 +36,7 @@ public class VisitorController {
 
     @PostMapping("logout")
     @ApiOperation("用户退出登入")
-    public Result logout(Integer id){
+    public Result logout(Long id){
         log.info("用户退出登入,id= {}", id);
         return visitorService.logout(id);
     }
@@ -51,14 +51,14 @@ public class VisitorController {
 
     @GetMapping("/info/{visitorId}")
     @ApiOperation("获取访客信息")
-    public Result getVisitorInfo(@PathVariable Integer visitorId) {
+    public Result getVisitorInfo(@PathVariable Long visitorId) {
         log.info("获取访客信息请求：ID={}", visitorId);
         return visitorService.getVisitorInfo(visitorId);
     }
 
     @GetMapping("/getNameAndAvatar/{visitorId}")
     @ApiOperation("获取访客名称和头像")
-    public Result getNameAndAvatar(@PathVariable Integer visitorId) {
+    public Result getNameAndAvatar(@PathVariable Long visitorId) {
         log.info("获取访客名称和头像请求：ID={}", visitorId);
         return visitorService.getNameAndAvatar(visitorId);
     }
@@ -75,7 +75,7 @@ public class VisitorController {
     @PostMapping("/password")
     @ApiOperation("修改密码")
     public Result updatePassword(
-            @ApiParam("访客ID") @RequestParam Integer visitorId,
+            @ApiParam("访客ID") @RequestParam Long visitorId,
             @ApiParam("旧密码") @RequestParam String oldPassword,
             @ApiParam("新密码") @RequestParam String newPassword) {
         log.info("修改访客密码请求：ID={}", visitorId);

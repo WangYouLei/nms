@@ -31,7 +31,7 @@ public class FileController {
             Integer code,
             @ApiParam(value = "如果是上传小说章节，就需要上传小说id")
             @RequestParam(required = false)
-            Integer novelId,
+            Long novelId,
             @ApiParam(value = "如果是修改操作，需要上传原文件地址")
             @RequestParam(required = false)
             String oldFileUrl

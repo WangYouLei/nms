@@ -41,7 +41,7 @@ public class AuthorManageController {
 
     @GetMapping("/info/{id}")
     @ApiOperation("获取作者详情")
-    public Result getAuthorInfo(@PathVariable Integer id) {
+    public Result getAuthorInfo(@PathVariable Long id) {
         log.info("获取作者详情请求：ID={}", id);
         return authorManageService.getAuthorInfo(id);
     }

@@ -3,7 +3,7 @@
 <mapper namespace="com.wang.novel.mapper.NovelChapterMapper">
 
     <!-- 动态更新小说章节，只更新非 null 且非空的字段 -->
-    <update id="update" parameterType="com.wang.pojo.entity.NovelChapter">
+    <update id="updateSelective" parameterType="com.wang.pojo.entity.NovelChapter">
         UPDATE novel_chapter
         <set>
             <if test="title != null and title != ''">

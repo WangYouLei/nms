@@ -22,19 +22,19 @@ public class VisitorCollect implements Serializable {
      */
     @ApiModelProperty("主键ID")
     @TableId(value = "id", type = IdType.AUTO)
-    private Integer id;
+    private Long id;
 
     /**
      * 用户ID（关联visitor表）
      */
     @ApiModelProperty("用户ID")
-    private Integer visitorId;
+    private Long visitorId;
 
     /**
      * 小说ID（关联novel表）
      */
     @ApiModelProperty("小说ID")
-    private Integer novelId;
+    private Long novelId;
 
     /**
      * 小说名称（冗余字段）

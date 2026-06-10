@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 public class NovelListVO {
 
     @ApiModelProperty("小说ID")
-    private Integer id;
+    private Long id;
 
     @ApiModelProperty("小说名称")
     private String name;

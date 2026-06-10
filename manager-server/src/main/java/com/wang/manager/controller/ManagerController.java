@@ -44,7 +44,7 @@ public class ManagerController {
 
     @DeleteMapping("/delete/{id}")
     @ApiOperation("删除管理员")
-    public Result deleteManager(@PathVariable Integer id) {
+    public Result deleteManager(@PathVariable Long id) {
         log.info("删除管理员请求：ID={}", id);
         return managerService.deleteManager(id);
     }
@@ -75,7 +75,7 @@ public class ManagerController {
     @PostMapping("/updatePassword")
     @ApiOperation("修改管理员密码")
     public Result updatePassword(
-            @ApiParam("管理员ID") @RequestParam Integer id,
+            @ApiParam("管理员ID") @RequestParam Long id,
             @ApiParam("新密码") @RequestParam String newPassword) {
         log.info("修改管理员密码请求：ID={}", id);
         return managerService.updatePassword(id, newPassword);
@@ -94,7 +94,7 @@ public class ManagerController {
 
     @GetMapping("/getNameAndAvatar/{id}")
     @ApiOperation("获取管理员名称和头像")
-    public Result getNameAndAvatar(@PathVariable Integer id) {
+    public Result getNameAndAvatar(@PathVariable Long id) {
         log.info("获取管理员名称和头像请求：ID={}", id);
         return managerService.getNameAndAvatar(id);
     }

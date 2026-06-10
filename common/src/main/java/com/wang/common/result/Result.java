@@ -1,11 +1,9 @@
 package com.wang.common.result;
 
 import com.wang.common.enums.BizCodeEnum;
-import lombok.Data;
 
 
 
-@Data
 public class Result {
     private Integer code; //编码：10000成功，其它数字为失败
     private String msg; //错误信息

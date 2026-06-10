@@ -14,10 +14,10 @@ import java.time.LocalDateTime;
 public class NovelChapterVO {
 
     @ApiModelProperty("章节ID")
-    private Integer id;
+    private Long id;
 
     @ApiModelProperty("小说ID")
-    private Integer novelId;
+    private Long novelId;
 
     @ApiModelProperty("章节标题")
     private String title;

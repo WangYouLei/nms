@@ -9,6 +9,22 @@ import java.util.List;
 
 /**
  * 统计分析Mapper
+ *
+ * 【跨域只读查询 - CQRS 读模型】
+ * 本 Mapper 涉及 novel、author、visitor、novel_category、novel_category_relation 等多张表的聚合查询。
+ * 这些查询属于管理后台的统计需求，采用 CQRS 思路，直接查库是合理的妥协方案。
+ *
+ * 约束：
+ * 1. 本 Mapper 只允许执行 SELECT 查询，禁止任何 INSERT/UPDATE/DELETE 操作
+ * 2. 如需修改其他服务的数据，必须通过 Feign 调用对应服务的 API
+ * 3. 新增统计查询时，必须在此注释中说明涉及的表
+ *
+ * 涉及的表：
+ * - novel（小说表，归属 novel-server）
+ * - author（作者表，归属 author-server）
+ * - visitor（访客表，归属 visitor-server）
+ * - novel_category（分类表，归属 novel-server）
+ * - novel_category_relation（分类关联表，归属 novel-server）
  */
 @Mapper
 public interface StatisticsMapper {
@@ -103,6 +119,26 @@ public interface StatisticsMapper {
      * 作者高产榜
      */
     List<LinkedHashMap<String, Object>> rankAuthorsByProductive(@Param("limit") Integer limit);
+
+    /**
+     * 批量获取小说基本信息（用于排行榜详情填充）
+     */
+    List<LinkedHashMap<String, Object>> batchGetNovelsByIds(@Param("ids") List<Long> ids);
+
+    /**
+     * 批量获取作者基本信息（用于排行榜详情填充）
+     */
+    List<LinkedHashMap<String, Object>> batchGetAuthorsByIds(@Param("ids") List<Long> ids);
+
+    /**
+     * 查询所有小说用于排行榜全量同步
+     */
+    List<LinkedHashMap<String, Object>> selectAllNovelsForRankingSync();
+
+    /**
+     * 查询所有作者用于排行榜全量同步
+     */
+    List<LinkedHashMap<String, Object>> selectAllAuthorsForRankingSync();
 
     // ===== 趋势统计 - 小说 =====
 

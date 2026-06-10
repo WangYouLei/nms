@@ -11,6 +11,18 @@
           <el-icon class="mr-2"><Refresh /></el-icon>
           刷新缓存
         </el-button>
+        <el-button type="danger" :disabled="selectedIds.length === 0" @click="handleBatchDelete">
+          <el-icon class="mr-2"><Delete /></el-icon>
+          批量删除
+        </el-button>
+        <el-button type="primary" @click="showBatchAddDialog = true">
+          <el-icon class="mr-2"><Plus /></el-icon>
+          批量添加
+        </el-button>
+        <el-button type="warning" @click="showAuditDialog = true">
+          <el-icon class="mr-2"><DocumentChecked /></el-icon>
+          文本审核
+        </el-button>
         <el-button type="primary" @click="showAddDialog = true">
           <el-icon class="mr-2"><Plus /></el-icon>
           添加敏感词
@@ -52,7 +64,8 @@
 
     <!-- 列表 -->
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card overflow-hidden">
-      <el-table :data="wordList" v-loading="loading" stripe>
+      <el-table :data="wordList" v-loading="loading" stripe @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="55" />
         <el-table-column prop="word" label="敏感词" min-width="150" />
         <el-table-column prop="categoryName" label="类别" width="100">
           <template #default="{ row }">
@@ -135,12 +148,88 @@
         <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 批量添加对话框 -->
+    <el-dialog v-model="showBatchAddDialog" title="批量添加敏感词" width="500px">
+      <el-form label-width="100px">
+        <el-form-item label="敏感词列表">
+          <el-input
+            v-model="batchAddWords"
+            type="textarea"
+            :rows="8"
+            placeholder="每行输入一个敏感词"
+          />
+        </el-form-item>
+        <el-form-item label="类别">
+          <el-select v-model="batchAddCategory" placeholder="请选择类别" class="w-full">
+            <el-option label="涉政" :value="1" />
+            <el-option label="涉黄" :value="2" />
+            <el-option label="涉暴" :value="3" />
+            <el-option label="广告" :value="4" />
+            <el-option label="其他" :value="5" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="敏感等级">
+          <el-select v-model="batchAddLevel" placeholder="请选择等级" class="w-full">
+            <el-option label="低（需人工审核）" :value="1" />
+            <el-option label="高（直接拒绝）" :value="2" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showBatchAddDialog = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleBatchAdd">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 文本审核对话框 -->
+    <el-dialog v-model="showAuditDialog" title="文本审核" width="600px">
+      <el-form label-width="100px">
+        <el-form-item label="待审核文本">
+          <el-input
+            v-model="auditContent"
+            type="textarea"
+            :rows="6"
+            placeholder="请输入需要审核的文本内容"
+          />
+        </el-form-item>
+      </el-form>
+      <div v-if="auditResult" class="mt-4 p-4 rounded-lg" :class="auditResult.passed ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'">
+        <div class="flex items-center gap-2 mb-2">
+          <el-tag :type="auditResult.passed ? 'success' : 'danger'" size="large">
+            {{ auditResult.passed ? '审核通过' : '审核未通过' }}
+          </el-tag>
+          <span class="text-gray-600 dark:text-gray-400">{{ auditResult.resultDesc }}</span>
+        </div>
+        <div v-if="auditResult.sensitiveWords && auditResult.sensitiveWords.length > 0" class="mt-2">
+          <span class="text-gray-600 dark:text-gray-400">检测到敏感词：</span>
+          <el-tag
+            v-for="word in auditResult.sensitiveWords"
+            :key="word"
+            type="danger"
+            class="mr-1 mb-1"
+          >
+            {{ word }}
+          </el-tag>
+        </div>
+        <div v-if="auditResult.maxLevel" class="mt-2 text-gray-600 dark:text-gray-400">
+          最高敏感等级：{{ auditResult.maxLevel === 2 ? '高（直接拒绝）' : '低（需人工审核）' }}
+        </div>
+        <div v-if="auditResult.wordCount" class="mt-1 text-gray-600 dark:text-gray-400">
+          敏感词数量：{{ auditResult.wordCount }}
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showAuditDialog = false">关闭</el-button>
+        <el-button type="primary" :loading="auditLoading" @click="handleAudit">审核</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { Plus, Search, Refresh } from '@element-plus/icons-vue'
+import { Plus, Search, Refresh, Delete, DocumentChecked } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { 
@@ -149,9 +238,12 @@ import {
   updateSensitiveWord,
   deleteSensitiveWord, 
   updateSensitiveWordStatus,
-  refreshSensitiveWordCache
+  refreshSensitiveWordCache,
+  batchAddSensitiveWords,
+  batchDeleteSensitiveWords,
+  auditTextBySensitiveWord
 } from '@/api/comment'
-import type { SensitiveWordVO, SensitiveWordDTO } from '@/types/comment'
+import type { SensitiveWordVO, SensitiveWordDTO, AuditResultVO } from '@/types/comment'
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -169,6 +261,21 @@ const filterStatus = ref<number>()
 const showAddDialog = ref(false)
 const isEdit = ref(false)
 const formRef = ref<FormInstance>()
+
+// 批量操作相关
+const selectedIds = ref<number[]>([])
+
+// 批量添加相关
+const showBatchAddDialog = ref(false)
+const batchAddWords = ref('')
+const batchAddCategory = ref<number>(1)
+const batchAddLevel = ref<number>(1)
+
+// 文本审核相关
+const showAuditDialog = ref(false)
+const auditContent = ref('')
+const auditResult = ref<AuditResultVO | null>(null)
+const auditLoading = ref(false)
 
 const formData = reactive<SensitiveWordDTO>({
   word: '',
@@ -298,6 +405,67 @@ const handleRefreshCache = async () => {
     ElMessage.success('缓存刷新成功')
   } catch (error) {
     console.error('Failed to refresh cache:', error)
+  }
+}
+
+const handleSelectionChange = (rows: SensitiveWordVO[]) => {
+  selectedIds.value = rows.map(row => row.id)
+}
+
+const handleBatchDelete = async () => {
+  try {
+    await ElMessageBox.confirm(`确定要删除选中的 ${selectedIds.value.length} 个敏感词吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    await batchDeleteSensitiveWords(selectedIds.value)
+    ElMessage.success('批量删除成功')
+    selectedIds.value = []
+    fetchList()
+  } catch (error) {
+    // 用户取消
+  }
+}
+
+const handleBatchAdd = async () => {
+  const words = batchAddWords.value.split('\n').map(w => w.trim()).filter(w => w.length > 0)
+  if (words.length === 0) {
+    ElMessage.warning('请输入至少一个敏感词')
+    return
+  }
+
+  submitting.value = true
+  try {
+    await batchAddSensitiveWords(words, batchAddCategory.value, batchAddLevel.value)
+    ElMessage.success(`成功添加 ${words.length} 个敏感词`)
+    showBatchAddDialog.value = false
+    batchAddWords.value = ''
+    batchAddCategory.value = 1
+    batchAddLevel.value = 1
+    fetchList()
+  } catch (error) {
+    console.error('Failed to batch add:', error)
+  } finally {
+    submitting.value = false
+  }
+}
+
+const handleAudit = async () => {
+  if (!auditContent.value.trim()) {
+    ElMessage.warning('请输入需要审核的文本')
+    return
+  }
+
+  auditLoading.value = true
+  try {
+    const res = await auditTextBySensitiveWord(auditContent.value)
+    auditResult.value = res.data || null
+  } catch (error) {
+    console.error('Failed to audit text:', error)
+  } finally {
+    auditLoading.value = false
   }
 }
 
