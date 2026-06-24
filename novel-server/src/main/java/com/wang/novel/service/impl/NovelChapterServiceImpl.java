@@ -21,14 +21,23 @@ import com.wang.pojo.entity.Novel;
 import com.wang.pojo.entity.NovelChapter;
 import com.wang.pojo.vo.AuditResultVO;
 import com.wang.pojo.vo.NovelChapterVO;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +53,8 @@ import java.util.stream.Collectors;
 @Service
 public class NovelChapterServiceImpl implements NovelChapterService {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private final NovelChapterMapper novelChapterMapper;
     private final NovelMapper novelMapper;
     private final FileServiceFeign fileServiceFeign;
@@ -51,6 +62,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
     private final AiAuditServiceFeign aiAuditServiceFeign;
     private final CacheService cacheService;
     private final TransactionTemplate transactionTemplate;
+    private final RestTemplate restTemplate;
 
     public NovelChapterServiceImpl(NovelChapterMapper novelChapterMapper,
                                    NovelMapper novelMapper,
@@ -58,7 +70,8 @@ public class NovelChapterServiceImpl implements NovelChapterService {
                                    SensitiveWordServiceFeign sensitiveWordServiceFeign,
                                    AiAuditServiceFeign aiAuditServiceFeign,
                                    CacheService cacheService,
-                                   PlatformTransactionManager transactionManager) {
+                                   PlatformTransactionManager transactionManager,
+                                   RestTemplate restTemplate) {
         this.novelChapterMapper = novelChapterMapper;
         this.novelMapper = novelMapper;
         this.fileServiceFeign = fileServiceFeign;
@@ -66,6 +79,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         this.aiAuditServiceFeign = aiAuditServiceFeign;
         this.cacheService = cacheService;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.restTemplate = restTemplate;
     }
 
     // ==================== Common - 公共方法（无权限校验） ====================
@@ -149,8 +163,8 @@ public class NovelChapterServiceImpl implements NovelChapterService {
         }
 
         try {
-            // === 事务外：Feign 远程调用（文件上传 + 内容审核） ===
-            Result uploadResult = fileServiceFeign.uploadFile(
+            // === 事务外：远程调用（文件上传 + 内容审核） ===
+            Result uploadResult = uploadFileToCommonServer(
                     file,
                     FileUploadTypeEnum.NOVEL_CHAPTER.getCode(),
                     novelId,
@@ -171,7 +185,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
                 // 本地敏感词审核
                 Map<String, String> request = new HashMap<>();
                 request.put("content", content);
-                AuditResultVO auditResultVO = (AuditResultVO) sensitiveWordServiceFeign.auditText(request).getData();
+                AuditResultVO auditResultVO = OBJECT_MAPPER.convertValue(sensitiveWordServiceFeign.auditText(request).getData(), AuditResultVO.class);
                 if (!auditResultVO.getPassed()) {
                     // 删除已上传的文件
                     fileServiceFeign.deleteFile(contentUrl);
@@ -188,7 +202,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
                 if (aiAuditResult.getCode() != BizCodeEnum.SUCCESS.getCode()) {
                     // 删除已上传的文件
                     fileServiceFeign.deleteFile(contentUrl);
-                    return Result.buildResult(BizCodeEnum.SENSITIVE_WORD);
+                    return Result.buildResult(BizCodeEnum.AI_AUDIT_ERROR);
                 }
             }
 
@@ -282,10 +296,10 @@ public class NovelChapterServiceImpl implements NovelChapterService {
             chapter.setWordCount(wordCount);
         }
 
-        // === 事务外：Feign 远程调用（文件上传 + 内容审核） ===
+        // === 事务外：远程调用（文件上传 + 内容审核） ===
         if (file != null && !file.isEmpty()) {
             try {
-                Result uploadResult = fileServiceFeign.uploadFile(
+                Result uploadResult = uploadFileToCommonServer(
                         file,
                         FileUploadTypeEnum.NOVEL_CHAPTER.getCode(),
                         chapter.getNovelId(),
@@ -304,7 +318,7 @@ public class NovelChapterServiceImpl implements NovelChapterService {
                 if (content != null && !content.isEmpty()) {
                     Map<String, String> request = new HashMap<>();
                     request.put("content", content);
-                    AuditResultVO auditResultVO = (AuditResultVO) sensitiveWordServiceFeign.auditText(request).getData();
+                    AuditResultVO auditResultVO = OBJECT_MAPPER.convertValue(sensitiveWordServiceFeign.auditText(request).getData(), AuditResultVO.class);
                     if (!auditResultVO.getPassed()) {
                         return Result.buildResult(BizCodeEnum.SENSITIVE_WORD);
                     }
@@ -355,6 +369,56 @@ public class NovelChapterServiceImpl implements NovelChapterService {
     }
 
     // ==================== 私有方法 ====================
+
+    /**
+     * 通过 RestTemplate 上传文件到 common-server（替代 Feign，解决 multipart 兼容性问题）
+     * 使用 @LoadBalanced RestTemplate，URL 中的 common-server 会被 Nacos 解析为实际地址
+     */
+    private Result uploadFileToCommonServer(MultipartFile file, Integer code, Long novelId, String oldFileUrl) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
+            formData.add("file", new MultipartFileResource(file));
+            formData.add("code", code.toString());
+            if (novelId != null) {
+                formData.add("novelId", novelId.toString());
+            }
+            if (oldFileUrl != null) {
+                formData.add("oldFileUrl", oldFileUrl);
+            }
+
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(formData, headers);
+
+            return restTemplate.postForObject(
+                    "http://common-server/file/upload",
+                    requestEntity,
+                    Result.class
+            );
+        } catch (Exception e) {
+            log.error("通过 RestTemplate 上传文件到 common-server 失败", e);
+            return Result.error("上传文件失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 自定义 Resource，将 MultipartFile 包装为可传输的资源并保留原始文件名
+     * RestTemplate 的 FormHttpMessageConverter 通过 getFilename() 获取文件名
+     */
+    private static class MultipartFileResource extends ByteArrayResource {
+        private final String filename;
+
+        public MultipartFileResource(MultipartFile multipartFile) throws IOException {
+            super(multipartFile.getBytes());
+            this.filename = multipartFile.getOriginalFilename();
+        }
+
+        @Override
+        public String getFilename() {
+            return this.filename;
+        }
+    }
 
     private LoginUser getLoginUser() {
         return RoleContextUtil.getCurrentUser();

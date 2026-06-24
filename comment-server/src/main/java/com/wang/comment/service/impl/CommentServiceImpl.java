@@ -19,6 +19,8 @@ import com.wang.pojo.dto.AiCommentAuditDTO;
 import com.wang.pojo.dto.CommentDTO;
 import com.wang.pojo.dto.CommentQueryDTO;
 import com.wang.pojo.entity.Comment;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wang.pojo.vo.AuditResultVO;
 import com.wang.pojo.vo.CommentVO;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +44,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class CommentServiceImpl implements CommentService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final CommentMapper commentMapper;
     private final AiAuditServiceFeign aiAuditServiceFeign;
@@ -558,7 +562,6 @@ public class CommentServiceImpl implements CommentService {
     /**
      * 批量获取访客头像
      */
-    @SuppressWarnings("unchecked")
     private Map<String, String> batchFetchVisitorAvatars(Set<Long> visitorIds) {
         if (visitorIds.isEmpty()) {
             return new HashMap<>();
@@ -566,7 +569,7 @@ public class CommentServiceImpl implements CommentService {
         try {
             Result result = visitorServiceFeign.batchGetVisitorAvatars(new ArrayList<>(visitorIds));
             if (result.getCode() == BizCodeEnum.SUCCESS.getCode() && result.getData() != null) {
-                return (Map<String, String>) result.getData();
+                return OBJECT_MAPPER.convertValue(result.getData(), new TypeReference<Map<String, String>>() {});
             }
         } catch (Exception e) {
             log.warn("批量获取访客头像失败：visitorIds={}, error={}", visitorIds, e.getMessage());
@@ -577,7 +580,6 @@ public class CommentServiceImpl implements CommentService {
     /**
      * 批量获取作者头像
      */
-    @SuppressWarnings("unchecked")
     private Map<String, String> batchFetchAuthorAvatars(Set<Long> authorIds) {
         if (authorIds.isEmpty()) {
             return new HashMap<>();
@@ -585,7 +587,7 @@ public class CommentServiceImpl implements CommentService {
         try {
             Result result = authorServiceFeign.batchGetAuthorAvatars(new ArrayList<>(authorIds));
             if (result.getCode() == BizCodeEnum.SUCCESS.getCode() && result.getData() != null) {
-                return (Map<String, String>) result.getData();
+                return OBJECT_MAPPER.convertValue(result.getData(), new TypeReference<Map<String, String>>() {});
             }
         } catch (Exception e) {
             log.warn("批量获取作者头像失败：authorIds={}, error={}", authorIds, e.getMessage());
@@ -596,7 +598,6 @@ public class CommentServiceImpl implements CommentService {
     /**
      * 批量获取管理员头像
      */
-    @SuppressWarnings("unchecked")
     private Map<String, String> batchFetchManagerAvatars(Set<Long> managerIds) {
         if (managerIds.isEmpty()) {
             return new HashMap<>();
@@ -604,7 +605,7 @@ public class CommentServiceImpl implements CommentService {
         try {
             Result result = managerServiceFeign.batchGetManagerAvatars(new ArrayList<>(managerIds));
             if (result.getCode() == BizCodeEnum.SUCCESS.getCode() && result.getData() != null) {
-                return (Map<String, String>) result.getData();
+                return OBJECT_MAPPER.convertValue(result.getData(), new TypeReference<Map<String, String>>() {});
             }
         } catch (Exception e) {
             log.warn("批量获取管理员头像失败：managerIds={}, error={}", managerIds, e.getMessage());
@@ -623,7 +624,13 @@ public class CommentServiceImpl implements CommentService {
         try {
             Result result = novelServiceFeign.batchGetNovelAuthorIds(new ArrayList<>(novelIds));
             if (result.getCode() == BizCodeEnum.SUCCESS.getCode() && result.getData() != null) {
-                return (Map<String, Long>) result.getData();
+                Map<String, Object> rawMap = OBJECT_MAPPER.convertValue(result.getData(), new TypeReference<Map<String, Object>>() {});
+                Map<String, Long> convertedMap = new HashMap<>();
+                for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
+                    Object value = entry.getValue();
+                    convertedMap.put(entry.getKey(), value != null ? ((Number) value).longValue() : null);
+                }
+                return convertedMap;
             }
         } catch (Exception e) {
             log.warn("批量获取小说作者ID失败：novelIds={}, error={}", novelIds, e.getMessage());
@@ -828,7 +835,7 @@ public class CommentServiceImpl implements CommentService {
         Map<String, String> request = new HashMap<>();
         request.put("content", content);
         try {
-            AuditResultVO auditResultVO = (AuditResultVO) sensitiveWordServiceFeign.auditText(request).getData();
+            AuditResultVO auditResultVO = OBJECT_MAPPER.convertValue(sensitiveWordServiceFeign.auditText(request).getData(), AuditResultVO.class);
             if (auditResultVO == null) {
                 log.error("敏感词审核返回空结果");
             }

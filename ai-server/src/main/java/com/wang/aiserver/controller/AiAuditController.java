@@ -34,8 +34,8 @@ public class AiAuditController {
             return Result.error("审核内容不能为空");
         }
 
-        if (request.getAimId() == null || request.getAimType() == null) {
-            return Result.error("审核对象ID和审核对象类型不能为空");
+        if (request.getAimType() == null) {
+            return Result.error("审核对象类型不能为空");
         }
 
         return aiAuditService.auditWithAi(request.getContent(),request.getAimId(),request.getAimType(),request.getLocalResult());

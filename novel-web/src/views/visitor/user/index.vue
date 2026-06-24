@@ -69,8 +69,7 @@ const handleMenuClick = (menu: typeof menus[0]) => {
   } else if (menu.path === '/comments') {
     router.push('/comments')
   } else if (menu.path === 'history') {
-    // 阅读历史功能待开发
-    ElMessage.info('阅读历史功能开发中')
+    router.push('/history')
   } else {
     ElMessage.info('功能开发中')
   }

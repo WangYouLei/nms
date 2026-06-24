@@ -92,6 +92,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '我的收藏', requiresAuth: true, role: 'VISITOR' }
       },
       {
+        path: 'history',
+        name: 'VisitorHistory',
+        component: () => import('@/views/visitor/history/index.vue'),
+        meta: { title: '阅读历史', requiresAuth: true, role: 'VISITOR' }
+      },
+      {
         path: 'author/:id',
         name: 'VisitorAuthor',
         component: () => import('@/views/visitor/author/index.vue'),

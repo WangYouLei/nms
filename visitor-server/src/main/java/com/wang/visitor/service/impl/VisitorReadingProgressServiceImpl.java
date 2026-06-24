@@ -11,6 +11,8 @@ import com.wang.pojo.entity.VisitorReadingProgress;
 import com.wang.pojo.vo.VisitorReadingProgressVO;
 import com.wang.visitor.mapper.VisitorReadingProgressMapper;
 import com.wang.visitor.service.VisitorReadingProgressService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class VisitorReadingProgressServiceImpl implements VisitorReadingProgressService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final VisitorReadingProgressMapper visitorReadingProgressMapper;
     private final NovelServiceFeign novelServiceFeign;
@@ -67,8 +71,7 @@ public class VisitorReadingProgressServiceImpl implements VisitorReadingProgress
             return Result.buildResult(BizCodeEnum.NOVEL_NOT_FOUND);
         }
 
-        @SuppressWarnings("unchecked")
-        java.util.Map<String, Object> novelInfo = (java.util.Map<String, Object>) novelResult.getData();
+        java.util.Map<String, Object> novelInfo = OBJECT_MAPPER.convertValue(novelResult.getData(), new TypeReference<java.util.Map<String, Object>>() {});
 
         VisitorReadingProgress progress = new VisitorReadingProgress();
         progress.setVisitorId(visitorId);

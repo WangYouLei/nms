@@ -125,7 +125,11 @@ public enum BizCodeEnum {
     /**
      * 涉及高危敏感次，禁止发布
      */
-    HIGH_RISK_SENSITIVE_WORD(50004, "涉及高危敏感次，禁止发布");
+    HIGH_RISK_SENSITIVE_WORD(50004, "涉及高危敏感次，禁止发布"),
+    /**
+     * AI审核服务异常
+     */
+    AI_AUDIT_ERROR(50005, "AI审核服务异常");
 
 
     /**

@@ -52,26 +52,39 @@
       />
     </div>
     
-    <!-- 今日数据 -->
+    <!-- 新增数据 -->
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
-      <h3 class="font-bold text-gray-800 dark:text-gray-200 mb-5 flex items-center gap-2">
-        <el-icon class="text-primary" :size="18"><Calendar /></el-icon>
-        今日数据
-      </h3>
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+          <el-icon class="text-primary" :size="18"><Calendar /></el-icon>
+          新增数据
+        </h3>
+        <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+          <button
+            v-for="opt in periodOptions"
+            :key="opt.value"
+            class="px-3 py-1 rounded-md text-sm transition-all"
+            :class="period === opt.value ? 'bg-white dark:bg-gray-600 text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700'"
+            @click="period = opt.value"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+      </div>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="relative overflow-hidden rounded-xl bg-gradient-primary p-5 text-white">
           <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-          <p class="text-3xl font-bold">{{ overview.todayNewNovels }}</p>
+          <p class="text-3xl font-bold">{{ currentPeriodData.newNovels }}</p>
           <p class="text-white/80 mt-1">新增小说</p>
         </div>
         <div class="relative overflow-hidden rounded-xl bg-gradient-cool p-5 text-white">
           <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-          <p class="text-3xl font-bold">{{ overview.todayNewAuthors }}</p>
+          <p class="text-3xl font-bold">{{ currentPeriodData.newAuthors }}</p>
           <p class="text-white/80 mt-1">新增作者</p>
         </div>
         <div class="relative overflow-hidden rounded-xl bg-gradient-warm p-5 text-white">
           <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-          <p class="text-3xl font-bold">{{ overview.todayNewVisitors }}</p>
+          <p class="text-3xl font-bold">{{ currentPeriodData.newVisitors }}</p>
           <p class="text-white/80 mt-1">新增用户</p>
         </div>
       </div>
@@ -347,7 +360,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted } from 'vue'
 import { 
   Reading, User, Avatar, Folder, Refresh, Calendar, 
   TrendCharts, Medal, DataAnalysis, Operation, Document, List,
@@ -365,8 +378,44 @@ const overview = reactive<DashboardOverviewVO>({
   todayNewNovels: 0,
   todayNewAuthors: 0,
   todayNewVisitors: 0,
+  weekNewNovels: 0,
+  weekNewAuthors: 0,
+  weekNewVisitors: 0,
+  monthNewNovels: 0,
+  monthNewAuthors: 0,
+  monthNewVisitors: 0,
   hotNovelCount: 0,
   finishedNovelCount: 0
+})
+
+const period = ref<'today' | 'week' | 'month'>('today')
+
+const periodOptions = [
+  { label: '今日', value: 'today' as const },
+  { label: '本周', value: 'week' as const },
+  { label: '本月', value: 'month' as const },
+]
+
+const currentPeriodData = computed(() => {
+  if (period.value === 'week') {
+    return {
+      newNovels: overview.weekNewNovels,
+      newAuthors: overview.weekNewAuthors,
+      newVisitors: overview.weekNewVisitors,
+    }
+  }
+  if (period.value === 'month') {
+    return {
+      newNovels: overview.monthNewNovels,
+      newAuthors: overview.monthNewAuthors,
+      newVisitors: overview.monthNewVisitors,
+    }
+  }
+  return {
+    newNovels: overview.todayNewNovels,
+    newAuthors: overview.todayNewAuthors,
+    newVisitors: overview.todayNewVisitors,
+  }
 })
 
 const ongoingRanking = ref<NovelRankingItem[]>([])

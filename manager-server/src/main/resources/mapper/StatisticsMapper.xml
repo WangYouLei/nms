@@ -47,6 +47,42 @@
         SELECT COUNT(*) FROM novel WHERE is_del = 0 AND is_hot = 1
     </select>
 
+    <!-- 统计本周新增小说 -->
+    <select id="countWeekNewNovels" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM novel
+        WHERE is_del = 0 AND YEARWEEK(create_time, 1) = YEARWEEK(#{today}, 1)
+    </select>
+
+    <!-- 统计本周新增作者 -->
+    <select id="countWeekNewAuthors" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM author
+        WHERE is_del = 0 AND YEARWEEK(create_time, 1) = YEARWEEK(#{today}, 1)
+    </select>
+
+    <!-- 统计本周新增用户 -->
+    <select id="countWeekNewVisitors" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM visitor
+        WHERE is_del = 0 AND YEARWEEK(create_time, 1) = YEARWEEK(#{today}, 1)
+    </select>
+
+    <!-- 统计本月新增小说 -->
+    <select id="countMonthNewNovels" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM novel
+        WHERE is_del = 0 AND DATE_FORMAT(create_time, '%Y-%m') = DATE_FORMAT(#{today}, '%Y-%m')
+    </select>
+
+    <!-- 统计本月新增作者 -->
+    <select id="countMonthNewAuthors" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM author
+        WHERE is_del = 0 AND DATE_FORMAT(create_time, '%Y-%m') = DATE_FORMAT(#{today}, '%Y-%m')
+    </select>
+
+    <!-- 统计本月新增用户 -->
+    <select id="countMonthNewVisitors" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM visitor
+        WHERE is_del = 0 AND DATE_FORMAT(create_time, '%Y-%m') = DATE_FORMAT(#{today}, '%Y-%m')
+    </select>
+
     <!-- 统计完结小说数 -->
     <select id="countFinishedNovels" resultType="java.lang.Long">
         SELECT COUNT(*) FROM novel WHERE is_del = 0 AND is_finished = 1

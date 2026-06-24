@@ -13,6 +13,28 @@
           <router-link to="/home" class="nav-link" :class="{ 'text-primary': $route.path === '/home' }">首页</router-link>
           <router-link to="/category" class="nav-link" :class="{ 'text-primary': $route.path.startsWith('/category') }">分类</router-link>
           <router-link to="/search" class="nav-link" :class="{ 'text-primary': $route.path === '/search' }">搜索</router-link>
+          <el-dropdown v-if="userStore.isLoggedIn" trigger="hover" @command="handleNavCommand">
+            <span class="nav-link cursor-pointer flex items-center gap-1" :class="{ 'text-primary': $route.path.startsWith('/user') }">
+              我的
+              <el-icon class="text-xs"><ArrowDown /></el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="history">
+                  <el-icon><Clock /></el-icon>
+                  阅读历史
+                </el-dropdown-item>
+                <el-dropdown-item command="favorite">
+                  <el-icon><Star /></el-icon>
+                  我的收藏
+                </el-dropdown-item>
+                <el-dropdown-item command="comments">
+                  <el-icon><ChatDotRound /></el-icon>
+                  我的评论
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </nav>
 
         <!-- 右侧操作区 -->
@@ -82,7 +104,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { Sunny, Moon, User, SwitchButton } from '@element-plus/icons-vue'
+import { Sunny, Moon, User, SwitchButton, ArrowDown, Clock, Star, ChatDotRound } from '@element-plus/icons-vue'
 import { useUserStore, useAppStore } from '@/stores'
 import NMSLogo from '@/components/common/nms-logo.vue' // 新增NMS Logo组件
 
@@ -96,6 +118,17 @@ const searchKeyword = ref('')
 const handleSearch = () => {
   if (searchKeyword.value.trim()) {
     router.push({ path: '/search', query: { keyword: searchKeyword.value } })
+  }
+}
+
+const handleNavCommand = (command: string) => {
+  const routeMap: Record<string, string> = {
+    history: '/history',
+    favorite: '/favorite',
+    comments: '/comments',
+  }
+  if (routeMap[command]) {
+    router.push(routeMap[command])
   }
 }
 

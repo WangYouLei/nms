@@ -132,10 +132,9 @@ const request = {
   upload<T = any>(url: string, file: File, onProgress?: (progress: number) => void): Promise<Result<T>> {
     const formData = new FormData()
     formData.append('file', file)
+    // 注意：不要手动设置 Content-Type！
+    // axios 检测到 data 是 FormData 时，会自动设置正确的 Content-Type（含 boundary）
     return service.post(url, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total && onProgress) {
           const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)

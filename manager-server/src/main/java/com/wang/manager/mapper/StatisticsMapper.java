@@ -67,6 +67,36 @@ public interface StatisticsMapper {
     Long countTodayNewVisitors(@Param("today") LocalDate today);
 
     /**
+     * 统计本周新增小说
+     */
+    Long countWeekNewNovels(@Param("today") LocalDate today);
+
+    /**
+     * 统计本周新增作者
+     */
+    Long countWeekNewAuthors(@Param("today") LocalDate today);
+
+    /**
+     * 统计本周新增用户
+     */
+    Long countWeekNewVisitors(@Param("today") LocalDate today);
+
+    /**
+     * 统计本月新增小说
+     */
+    Long countMonthNewNovels(@Param("today") LocalDate today);
+
+    /**
+     * 统计本月新增作者
+     */
+    Long countMonthNewAuthors(@Param("today") LocalDate today);
+
+    /**
+     * 统计本月新增用户
+     */
+    Long countMonthNewVisitors(@Param("today") LocalDate today);
+
+    /**
      * 统计热门小说数
      */
     Long countHotNovels();

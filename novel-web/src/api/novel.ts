@@ -154,10 +154,9 @@ export function uploadChapter(
   formData.append('wordCount', String(wordCount))
   formData.append('file', file)
   
+  // 注意：不要手动设置 Content-Type！
+  // axios 检测到 data 是 FormData 时，会自动设置正确的 Content-Type（含 boundary）
   return request.post('/novel-server/author/chapter/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    },
     onUploadProgress: (progressEvent) => {
       if (progressEvent.total && onProgress) {
         const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
@@ -201,11 +200,9 @@ export function updateChapter(params: {
     formData.append('file', params.file)
   }
   
-  return request.post('/novel-server/author/chapter/update', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  })
+  // 注意：不要手动设置 Content-Type！
+  // axios 检测到 data 是 FormData 时，会自动设置正确的 Content-Type（含 boundary）
+  return request.post('/novel-server/author/chapter/update', formData)
 }
 
 /**

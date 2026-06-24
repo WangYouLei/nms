@@ -68,6 +68,16 @@ public class DashboardServiceImpl implements DashboardService {
         vo.setTodayNewNovels(statisticsMapper.countTodayNewNovels(today));
         vo.setTodayNewAuthors(statisticsMapper.countTodayNewAuthors(today));
         vo.setTodayNewVisitors(statisticsMapper.countTodayNewVisitors(today));
+
+        // 本周新增
+        vo.setWeekNewNovels(statisticsMapper.countWeekNewNovels(today));
+        vo.setWeekNewAuthors(statisticsMapper.countWeekNewAuthors(today));
+        vo.setWeekNewVisitors(statisticsMapper.countWeekNewVisitors(today));
+
+        // 本月新增
+        vo.setMonthNewNovels(statisticsMapper.countMonthNewNovels(today));
+        vo.setMonthNewAuthors(statisticsMapper.countMonthNewAuthors(today));
+        vo.setMonthNewVisitors(statisticsMapper.countMonthNewVisitors(today));
         
         // 小说状态统计
         vo.setHotNovelCount(statisticsMapper.countHotNovels());

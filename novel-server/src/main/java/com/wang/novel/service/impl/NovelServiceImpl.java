@@ -30,6 +30,8 @@ import com.wang.pojo.vo.AuthorDetailVO;
 import com.wang.pojo.vo.NovelCategoryVO;
 import com.wang.pojo.vo.NovelDetailVO;
 import com.wang.pojo.vo.NovelListVO;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.data.redis.core.RedisTemplate;
@@ -53,6 +55,8 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class NovelServiceImpl implements NovelService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final NovelMapper novelMapper;
     private final NovelCategoryMapper novelCategoryMapper;
@@ -664,8 +668,7 @@ public class NovelServiceImpl implements NovelService {
             try {
                 Result basicResult = authorServiceFeign.getAuthorBasicInfo(novel.getAuthorId());
                 if (basicResult.getCode() == BizCodeEnum.SUCCESS.getCode() && basicResult.getData() != null) {
-                    @SuppressWarnings("unchecked")
-                    java.util.Map<String, Object> basicInfo = (java.util.Map<String, Object>) basicResult.getData();
+                    java.util.Map<String, Object> basicInfo = OBJECT_MAPPER.convertValue(basicResult.getData(), new TypeReference<java.util.Map<String, Object>>() {});
                     Object novelCount = basicInfo.get("novelCount");
                     vo.setAuthorNovelCount(novelCount != null ? ((Number) novelCount).intValue() : 0);
                 } else {
@@ -723,8 +726,7 @@ public class NovelServiceImpl implements NovelService {
         try {
             Result basicResult = authorServiceFeign.getAuthorBasicInfo(authorId);
             if (basicResult.getCode() == BizCodeEnum.SUCCESS.getCode() && basicResult.getData() != null) {
-                @SuppressWarnings("unchecked")
-                java.util.Map<String, Object> basicInfo = (java.util.Map<String, Object>) basicResult.getData();
+                java.util.Map<String, Object> basicInfo = OBJECT_MAPPER.convertValue(basicResult.getData(), new TypeReference<java.util.Map<String, Object>>() {});
                 author = new Author();
                 author.setId(((Number) basicInfo.get("id")).longValue());
                 author.setName((String) basicInfo.get("name"));

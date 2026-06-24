@@ -9,6 +9,8 @@ import com.wang.search.document.NovelDocument;
 import com.wang.search.repository.AuthorSearchRepository;
 import com.wang.search.repository.NovelSearchRepository;
 import com.wang.search.service.DataSyncService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.IndexOperations;
@@ -24,6 +26,8 @@ import java.util.Map;
 @Service
 @Slf4j
 public class DataSyncServiceImpl implements DataSyncService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final NovelSearchRepository novelSearchRepository;
     private final AuthorSearchRepository authorSearchRepository;
@@ -106,8 +110,7 @@ public class DataSyncServiceImpl implements DataSyncService {
                 return Result.error("获取小说信息失败");
             }
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> info = (Map<String, Object>) novelResult.getData();
+            Map<String, Object> info = OBJECT_MAPPER.convertValue(novelResult.getData(), new TypeReference<Map<String, Object>>() {});
 
             NovelDocument document = new NovelDocument();
             document.setId(((Number) info.get("id")).longValue());
@@ -191,8 +194,7 @@ public class DataSyncServiceImpl implements DataSyncService {
                 return Result.error("获取作者信息失败");
             }
 
-            @SuppressWarnings("unchecked")
-            Map<String, Object> basicInfo = (Map<String, Object>) authorResult.getData();
+            Map<String, Object> basicInfo = OBJECT_MAPPER.convertValue(authorResult.getData(), new TypeReference<Map<String, Object>>() {});
 
             AuthorDocument document = new AuthorDocument();
             document.setId(((Number) basicInfo.get("id")).longValue());

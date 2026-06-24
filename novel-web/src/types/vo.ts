@@ -288,6 +288,18 @@ export interface DashboardOverviewVO {
   todayNewAuthors: number
   /** 今日新增用户 */
   todayNewVisitors: number
+  /** 本周新增小说 */
+  weekNewNovels: number
+  /** 本周新增作者 */
+  weekNewAuthors: number
+  /** 本周新增用户 */
+  weekNewVisitors: number
+  /** 本月新增小说 */
+  monthNewNovels: number
+  /** 本月新增作者 */
+  monthNewAuthors: number
+  /** 本月新增用户 */
+  monthNewVisitors: number
   /** 热门小说数 */
   hotNovelCount: number
   /** 完结小说数 */

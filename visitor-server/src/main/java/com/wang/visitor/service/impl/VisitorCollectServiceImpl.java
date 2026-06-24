@@ -10,6 +10,8 @@ import com.wang.visitor.mapper.VisitorCollectMapper;
 import com.wang.visitor.service.VisitorCollectService;
 import com.wang.pojo.entity.VisitorCollect;
 import com.wang.pojo.vo.VisitorCollectVO;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class VisitorCollectServiceImpl implements VisitorCollectService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final VisitorCollectMapper visitorCollectMapper;
     private final NovelServiceFeign novelServiceFeign;
@@ -55,8 +59,7 @@ public class VisitorCollectServiceImpl implements VisitorCollectService {
             return Result.buildResult(BizCodeEnum.NOVEL_NOT_FOUND);
         }
 
-        @SuppressWarnings("unchecked")
-        java.util.Map<String, Object> novelInfo = (java.util.Map<String, Object>) novelResult.getData();
+        java.util.Map<String, Object> novelInfo = OBJECT_MAPPER.convertValue(novelResult.getData(), new TypeReference<java.util.Map<String, Object>>() {});
 
         // 创建收藏记录
         VisitorCollect collect = new VisitorCollect();

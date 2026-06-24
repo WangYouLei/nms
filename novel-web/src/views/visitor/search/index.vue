@@ -61,37 +61,16 @@
     </section>
 
     <div class="container mx-auto px-4 py-6">
-      <!-- 热门搜索 -->
       <section v-if="!searchResult.length && !authorResult.length && !loading" class="max-w-2xl mx-auto">
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
-          <h3 class="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-            <el-icon class="text-orange-500" :size="18"><TrendCharts /></el-icon>
-            热门搜索
-          </h3>
-          <div class="flex flex-wrap gap-3">
-            <button 
-              v-for="(tag, index) in hotKeywords" 
-              :key="tag"
-              class="px-4 py-2 rounded-xl text-sm transition-all duration-200"
-              :class="index < 3 
-                ? 'bg-gradient-warm text-white shadow-md' 
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'"
-              @click="keyword = tag; handleSearch()"
-            >
-              {{ tag }}
-            </button>
-          </div>
-        </div>
-        
         <!-- 推荐小说 -->
-        <div class="mt-6 bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-card p-6">
           <h3 class="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
             <el-icon class="text-primary" :size="18"><Star /></el-icon>
             精品推荐
           </h3>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <NovelCard 
-              v-for="novel in recommendNovels" 
+            <NovelCard
+              v-for="novel in recommendNovels"
               :key="novel.id"
               :novel="novel"
               @click="handleNovelClick"
@@ -250,7 +229,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Loading, TrendCharts, Star, Search, ArrowRight } from '@element-plus/icons-vue'
+import { Loading, Star, Search, ArrowRight } from '@element-plus/icons-vue'
 import { getHotNovels } from '@/api'
 import { searchNovelsByES, searchAuthorsByES, getSearchSuggest } from '@/api/search'
 import NovelCard from '@/components/business/novel-card.vue'
@@ -273,8 +252,6 @@ const searchType = ref<'novel' | 'author'>('novel')
 const suggestions = ref<string[]>([])
 const showSuggestions = ref(false)
 let suggestTimer: ReturnType<typeof setTimeout> | null = null
-
-const hotKeywords = ['玄幻', '都市', '修仙', '系统', '重生', '穿越', '言情', '甜宠']
 
 // 搜索历史
 const searchHistory = ref<string[]>([])
@@ -379,12 +356,10 @@ const handleSearch = async () => {
       const res = await searchNovelsByES(params)
       searchResult.value = res.data?.list || []
       total.value = res.data?.total || 0
-      authorResult.value = []
     } else {
       const res = await searchAuthorsByES(params)
       authorResult.value = res.data?.list || []
       total.value = res.data?.total || 0
-      searchResult.value = []
     }
   } catch (error) {
     console.error('Search failed:', error)

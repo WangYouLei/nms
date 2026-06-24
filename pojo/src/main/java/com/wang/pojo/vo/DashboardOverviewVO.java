@@ -34,6 +34,24 @@ public class DashboardOverviewVO implements Serializable {
     @ApiModelProperty("今日新增用户")
     private Long todayNewVisitors;
 
+    @ApiModelProperty("本周新增小说")
+    private Long weekNewNovels;
+
+    @ApiModelProperty("本周新增作者")
+    private Long weekNewAuthors;
+
+    @ApiModelProperty("本周新增用户")
+    private Long weekNewVisitors;
+
+    @ApiModelProperty("本月新增小说")
+    private Long monthNewNovels;
+
+    @ApiModelProperty("本月新增作者")
+    private Long monthNewAuthors;
+
+    @ApiModelProperty("本月新增用户")
+    private Long monthNewVisitors;
+
     @ApiModelProperty("热门小说数")
     private Long hotNovelCount;
 
