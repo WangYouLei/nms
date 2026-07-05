@@ -118,10 +118,13 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 5
         automatic-transition-from-open-to-half-open-enabled: true
         register-health-indicator: true
+        # 忽略 Bulkhead 拒绝异常，避免连锁熔断（Bulkhead 限流不应计入 DB 熔断失败率）
+        ignore-exceptions:
+          - io.github.resilience4j.bulkhead.BulkheadFullException
   bulkhead:
     instances:
       novelSearchBulkhead:
-        # 最大并发 20（HikariCP 默认连接池 10，留余量给其他查询）
-        max-concurrent-calls: 20
+        # 最大并发 8（HikariCP 默认连接池 10，留 2 个给详情/分页等其他查询）
+        max-concurrent-calls: 8
         # 超限立即拒绝，不排队
         max-wait-duration: 0
