@@ -66,6 +66,7 @@ public class NovelServiceImpl implements NovelService {
     private final NovelEventPublisher novelEventPublisher;
     private final RedisTemplate<String, Object> redisTemplate;
     private final CacheService cacheService;
+    private final NovelSearchFallbackService novelSearchFallbackService;
 
     // 缓存Key前缀
     private static final String CACHE_KEY_NOVEL_DETAIL = "novel:detail:";
@@ -88,7 +89,8 @@ public class NovelServiceImpl implements NovelService {
                             SearchServiceFeign searchServiceFeign,
                             NovelEventPublisher novelEventPublisher,
                             RedisTemplate<String, Object> redisTemplate,
-                            CacheService cacheService) {
+                            CacheService cacheService,
+                            NovelSearchFallbackService novelSearchFallbackService) {
         this.novelMapper = novelMapper;
         this.novelCategoryMapper = novelCategoryMapper;
         this.novelCategoryRelationMapper = novelCategoryRelationMapper;
@@ -97,6 +99,7 @@ public class NovelServiceImpl implements NovelService {
         this.novelEventPublisher = novelEventPublisher;
         this.redisTemplate = redisTemplate;
         this.cacheService = cacheService;
+        this.novelSearchFallbackService = novelSearchFallbackService;
     }
 
     // ==================== Common - 公共方法 ====================
@@ -201,8 +204,8 @@ public class NovelServiceImpl implements NovelService {
             log.warn("ES搜索失败，降级到MySQL搜索：{}", e.getMessage());
         }
 
-        // 降级：MySQL LIKE 查询
-        return searchNovelsFromMySQL(dto);
+        // 降级：调用独立 Service（受 Resilience4j 三重保护 + Redis 缓存）
+        return novelSearchFallbackService.searchNovelsFromMySQL(dto);
     }
 
     /**
@@ -223,109 +226,6 @@ public class NovelServiceImpl implements NovelService {
         searchDTO.setPageNum(dto.getPageNum());
         searchDTO.setPageSize(dto.getPageSize());
         return searchDTO;
-    }
-
-    /**
-     * MySQL LIKE 查询（降级方案）
-     */
-    private Result searchNovelsFromMySQL(NovelSearchDTO dto) {
-        // 参数校验
-        Integer pageNum = dto.getPageNum();
-        Integer pageSize = dto.getPageSize();
-        if (pageNum == null || pageNum < 1) {
-            pageNum = 1;
-        }
-        if (pageSize == null || pageSize < 1 || pageSize > MAX_PAGE_SIZE) {
-            pageSize = DEFAULT_PAGE_SIZE;
-        }
-
-        // 创建分页对象
-        Page<Novel> page = new Page<>(pageNum, pageSize);
-
-        // 创建查询条件
-        LambdaQueryWrapper<Novel> queryWrapper = new LambdaQueryWrapper<>();
-
-        // 获取当前登录用户（可能为空，Visitor无需登录）
-        LoginUser loginUser = RoleContextUtil.getCurrentUser();
-
-        // 权限过滤：Author只能搜索自己的小说，Manager/Visitor可以搜索所有小说
-        if (loginUser != null && UserRole.AUTHOR.equals(loginUser.getRole())) {
-            queryWrapper.eq(Novel::getAuthorId, loginUser.getId());
-            log.info("[Author] 搜索小说：作者ID={}", loginUser.getId());
-        } else {
-            // Manager/Visitor 可以按 authorId 筛选
-            if (dto.getAuthorId() != null) {
-                queryWrapper.eq(Novel::getAuthorId, dto.getAuthorId());
-                log.info("[Manager/Visitor] 搜索小说：按作者ID={}筛选", dto.getAuthorId());
-            } else {
-                log.info("[Manager/Visitor] 搜索小说：查询全部");
-            }
-        }
-
-        // 关键词搜索（模糊匹配名称、副名称、标签）
-        if (StringUtils.hasText(dto.getKeyword())) {
-            queryWrapper.and(w -> w.like(Novel::getName, dto.getKeyword())
-                    .or().like(Novel::getSubName, dto.getKeyword())
-                    .or().like(Novel::getTags, dto.getKeyword()));
-        }
-
-        // 精确条件筛选
-        if (StringUtils.hasText(dto.getName())) {
-            queryWrapper.like(Novel::getName, dto.getName());
-        }
-
-        if (StringUtils.hasText(dto.getSubName())) {
-            queryWrapper.like(Novel::getSubName, dto.getSubName());
-        }
-
-        if (dto.getIsHot() != null) {
-            queryWrapper.eq(Novel::getIsHot, dto.getIsHot());
-        }
-
-        if (dto.getIsFinished() != null) {
-            queryWrapper.eq(Novel::getIsFinished, dto.getIsFinished());
-        }
-
-        // 排序逻辑
-        if (StringUtils.hasText(dto.getSortBy())) {
-            switch (dto.getSortBy()) {
-                case "collect":
-                    // 按收藏数降序
-                    queryWrapper.orderByDesc(Novel::getCollectCount);
-                    break;
-                case "word":
-                    // 按字数降序
-                    queryWrapper.orderByDesc(Novel::getAllWordCount);
-                    break;
-                case "update":
-                default:
-                    // 按更新时间降序（默认）
-                    queryWrapper.orderByDesc(Novel::getUpdateTime);
-                    break;
-            }
-        } else {
-            // 默认按更新时间降序
-            queryWrapper.orderByDesc(Novel::getUpdateTime);
-        }
-
-        // 执行分页查询
-        Page<Novel> result = novelMapper.selectPage(page, queryWrapper);
-
-        // 转换为VO
-        List<NovelListVO> voList = result.getRecords().stream()
-                .map(this::convertToListVO)
-                .collect(Collectors.toList());
-
-        // 构建分页结果
-        PageResult<NovelListVO> pageResult = PageResult.build(
-                (int) result.getCurrent(),
-                (int) result.getSize(),
-                (int) result.getTotal(),
-                voList
-        );
-
-        log.info("搜索小说成功，总记录数：{}", result.getTotal());
-        return Result.success(pageResult);
     }
 
     // ==================== Author - 作者端方法 ====================

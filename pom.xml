@@ -193,6 +193,20 @@
                 <version>2.2.0</version>
             </dependency>
 
+            <!-- Resilience4j RateLimiter（@RateLimiter 注解所需） -->
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-ratelimiter</artifactId>
+                <version>2.2.0</version>
+            </dependency>
+
+            <!-- Resilience4j Bulkhead（@Bulkhead 注解所需） -->
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-bulkhead</artifactId>
+                <version>2.2.0</version>
+            </dependency>
+
             <!-- Spring Boot AMQP (RabbitMQ) -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>

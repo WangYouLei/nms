@@ -37,7 +37,7 @@ spring:
   datasource:
     username: root
     password: 123456
-    url: jdbc:mysql://localhost:3306/nms?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&charset=utf8mb4
+    url: jdbc:mysql://localhost:3306/nms?useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci&charset=utf8mb4&connectTimeout=2000&socketTimeout=30000
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # Redis配置
@@ -89,3 +89,39 @@ mybatis-plus:
 logging:
   level:
     root: info
+
+# Resilience4j 配置（保护 MySQL 降级搜索，防止 ES 宕机后打爆数据库）
+resilience4j:
+  ratelimiter:
+    instances:
+      novelSearchRateLimiter:
+        # 每周期 10 次（LIKE 查询 50-200ms，单实例峰值约 2 并发）
+        limit-for-period: 10
+        limit-refresh-period: 1s
+        # 超限立即拒绝，不排队等待
+        timeout-duration: 0
+        register-health-indicator: true
+  circuitbreaker:
+    instances:
+      novelSearchCircuitBreaker:
+        # 失败率 50% 触发熔断
+        failure-rate-threshold: 50
+        # 慢调用比例 80% 触发熔断
+        slow-call-rate-threshold: 80
+        # 慢调用阈值 3s（配合 JDBC socketTimeout）
+        slow-call-duration-threshold: 3s
+        # 打开 30s 后进入半开状态
+        wait-duration-in-open-state: 30s
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        permitted-number-of-calls-in-half-open-state: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+        register-health-indicator: true
+  bulkhead:
+    instances:
+      novelSearchBulkhead:
+        # 最大并发 20（HikariCP 默认连接池 10，留余量给其他查询）
+        max-concurrent-calls: 20
+        # 超限立即拒绝，不排队
+        max-wait-duration: 0

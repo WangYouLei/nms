@@ -23,6 +23,9 @@ public final class CacheConstants {
     
     /** 小说分类关联 */
     public static final String NOVEL_CATEGORY_PREFIX = "novel:category:";
+
+    /** 小说搜索结果（MySQL 降级搜索） */
+    public static final String NOVEL_SEARCH_PREFIX = "novel:search:";
     
     /** 章节详情 */
     public static final String CHAPTER_DETAIL_PREFIX = "chapter:detail:";
@@ -112,6 +115,9 @@ public final class CacheConstants {
     
     /** 热门小说过期时间：24小时 */
     public static final long NOVEL_HOT_TTL = 86400L;
+
+    /** 小说搜索结果过期时间：5分钟（搜索结果实时性要求较高，TTL 不宜过长） */
+    public static final long NOVEL_SEARCH_TTL = 300L;
     
     /** 章节详情过期时间：1小时 */
     public static final long CHAPTER_DETAIL_TTL = 3600L;
@@ -201,6 +207,18 @@ public final class CacheConstants {
      */
     public static String buildNovelCategoryKey(Long novelId) {
         return NOVEL_CATEGORY_PREFIX + novelId;
+    }
+
+    /**
+     * 构建小说搜索结果缓存键
+     * 必须包含 role + userId 防越权（Author 只能搜索自己的小说）
+     * @param role    用户角色（MANAGER/AUTHOR/VISITOR），未登录传 "VISITOR"
+     * @param userId  用户 ID，未登录传 null（用 "guest" 占位）
+     * @param dtoHash 基于 NovelSearchDTO 关键字段计算的 hash
+     */
+    public static String buildNovelSearchKey(String role, Long userId, String dtoHash) {
+        String uid = userId != null ? String.valueOf(userId) : "guest";
+        return NOVEL_SEARCH_PREFIX + role + ":" + uid + ":" + dtoHash;
     }
     
     /**
