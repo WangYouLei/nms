@@ -1,6 +1,8 @@
 package com.wang.visitor.controller;
 
+import com.wang.common.enums.BizCodeEnum;
 import com.wang.common.result.Result;
+import com.wang.common.utils.RoleContextUtil;
 import com.wang.pojo.dto.VisitorFollowDTO;
 import com.wang.visitor.service.VisitorFollowService;
 import io.swagger.annotations.Api;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * 访客关注作者控制器
+ * 访客身份一律取当前登录用户，不信任前端传入的visitorId，防止越权操作他人关注数据
  */
 @Slf4j
 @RestController
@@ -26,10 +29,24 @@ public class VisitorFollowController {
         this.visitorFollowService = visitorFollowService;
     }
 
+    /**
+     * 获取当前登录访客ID
+     * @return 访客ID，未登录返回null
+     */
+    private Long getCurrentVisitorId() {
+        return RoleContextUtil.getCurrentUserId();
+    }
+
     @PostMapping("/add")
     @ApiOperation("关注作者")
     public Result follow(@RequestBody @ApiParam("关注信息") VisitorFollowDTO dto) {
-        log.info("关注作者请求：visitorId={}, authorId={}", dto.getVisitorId(), dto.getAuthorId());
+        Long visitorId = getCurrentVisitorId();
+        if (visitorId == null) {
+            return Result.buildResult(BizCodeEnum.USER_NOT_LOGIN);
+        }
+        // 强制使用当前登录访客身份，忽略前端传入的visitorId
+        dto.setVisitorId(visitorId);
+        log.info("关注作者请求：visitorId={}, authorId={}", visitorId, dto.getAuthorId());
         return visitorFollowService.follow(dto);
     }
 
@@ -38,8 +55,12 @@ public class VisitorFollowController {
     public Result unfollow(
             @PathVariable @ApiParam("作者ID") Long authorId,
             @RequestParam @ApiParam("访客ID") Long visitorId) {
-        log.info("取消关注请求：visitorId={}, authorId={}", visitorId, authorId);
-        return visitorFollowService.unfollow(visitorId, authorId);
+        Long currentVisitorId = getCurrentVisitorId();
+        if (currentVisitorId == null) {
+            return Result.buildResult(BizCodeEnum.USER_NOT_LOGIN);
+        }
+        log.info("取消关注请求：visitorId={}, authorId={}", currentVisitorId, authorId);
+        return visitorFollowService.unfollow(currentVisitorId, authorId);
     }
 
     @GetMapping("/check/{authorId}")
@@ -47,8 +68,12 @@ public class VisitorFollowController {
     public Result checkFollow(
             @PathVariable @ApiParam("作者ID") Long authorId,
             @RequestParam @ApiParam("访客ID") Long visitorId) {
-        log.info("检查是否关注请求：visitorId={}, authorId={}", visitorId, authorId);
-        return visitorFollowService.checkFollow(visitorId, authorId);
+        Long currentVisitorId = getCurrentVisitorId();
+        if (currentVisitorId == null) {
+            return Result.buildResult(BizCodeEnum.USER_NOT_LOGIN);
+        }
+        log.info("检查是否关注请求：visitorId={}, authorId={}", currentVisitorId, authorId);
+        return visitorFollowService.checkFollow(currentVisitorId, authorId);
     }
 
     @GetMapping("/list")
@@ -57,8 +82,12 @@ public class VisitorFollowController {
             @RequestParam @ApiParam("访客ID") Long visitorId,
             @RequestParam(defaultValue = "1") @ApiParam("页码") Integer pageNum,
             @RequestParam(defaultValue = "10") @ApiParam("每页数量") Integer pageSize) {
-        log.info("获取我的关注列表请求：visitorId={}", visitorId);
-        return visitorFollowService.getMyFollows(visitorId, pageNum, pageSize);
+        Long currentVisitorId = getCurrentVisitorId();
+        if (currentVisitorId == null) {
+            return Result.buildResult(BizCodeEnum.USER_NOT_LOGIN);
+        }
+        log.info("获取我的关注列表请求：visitorId={}", currentVisitorId);
+        return visitorFollowService.getMyFollows(currentVisitorId, pageNum, pageSize);
     }
 
     @GetMapping("/followers/{authorId}")
@@ -74,8 +103,12 @@ public class VisitorFollowController {
     @GetMapping("/count")
     @ApiOperation("获取我的关注数量")
     public Result getMyFollowCount(@RequestParam @ApiParam("访客ID") Long visitorId) {
-        log.info("获取我的关注数量请求：visitorId={}", visitorId);
-        return visitorFollowService.getMyFollowCount(visitorId);
+        Long currentVisitorId = getCurrentVisitorId();
+        if (currentVisitorId == null) {
+            return Result.buildResult(BizCodeEnum.USER_NOT_LOGIN);
+        }
+        log.info("获取我的关注数量请求：visitorId={}", currentVisitorId);
+        return visitorFollowService.getMyFollowCount(currentVisitorId);
     }
 
     @GetMapping("/followerCount/{authorId}")

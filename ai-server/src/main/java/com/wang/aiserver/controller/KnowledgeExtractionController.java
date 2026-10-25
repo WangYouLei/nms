@@ -2,6 +2,7 @@ package com.wang.aiserver.controller;
 
 import com.wang.aiserver.service.KnowledgeExtractResult;
 import com.wang.aiserver.service.KnowledgeService;
+import com.wang.aiserver.service.NovelOwnershipChecker;
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.KnowledgeExtractDTO;
 import com.wang.pojo.vo.KnowledgeExtractVO;
@@ -18,9 +19,11 @@ import java.util.Map;
 public class KnowledgeExtractionController {
 
     private final KnowledgeService knowledgeService;
+    private final NovelOwnershipChecker ownershipChecker;
 
-    public KnowledgeExtractionController(KnowledgeService knowledgeService) {
+    public KnowledgeExtractionController(KnowledgeService knowledgeService, NovelOwnershipChecker ownershipChecker) {
         this.knowledgeService = knowledgeService;
+        this.ownershipChecker = ownershipChecker;
     }
 
     @PostMapping("/extract")
@@ -32,6 +35,10 @@ public class KnowledgeExtractionController {
         if (dto.getChapterText() == null || dto.getChapterText().isBlank()) {
             return Result.error("章节文本不能为空");
         }
+
+        // 校验小说归属，防止向他人小说写入知识数据
+        Result denied = ownershipChecker.checkNovelOwnership(dto.getNovelId());
+        if (denied != null) return denied;
 
         KnowledgeExtractResult result = knowledgeService.extractAndStore(
                 dto.getNovelId(),
@@ -56,6 +63,10 @@ public class KnowledgeExtractionController {
 
         if (novelId == null) return Result.error("小说ID不能为空");
         if (chapters == null || chapters.isEmpty()) return Result.error("章节列表不能为空");
+
+        // 校验小说归属，防止向他人小说写入知识数据
+        Result denied = ownershipChecker.checkNovelOwnership(novelId);
+        if (denied != null) return denied;
 
         int totalExtracted = 0;
         int totalNew = 0;

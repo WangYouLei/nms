@@ -58,10 +58,10 @@ public class ManagerServiceImpl implements ManagerService {
         queryWrapper.eq(Manager::getAccount, account);
         Manager manager = managerMapper.selectOne(queryWrapper);
 
-        // 判断管理员是否存在
+        // 判断管理员是否存在（统一返回"账号或密码错误"，避免枚举有效账号）
         if (manager == null) {
-            log.warn("管理员不存在：账号={}", account);
-            return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
+            log.warn("登录失败：管理员不存在, account={}", account);
+            return Result.buildResult(BizCodeEnum.USER_ACCOUNT_ERROR);
         }
 
         // 验证密码

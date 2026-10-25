@@ -11,7 +11,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
         "com.wang.common"
 })
 @MapperScan("com.wang.aiserver.mapper")
-@EnableFeignClients
+@EnableFeignClients(basePackages = "com.wang.common.feign")
 @EnableDiscoveryClient
 public class AiServerApplication {
 

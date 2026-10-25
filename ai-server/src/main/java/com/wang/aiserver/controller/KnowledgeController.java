@@ -1,6 +1,7 @@
 package com.wang.aiserver.controller;
 
 import com.wang.aiserver.service.KnowledgeService;
+import com.wang.aiserver.service.NovelOwnershipChecker;
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.KnowledgeItemDTO;
 import com.wang.pojo.entity.KnowledgeItem;
@@ -17,15 +18,21 @@ import java.util.List;
 public class KnowledgeController {
 
     private final KnowledgeService knowledgeService;
+    private final NovelOwnershipChecker ownershipChecker;
 
-    public KnowledgeController(KnowledgeService knowledgeService) {
+    public KnowledgeController(KnowledgeService knowledgeService, NovelOwnershipChecker ownershipChecker) {
         this.knowledgeService = knowledgeService;
+        this.ownershipChecker = ownershipChecker;
     }
 
     @GetMapping("/items")
     public Result listItems(@RequestParam Long novelId,
                                                     @RequestParam(required = false) String itemType,
                                                     @RequestParam(defaultValue = "0") int minStatus) {
+        // 校验小说归属，防止读取他人小说的知识库
+        Result denied = ownershipChecker.checkNovelOwnership(novelId);
+        if (denied != null) return denied;
+
         List<KnowledgeItem> items = knowledgeService.getAllForNovel(novelId, itemType, minStatus);
         List<KnowledgeItemVO> vos = new ArrayList<>();
         for (KnowledgeItem item : items) {
@@ -44,6 +51,10 @@ public class KnowledgeController {
         if (dto.getNovelId() == null) return Result.error("小说ID不能为空");
         if (dto.getName() == null || dto.getName().isBlank()) return Result.error("名称不能为空");
 
+        // 校验小说归属，防止向他人小说写入知识项
+        Result denied = ownershipChecker.checkNovelOwnership(dto.getNovelId());
+        if (denied != null) return denied;
+
         KnowledgeItem item = new KnowledgeItem();
         item.setNovelId(dto.getNovelId());
         item.setItemType(dto.getItemType());
@@ -61,6 +72,15 @@ public class KnowledgeController {
 
     @PutMapping("/item/{id}")
     public Result updateItem(@PathVariable Long id, @RequestBody KnowledgeItemDTO dto) {
+        // 校验知识项归属，防止篡改他人知识项
+        Result denied = ownershipChecker.checkItemOwnership(id);
+        if (denied != null) return denied;
+        // 若变更所属小说，还需校验新小说归属
+        if (dto.getNovelId() != null) {
+            Result novelDenied = ownershipChecker.checkNovelOwnership(dto.getNovelId());
+            if (novelDenied != null) return novelDenied;
+        }
+
         KnowledgeItem item = new KnowledgeItem();
         item.setId(id);
         item.setNovelId(dto.getNovelId());
@@ -78,6 +98,10 @@ public class KnowledgeController {
     public Result updateItemStatus(@PathVariable Long id, @RequestBody KnowledgeItemDTO dto) {
         if (dto.getStatus() == null) return Result.error("状态不能为空");
 
+        // 校验知识项归属，防止篡改他人知识项状态
+        Result denied = ownershipChecker.checkItemOwnership(id);
+        if (denied != null) return denied;
+
         KnowledgeItem saved = knowledgeService.updateItemStatus(id, dto.getStatus());
         if (saved == null) return Result.error("知识项不存在");
         return Result.success(toVO(saved));
@@ -85,6 +109,10 @@ public class KnowledgeController {
 
     @DeleteMapping("/item/{id}")
     public Result deleteItem(@PathVariable Long id) {
+        // 校验知识项归属，防止删除他人知识项
+        Result denied = ownershipChecker.checkItemOwnership(id);
+        if (denied != null) return denied;
+
         knowledgeService.deleteItem(id);
         return Result.success();
     }

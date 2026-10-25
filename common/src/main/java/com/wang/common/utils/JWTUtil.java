@@ -19,9 +19,9 @@ public class JWTUtil {
     private static final String JWT_SECRET = "aB3$dE6&gH9*jK2@mN5#pQ8$rT1^wZ4!yC7";
 
     /**
-     * JWT 有效时间（毫秒）
+     * JWT 有效时间（毫秒）：24小时，与 Redis 会话过期时间保持一致
      */
-    private static final long JWT_EXPIRED = 1000L * 60 * 60 * 24 * 7;
+    private static final long JWT_EXPIRED = 1000L * 60 * 60 * 24;
 
     /**
      * 前缀 - 用于识别项目

@@ -10,6 +10,7 @@ import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
 import com.wang.common.utils.Argon2idUtil;
 import com.wang.common.utils.JWTUtil;
+import com.wang.common.utils.RoleContextUtil;
 import com.wang.common.service.TokenService;
 import com.wang.common.service.CacheService;
 import com.wang.common.constants.CacheConstants;
@@ -71,10 +72,15 @@ public class AuthorServiceImpl implements AuthorService {
     public Result register(AuthorRegisterDTO registerDTO) {
         log.info("作者注册：账号={}", registerDTO.getAccount());
 
+        // 0. 校验密码强度（8-64位，必须同时包含字母和数字）
+        if (isWeakPassword(registerDTO.getPassword())) {
+            return Result.error("密码需为8-64位，且同时包含字母和数字");
+        }
+
         // 1. 验证图形验证码
         Result captchaResult = captchaServiceFeign.verify(registerDTO.getCaptchaToken(), registerDTO.getCaptchaCode());
         if (!"success".equals(captchaResult.getMsg())) {
-            log.warn("图形验证码验证失败：token={},captchaCode={}", registerDTO.getCaptchaToken(),registerDTO.getCaptchaCode());
+            log.warn("图形验证码验证失败：captchaToken={}", registerDTO.getCaptchaToken());
             return Result.error("图形验证码错误或已过期");
         }
 
@@ -133,10 +139,10 @@ public class AuthorServiceImpl implements AuthorService {
         queryWrapper.eq(Author::getAccount, account);
         Author author = authorMapper.selectOne(queryWrapper);
 
-        //判断作者是否存在
+        //判断作者是否存在（统一返回"账号或密码错误"，避免枚举有效账号）
         if (author == null  || author.getIsDel()) {
-            log.warn("作者不存在：账号={}", account);
-            return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
+            log.warn("登录失败：作者不存在, account={}", account);
+            return Result.buildResult(BizCodeEnum.USER_ACCOUNT_ERROR);
         }
 
         //验证密码
@@ -233,6 +239,13 @@ public class AuthorServiceImpl implements AuthorService {
     public Result deleteAuthor(Long id) {
         log.info("删除作者：ID={}", id);
 
+        // 权限校验：作者仅能删除自己的账号
+        Long currentUserId = RoleContextUtil.getCurrentUserId();
+        if (currentUserId == null || !currentUserId.equals(id)) {
+            log.warn("无权删除作者：当前用户ID={}, 目标ID={}", currentUserId, id);
+            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
+        }
+
         //检查作者是否存在
         Author author = authorMapper.selectById(id);
         if (author == null) {
@@ -267,6 +280,13 @@ public class AuthorServiceImpl implements AuthorService {
     @Override
     public Result updateAuthor(AuthorDTO authorDTO) {
         log.info("修改作者信息：ID={}", authorDTO.getId());
+
+        // 权限校验：作者仅能修改自己的资料
+        Long currentUserId = RoleContextUtil.getCurrentUserId();
+        if (currentUserId == null || !currentUserId.equals(authorDTO.getId())) {
+            log.warn("无权修改作者信息：当前用户ID={}, 目标ID={}", currentUserId, authorDTO.getId());
+            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
+        }
 
         // 检查作者是否存在
         Author author = authorMapper.selectById(authorDTO.getId());
@@ -350,45 +370,54 @@ public class AuthorServiceImpl implements AuthorService {
         if(!"success".equals(result.getMsg())){
             return result;
         }
-        
-        // 获取用户ID：优先使用ID，否则通过账号查询
-        Long userId = passwordUpdateEmailDTO.getId();
-        if (userId == null && passwordUpdateEmailDTO.getAccount() != null) {
-            // 忘记密码场景：通过账号查找用户
+
+        // 定位目标用户：优先使用ID，否则通过账号查询
+        Author author = null;
+        if (passwordUpdateEmailDTO.getId() != null) {
+            author = authorMapper.selectById(passwordUpdateEmailDTO.getId());
+        } else if (passwordUpdateEmailDTO.getAccount() != null) {
             LambdaQueryWrapper<Author> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(Author::getAccount, passwordUpdateEmailDTO.getAccount());
-            Author author = authorMapper.selectOne(queryWrapper);
-            if (author == null) {
-                log.warn("账号不存在：account={}", passwordUpdateEmailDTO.getAccount());
-                return Result.error("账号不存在");
-            }
-            // 验证邮箱是否匹配
-            if (!passwordUpdateEmailDTO.getEmail().equals(author.getEmail())) {
-                log.warn("邮箱与账号不匹配：account={}", passwordUpdateEmailDTO.getAccount());
-                return Result.error("邮箱与账号不匹配");
-            }
-            userId = author.getId();
+            author = authorMapper.selectOne(queryWrapper);
         }
-        
-        if (userId == null) {
-            log.warn("缺少用户ID或账号");
-            return Result.error("缺少用户信息");
+
+        if (author == null || author.getIsDel()) {
+            log.warn("账号不存在：id={}, account={}", passwordUpdateEmailDTO.getId(), passwordUpdateEmailDTO.getAccount());
+            return Result.buildResult(BizCodeEnum.USER_NOT_FOUND);
         }
-        
-        Author author = new Author();
-        author.setId(userId);
+
+        // 无论通过ID还是账号定位，都必须校验验证码邮箱与该账号绑定邮箱一致，防止用自己邮箱的验证码重置他人密码
+        if (!passwordUpdateEmailDTO.getEmail().equals(author.getEmail())) {
+            log.warn("邮箱与账号不匹配：account={}", author.getAccount());
+            return Result.buildResult(BizCodeEnum.USER_EMAIL_ERROR);
+        }
+
+        // 校验新密码强度（8-64位，必须同时包含字母和数字）
+        if (isWeakPassword(passwordUpdateEmailDTO.getNewPassword())) {
+            return Result.error("密码需为8-64位，且同时包含字母和数字");
+        }
+
         author.setPassword(Argon2idUtil.hash(passwordUpdateEmailDTO.getNewPassword()));
         author.setUpdateTime(LocalDateTime.now());
 
         int number = authorMapper.updateSelective(author);
 
         if(number != 1){
-            log.info("作者密码修改失败，id={}", userId);
+            log.info("作者密码修改失败，id={}", author.getId());
             return Result.error("密码修改失败");
         }else{
-            log.info("修改作者密码成功：ID={}", userId);
+            log.info("修改作者密码成功：ID={}", author.getId());
             return Result.success("作者密码修改成功");
         }
+    }
+
+    /**
+     * 校验密码强度：8-64位，必须同时包含字母和数字
+     * @return true 表示密码不满足强度要求
+     */
+    private boolean isWeakPassword(String password) {
+        return password == null || password.length() < 8 || password.length() > 64
+                || !password.matches(".*[A-Za-z].*") || !password.matches(".*\\d.*");
     }
 
     @Override

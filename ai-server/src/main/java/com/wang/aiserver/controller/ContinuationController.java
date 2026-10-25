@@ -3,6 +3,7 @@ package com.wang.aiserver.controller;
 import com.wang.aiserver.engine.ContinuationEngine;
 import com.wang.aiserver.retriever.KnowledgeRetriever;
 import com.wang.aiserver.service.KnowledgeService;
+import com.wang.aiserver.service.NovelOwnershipChecker;
 import com.wang.aiserver.service.StyleSummaryResult;
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.ContinuationGenerateDTO;
@@ -23,13 +24,16 @@ public class ContinuationController {
     private final ContinuationEngine continuationEngine;
     private final KnowledgeService knowledgeService;
     private final KnowledgeRetriever knowledgeRetriever;
+    private final NovelOwnershipChecker ownershipChecker;
 
     public ContinuationController(ContinuationEngine continuationEngine,
                                    KnowledgeService knowledgeService,
-                                   KnowledgeRetriever knowledgeRetriever) {
+                                   KnowledgeRetriever knowledgeRetriever,
+                                   NovelOwnershipChecker ownershipChecker) {
         this.continuationEngine = continuationEngine;
         this.knowledgeService = knowledgeService;
         this.knowledgeRetriever = knowledgeRetriever;
+        this.ownershipChecker = ownershipChecker;
     }
 
     @PostMapping("/plan")
@@ -42,6 +46,10 @@ public class ContinuationController {
         if (dto.getCurrentContent() == null || dto.getCurrentContent().isBlank()) {
             return Result.error("当前章节内容不能为空");
         }
+
+        // 校验小说归属，续写会读取该小说的知识库与风格摘要，防止泄露他人创作数据
+        Result denied = ownershipChecker.checkNovelOwnership(dto.getNovelId());
+        if (denied != null) return denied;
 
         List<String> outlines = continuationEngine.plan(
                 dto.getCurrentContent(),
@@ -65,6 +73,10 @@ public class ContinuationController {
         if (dto.getCurrentContent() == null || dto.getCurrentContent().isBlank()) {
             return Result.error("当前章节内容不能为空");
         }
+
+        // 校验小说归属，续写会读取该小说的知识库与风格摘要，防止泄露他人创作数据
+        Result denied = ownershipChecker.checkNovelOwnership(dto.getNovelId());
+        if (denied != null) return denied;
 
         String styleGuide = "";
         StyleSummaryResult styleResult = knowledgeService.getStyleSummary(dto.getNovelId());

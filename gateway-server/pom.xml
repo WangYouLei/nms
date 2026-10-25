@@ -33,6 +33,12 @@
             <artifactId>spring-cloud-starter-loadbalancer</artifactId>
         </dependency>
 
+        <!-- Redis（响应式，网关校验会话有效性，支持退出登录即时失效） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+        </dependency>
+
         <!-- JWT（网关鉴权需要） -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

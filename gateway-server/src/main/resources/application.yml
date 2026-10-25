@@ -9,6 +9,14 @@ spring:
   codec:
     max-in-memory-size: 20MB
 
+  # Redis配置（网关校验会话有效性）
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 3000ms
+
   cloud:
     nacos:
       discovery:
@@ -190,8 +198,10 @@ auth:
         - /api/visitor-server/visitor/reading-progress/count/*
 
     # manager-server：仅允许 MANAGER
+    # manual-audit（人工审核）接口与 manager 接口同级，必须同样纳入鉴权，否则会被匿名调用
     - path-patterns:
         - /api/manager-server/manager/*/**
+        - /api/manager-server/manual-audit/**
       allowed-roles: MANAGER
       exclude-paths:
         - /api/manager-server/manager/login

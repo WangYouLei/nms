@@ -1,7 +1,11 @@
 package com.wang.manager.controller;
 
 import com.wang.common.enums.AuditResultEnum;
+import com.wang.common.enums.BizCodeEnum;
+import com.wang.common.enums.UserRole;
+import com.wang.common.model.LoginUser;
 import com.wang.common.result.Result;
+import com.wang.common.utils.RoleContextUtil;
 import com.wang.manager.service.ManualAuditService;
 import com.wang.pojo.dto.ManualAuditDTO;
 import com.wang.pojo.dto.ManualAuditQueryDTO;
@@ -15,6 +19,7 @@ import java.util.List;
 
 /**
  * 人工审核控制器
+ * 仅管理员可访问，审核人身份以当前登录管理员为准，不信任前端传入的管理员信息
  */
 @Slf4j
 @RestController
@@ -28,9 +33,23 @@ public class ManualAuditController {
         this.manualAuditService = manualAuditService;
     }
 
+    /**
+     * 校验当前登录用户是否为管理员（服务层纵深校验，网关已做角色控制）
+     * @return 校验通过返回null，否则返回拒绝结果
+     */
+    private Result denyIfNotManager() {
+        if (!UserRole.MANAGER.getCode().equals(RoleContextUtil.getCurrentUserRole())) {
+            log.warn("人工审核接口拒绝访问：当前用户非管理员");
+            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
+        }
+        return null;
+    }
+
     @PostMapping("/create")
     @ApiOperation("创建审核记录（提交审核）")
     public Result createAuditRecord(@RequestBody ManualAuditDTO dto) {
+        Result denied = denyIfNotManager();
+        if (denied != null) return denied;
         log.info("创建审核记录请求：aimId={}, aimType={}", dto.getAimId(), dto.getAimType());
         return manualAuditService.createAuditRecord(dto);
     }
@@ -43,8 +62,12 @@ public class ManualAuditController {
             @RequestParam(required = false) @ApiParam("拒绝理由（拒绝时必填）") String refusalReason,
             @RequestParam @ApiParam("审核管理员ID") Long managerId,
             @RequestParam @ApiParam("审核管理员昵称") String managerName) {
+        Result denied = denyIfNotManager();
+        if (denied != null) return denied;
         log.info("执行审核请求：id={}, result={}", id, result);
-        return manualAuditService.executeAudit(id, result, refusalReason, managerId, managerName);
+        // 审核人身份以当前登录管理员为准，忽略前端传入值
+        LoginUser current = RoleContextUtil.getCurrentUser();
+        return manualAuditService.executeAudit(id, result, refusalReason, current.getId(), current.getName());
     }
 
     @PutMapping("/approve/{id}")
@@ -53,8 +76,11 @@ public class ManualAuditController {
             @PathVariable @ApiParam("审核记录ID") Long id,
             @RequestParam @ApiParam("审核管理员ID") Long managerId,
             @RequestParam @ApiParam("审核管理员昵称") String managerName) {
+        Result denied = denyIfNotManager();
+        if (denied != null) return denied;
         log.info("审核通过请求：id={}", id);
-        return manualAuditService.executeAudit(id, AuditResultEnum.APPROVED.getValue(), null, managerId, managerName);
+        LoginUser current = RoleContextUtil.getCurrentUser();
+        return manualAuditService.executeAudit(id, AuditResultEnum.APPROVED.getValue(), null, current.getId(), current.getName());
     }
 
     @PutMapping("/reject/{id}")
@@ -64,8 +90,11 @@ public class ManualAuditController {
             @RequestParam @ApiParam("拒绝理由") String refusalReason,
             @RequestParam @ApiParam("审核管理员ID") Long managerId,
             @RequestParam @ApiParam("审核管理员昵称") String managerName) {
+        Result denied = denyIfNotManager();
+        if (denied != null) return denied;
         log.info("审核拒绝请求：id={}", id);
-        return manualAuditService.executeAudit(id, AuditResultEnum.REJECTED.getValue(), refusalReason, managerId, managerName);
+        LoginUser current = RoleContextUtil.getCurrentUser();
+        return manualAuditService.executeAudit(id, AuditResultEnum.REJECTED.getValue(), refusalReason, current.getId(), current.getName());
     }
 
     @PutMapping("/batch-approve")
@@ -74,8 +103,11 @@ public class ManualAuditController {
             @RequestBody @ApiParam("审核记录ID列表") List<Long> ids,
             @RequestParam @ApiParam("审核管理员ID") Long managerId,
             @RequestParam @ApiParam("审核管理员昵称") String managerName) {
+        Result denied = denyIfNotManager();
+        if (denied != null) return denied;
         log.info("批量审核通过请求：count={}", ids.size());
-        return manualAuditService.batchApprove(ids, managerId, managerName);
+        LoginUser current = RoleContextUtil.getCurrentUser();
+        return manualAuditService.batchApprove(ids, current.getId(), current.getName());
     }
 
     @PutMapping("/batch-reject")
@@ -85,13 +117,18 @@ public class ManualAuditController {
             @RequestParam @ApiParam("拒绝理由") String refusalReason,
             @RequestParam @ApiParam("审核管理员ID") Long managerId,
             @RequestParam @ApiParam("审核管理员昵称") String managerName) {
+        Result denied = denyIfNotManager();
+        if (denied != null) return denied;
         log.info("批量审核拒绝请求：count={}", ids.size());
-        return manualAuditService.batchReject(ids, refusalReason, managerId, managerName);
+        LoginUser current = RoleContextUtil.getCurrentUser();
+        return manualAuditService.batchReject(ids, refusalReason, current.getId(), current.getName());
     }
 
     @GetMapping("/detail/{id}")
     @ApiOperation("获取审核记录详情")
     public Result getAuditById(@PathVariable @ApiParam("审核记录ID") Long id) {
+        Result denied = denyIfNotManager();
+        if (denied != null) return denied;
         log.info("获取审核记录详情请求：id={}", id);
         return manualAuditService.getAuditById(id);
     }
@@ -99,6 +136,8 @@ public class ManualAuditController {
     @PostMapping("/list")
     @ApiOperation("分页查询审核记录列表")
     public Result getAuditList(@RequestBody ManualAuditQueryDTO queryDTO) {
+        Result denied = denyIfNotManager();
+        if (denied != null) return denied;
         log.info("分页查询审核记录列表请求");
         return manualAuditService.getAuditList(queryDTO);
     }
@@ -108,6 +147,8 @@ public class ManualAuditController {
     public Result getPendingList(
             @RequestParam(defaultValue = "1") @ApiParam("页码") Integer pageNum,
             @RequestParam(defaultValue = "10") @ApiParam("每页数量") Integer pageSize) {
+        Result denied = denyIfNotManager();
+        if (denied != null) return denied;
         log.info("获取待审核记录列表请求");
         return manualAuditService.getPendingList(pageNum, pageSize);
     }
@@ -118,6 +159,8 @@ public class ManualAuditController {
             @PathVariable @ApiParam("管理员ID") Long managerId,
             @RequestParam(defaultValue = "1") @ApiParam("页码") Integer pageNum,
             @RequestParam(defaultValue = "10") @ApiParam("每页数量") Integer pageSize) {
+        Result denied = denyIfNotManager();
+        if (denied != null) return denied;
         log.info("获取管理员审核记录请求：managerId={}", managerId);
         return manualAuditService.getAuditByManagerId(managerId, pageNum, pageSize);
     }
@@ -125,6 +168,8 @@ public class ManualAuditController {
     @GetMapping("/statistics")
     @ApiOperation("获取审核统计信息")
     public Result getAuditStatistics() {
+        Result denied = denyIfNotManager();
+        if (denied != null) return denied;
         log.info("获取审核统计信息请求");
         return manualAuditService.getAuditStatistics();
     }
@@ -132,6 +177,8 @@ public class ManualAuditController {
     @DeleteMapping("/delete/{id}")
     @ApiOperation("删除审核记录")
     public Result deleteAuditRecord(@PathVariable @ApiParam("审核记录ID") Long id) {
+        Result denied = denyIfNotManager();
+        if (denied != null) return denied;
         log.info("删除审核记录请求：id={}", id);
         return manualAuditService.deleteAuditRecord(id);
     }
@@ -141,6 +188,8 @@ public class ManualAuditController {
     public Result checkPending(
             @RequestParam @ApiParam("审核目标对象ID") Long aimId,
             @RequestParam @ApiParam("审核目标对象类型") Integer aimType) {
+        Result denied = denyIfNotManager();
+        if (denied != null) return denied;
         log.info("检查待审核记录请求：aimId={}, aimType={}", aimId, aimType);
         boolean hasPending = manualAuditService.hasPendingAudit(aimId, aimType);
         return Result.success(hasPending);

@@ -4,8 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.wang.common.enums.AuditAimTypeEnum;
 import com.wang.common.enums.BizCodeEnum;
+import com.wang.common.enums.UserRole;
+import com.wang.common.model.LoginUser;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
+import com.wang.common.utils.RoleContextUtil;
 import org.springframework.beans.BeanUtils;
 import com.wang.common.feign.AuthorServiceFeign;
 import com.wang.common.feign.VisitorServiceFeign;
@@ -95,6 +98,17 @@ public class CommentServiceImpl implements CommentService {
 
         Comment comment = new Comment();
         BeanUtils.copyProperties(commentDTO, comment, "id");
+
+        // 评论身份以网关传递的登录用户为准，禁止前端指定（防止冒充他人或管理员发表评论）
+        LoginUser currentUser = RoleContextUtil.getCurrentUser();
+        if (currentUser == null) {
+            return Result.buildResult(BizCodeEnum.USER_NOT_LOGIN);
+        }
+        comment.setUserId(currentUser.getId());
+        comment.setUserType(mapUserType(currentUser.getRole()));
+        comment.setUserName(currentUser.getName());
+        comment.setUserAvatar(currentUser.getAvatar());
+
         comment.setReplyCount(0);
 
         // 根据本地审核结果设置 audit_level
@@ -173,9 +187,13 @@ public class CommentServiceImpl implements CommentService {
             return Result.buildResult(BizCodeEnum.RESOURCE_NOT_FOUND);
         }
 
-        // 权限校验：只能删除自己的评论
-        if (!comment.getUserId().equals(userId)) {
-            log.warn("无权删除评论：commentId={}, userId={}", commentId, userId);
+        // 权限校验：只能删除自己的评论（以当前登录用户为准，同时校验用户类型，防止不同角色用户ID碰撞）
+        LoginUser currentUser = RoleContextUtil.getCurrentUser();
+        Integer currentUserType = mapUserType(currentUser != null ? currentUser.getRole() : null);
+        if (currentUser == null
+                || !comment.getUserId().equals(currentUser.getId())
+                || !comment.getUserType().equals(currentUserType)) {
+            log.warn("无权删除评论：commentId={}, 当前用户ID={}", commentId, currentUser != null ? currentUser.getId() : null);
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }
 
@@ -207,9 +225,13 @@ public class CommentServiceImpl implements CommentService {
             return Result.buildResult(BizCodeEnum.RESOURCE_NOT_FOUND);
         }
 
-        // 权限校验：只能修改自己的评论
-        if (!existingComment.getUserId().equals(commentDTO.getUserId())) {
-            log.warn("无权修改评论：commentId={}, userId={}", commentDTO.getId(), commentDTO.getUserId());
+        // 权限校验：只能修改自己的评论（以当前登录用户为准，同时校验用户类型，防止不同角色用户ID碰撞）
+        LoginUser currentUser = RoleContextUtil.getCurrentUser();
+        Integer currentUserType = mapUserType(currentUser != null ? currentUser.getRole() : null);
+        if (currentUser == null
+                || !existingComment.getUserId().equals(currentUser.getId())
+                || !existingComment.getUserType().equals(currentUserType)) {
+            log.warn("无权修改评论：commentId={}, 当前用户ID={}", commentDTO.getId(), currentUser != null ? currentUser.getId() : null);
             return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
         }
 
@@ -403,6 +425,13 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public Result getMyComments(Long userId, Integer userType, Integer pageNum, Integer pageSize) {
+        // 强制使用当前登录用户身份，忽略前端传入的userId/userType（防止遍历他人评论）
+        LoginUser currentUser = RoleContextUtil.getCurrentUser();
+        if (currentUser == null) {
+            return Result.buildResult(BizCodeEnum.USER_NOT_LOGIN);
+        }
+        userId = currentUser.getId();
+        userType = mapUserType(currentUser.getRole());
         log.info("获取我的评论：userId={}, userType={}", userId, userType);
 
         LambdaQueryWrapper<Comment> queryWrapper = new LambdaQueryWrapper<>();
@@ -430,6 +459,12 @@ public class CommentServiceImpl implements CommentService {
     public Result auditComment(Long commentId, Integer auditLevel) {
         log.info("审核评论：commentId={}, auditLevel={}", commentId, auditLevel);
 
+        // 人工审核仅管理员可执行
+        if (!UserRole.MANAGER.getCode().equals(RoleContextUtil.getCurrentUserRole())) {
+            log.warn("非管理员尝试审核评论");
+            return Result.buildResult(BizCodeEnum.PERMISSION_DENIED);
+        }
+
         // 校验审核级别合法性
         if (auditLevel == null || auditLevel < 0 || auditLevel > 2) {
             log.warn("审核级别不合法：auditLevel={}", auditLevel);
@@ -453,6 +488,20 @@ public class CommentServiceImpl implements CommentService {
             log.error("审核失败：commentId={}", commentId);
             return Result.error("审核失败");
         }
+    }
+
+    /**
+     * 将用户角色映射为评论用户类型：1-访客，2-作者，3-管理员
+     */
+    private Integer mapUserType(UserRole role) {
+        if (role == null) {
+            return null;
+        }
+        return switch (role) {
+            case VISITOR -> 1;
+            case AUTHOR -> 2;
+            case MANAGER -> 3;
+        };
     }
 
     /**

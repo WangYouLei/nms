@@ -2,6 +2,8 @@ package com.wang.visitor.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.wang.common.enums.BizCodeEnum;
+import com.wang.common.feign.AuthorServiceFeign;
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.common.service.CacheService;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 访客关注作者服务实现类
@@ -29,10 +32,13 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
 
     private final VisitorFollowMapper visitorFollowMapper;
     private final CacheService cacheService;
+    private final AuthorServiceFeign authorServiceFeign;
 
-    public VisitorFollowServiceImpl(VisitorFollowMapper visitorFollowMapper, CacheService cacheService) {
+    public VisitorFollowServiceImpl(VisitorFollowMapper visitorFollowMapper, CacheService cacheService,
+                                    AuthorServiceFeign authorServiceFeign) {
         this.visitorFollowMapper = visitorFollowMapper;
         this.cacheService = cacheService;
+        this.authorServiceFeign = authorServiceFeign;
     }
 
     @Override
@@ -46,13 +52,24 @@ public class VisitorFollowServiceImpl implements VisitorFollowService {
             return Result.error("已关注该作者");
         }
 
-        // 创建关注记录，使用前端传入的作者信息
+        // 作者冗余信息以作者服务返回为准，防止前端伪造作者名称/头像/等级
+        Result authorBasicResult = authorServiceFeign.getAuthorBasicInfo(dto.getAuthorId());
+        if (authorBasicResult == null
+                || !Integer.valueOf(BizCodeEnum.SUCCESS.getCode()).equals(authorBasicResult.getCode())
+                || authorBasicResult.getData() == null) {
+            log.warn("作者不存在，关注失败：authorId={}", dto.getAuthorId());
+            return Result.error("作者不存在");
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> authorBasic = (Map<String, Object>) authorBasicResult.getData();
+
+        // 创建关注记录
         VisitorFollow follow = new VisitorFollow();
         follow.setVisitorId(dto.getVisitorId());
         follow.setAuthorId(dto.getAuthorId());
-        follow.setAuthorName(dto.getAuthorName());
-        follow.setAuthorAvatar(dto.getAuthorAvatar());
-        follow.setAuthorRank(dto.getAuthorRank());
+        follow.setAuthorName((String) authorBasic.get("name"));
+        follow.setAuthorAvatar((String) authorBasic.get("avatar"));
+        follow.setAuthorRank(authorBasic.get("rank") instanceof Number number ? number.intValue() : null);
         follow.setCreateTime(LocalDateTime.now());
         follow.setUpdateTime(LocalDateTime.now());
 

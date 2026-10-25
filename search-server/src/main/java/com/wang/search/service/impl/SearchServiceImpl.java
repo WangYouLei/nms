@@ -1,6 +1,6 @@
 package com.wang.search.service.impl;
 
-import com.wang.common.enums.BizCodeEnum;
+
 import com.wang.common.result.PageResult;
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.SearchDTO;
@@ -9,7 +9,6 @@ import com.wang.search.document.NovelDocument;
 import com.wang.search.service.SearchService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
-import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.stereotype.Service;

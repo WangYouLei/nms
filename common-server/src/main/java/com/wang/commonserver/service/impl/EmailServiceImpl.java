@@ -34,6 +34,26 @@ public class EmailServiceImpl implements EmailService {
      */
     private static final String CODE_KEY_PREFIX = "email:code:";
     
+    /**
+     * 验证码验证失败计数的key前缀
+     */
+    private static final String FAIL_COUNT_KEY_PREFIX = "email:fail:count:";
+    
+    /**
+     * 验证码验证最大失败次数，超过后作废当前验证码（防止在线穷举）
+     */
+    private static final int MAX_VERIFY_ATTEMPTS = 5;
+    
+    /**
+     * 当日验证码发送计数的key前缀
+     */
+    private static final String DAILY_COUNT_KEY_PREFIX = "email:daily:count:";
+    
+    /**
+     * 同一邮箱每日最大发送次数（防止邮件轰炸）
+     */
+    private static final long DAILY_SEND_LIMIT = 10;
+    
     public EmailServiceImpl(JavaMailSender mailSender, StringRedisTemplate redisTemplate) {
         this.mailSender = mailSender;
         this.redisTemplate = redisTemplate;
@@ -65,6 +85,14 @@ public class EmailServiceImpl implements EmailService {
             }
         }
         
+        // 2.1 检查当日发送数量是否超限（防止邮件轰炸）
+        String dailyKey = DAILY_COUNT_KEY_PREFIX + email;
+        String dailyCount = redisTemplate.opsForValue().get(dailyKey);
+        if (dailyCount != null && Long.parseLong(dailyCount) >= DAILY_SEND_LIMIT) {
+            log.warn("验证码当日发送数量超限：email={}", email);
+            return Result.error("当日验证码发送数量已达上限，请明天再试");
+        }
+        
         // 3. 生成6位验证码
         String code = CommonUtil.generateCode(6);
         
@@ -84,6 +112,12 @@ public class EmailServiceImpl implements EmailService {
         
         // 5. 将验证码存入Redis，设置5分钟过期
         redisTemplate.opsForValue().set(key, code, CODE_EXPIRE_MINUTES, TimeUnit.MINUTES);
+        
+        // 6. 当日发送计数+1，首次计数时设置24小时过期
+        Long count = redisTemplate.opsForValue().increment(dailyKey);
+        if (count != null && count == 1) {
+            redisTemplate.expire(dailyKey, 24, TimeUnit.HOURS);
+        }
         
         return Result.success("验证码发送成功");
     }
@@ -119,14 +153,30 @@ public class EmailServiceImpl implements EmailService {
             return Result.error("验证码已过期，请重新获取");
         }
         
+        // 3.1 校验失败次数是否超限（防止在线穷举6位验证码）
+        String failKey = FAIL_COUNT_KEY_PREFIX + email;
+        String failCount = redisTemplate.opsForValue().get(failKey);
+        if (failCount != null && Integer.parseInt(failCount) >= MAX_VERIFY_ATTEMPTS) {
+            // 失败次数过多，作废当前验证码
+            redisTemplate.delete(key);
+            redisTemplate.delete(failKey);
+            log.warn("验证码尝试次数超限，已作废：email={}", email);
+            return Result.error("验证码错误次数过多，请重新获取");
+        }
+        
         // 4. 验证码比对
         if (!storedCode.equals(code.trim())) {
-            log.warn("验证码错误：email={}, inputCode={}", email, code);
+            Long fails = redisTemplate.opsForValue().increment(failKey);
+            if (fails != null && fails == 1) {
+                redisTemplate.expire(failKey, CODE_EXPIRE_MINUTES, TimeUnit.MINUTES);
+            }
+            log.warn("验证码错误：email={}", email);
             return Result.error("验证码错误");
         }
         
-        // 5. 验证成功，删除验证码（一次性使用）
+        // 5. 验证成功，删除验证码（一次性使用）及失败计数
         redisTemplate.delete(key);
+        redisTemplate.delete(failKey);
         log.info("验证码验证成功：email={}", email);
         
         return Result.success("验证成功");

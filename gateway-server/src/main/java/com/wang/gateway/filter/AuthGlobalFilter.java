@@ -12,6 +12,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -37,6 +38,9 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
     @Autowired
     private AuthRouteProperties authRouteProperties;
 
+    @Autowired
+    private ReactiveStringRedisTemplate reactiveStringRedisTemplate;
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getPath().value();
@@ -50,14 +54,8 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
 
-        // 从请求头或查询参数获取token
+        // 仅从请求头获取token（不再支持URL参数传递，避免token泄漏到访问日志/浏览器历史/Referer）
         String token = exchange.getRequest().getHeaders().getFirst("token");
-        if (token == null || token.isEmpty()) {
-            List<String> tokenParams = exchange.getRequest().getQueryParams().get("token");
-            if (tokenParams != null && !tokenParams.isEmpty()) {
-                token = tokenParams.get(0);
-            }
-        }
 
         if (token == null || token.isEmpty()) {
             log.warn("鉴权失败：未提供token, path={}", path);
@@ -77,23 +75,38 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             return writeErrorResponse(exchange, 10006, "权限不足");
         }
 
-        // 将用户信息写入请求头，传递给下游服务
         Object idClaim = claims.get("id");
         if (idClaim == null) {
             log.warn("鉴权失败：JWT中缺少id字段, path={}", path);
             return writeErrorResponse(exchange, 20004, "用户未登录");
         }
 
-        ServerHttpRequest request = exchange.getRequest().mutate()
-                .header("X-User-Id", String.valueOf(idClaim))
-                .header("X-User-Name", (String) claims.get("name"))
-                .header("X-User-Avatar", (String) claims.get("avatar"))
-                .header("X-User-Account", (String) claims.get("account"))
-                .header("X-User-Role", roleCode)
-                .header("X-Gateway-Auth", GATEWAY_AUTH_SECRET)
-                .build();
-
-        return chain.filter(exchange.mutate().request(request).build());
+        // 校验 Redis 会话：token 必须与登录时写入 Redis 的当前会话一致，
+        // 使"退出登录"和"异地重新登录"能够即时失效旧 token（否则 JWT 在有效期内始终可用）
+        // Redis 异常时拒绝请求（fail-closed），避免通过打挂 Redis 绕过会话校验
+        String sessionKey = "token:" + roleCode + ":" + idClaim;
+        return reactiveStringRedisTemplate.opsForValue().get(sessionKey)
+                .defaultIfEmpty("")
+                .flatMap(storedToken -> {
+                    if (!token.equals(storedToken)) {
+                        log.warn("鉴权失败：会话已失效（已退出登录或在别处登录）, path={}", path);
+                        return writeErrorResponse(exchange, 20005, "登录已过期，请重新登录");
+                    }
+                    // 将用户信息写入请求头，传递给下游服务
+                    ServerHttpRequest request = exchange.getRequest().mutate()
+                            .header("X-User-Id", String.valueOf(idClaim))
+                            .header("X-User-Name", (String) claims.get("name"))
+                            .header("X-User-Avatar", (String) claims.get("avatar"))
+                            .header("X-User-Account", (String) claims.get("account"))
+                            .header("X-User-Role", roleCode)
+                            .header("X-Gateway-Auth", GATEWAY_AUTH_SECRET)
+                            .build();
+                    return chain.filter(exchange.mutate().request(request).build());
+                })
+                .onErrorResume(e -> {
+                    log.error("会话校验异常：{}", e.getMessage());
+                    return writeErrorResponse(exchange, 20005, "登录已过期，请重新登录");
+                });
     }
 
     private AuthRule findMatchingRule(String path) {

@@ -1,6 +1,7 @@
 package com.wang.aiserver.controller;
 
 import com.wang.aiserver.service.KnowledgeService;
+import com.wang.aiserver.service.NovelOwnershipChecker;
 import com.wang.aiserver.service.StyleSummaryResult;
 import com.wang.common.result.Result;
 import com.wang.pojo.dto.StyleSummaryRefreshDTO;
@@ -17,13 +18,19 @@ import java.util.Map;
 public class StyleSummaryController {
 
     private final KnowledgeService knowledgeService;
+    private final NovelOwnershipChecker ownershipChecker;
 
-    public StyleSummaryController(KnowledgeService knowledgeService) {
+    public StyleSummaryController(KnowledgeService knowledgeService, NovelOwnershipChecker ownershipChecker) {
         this.knowledgeService = knowledgeService;
+        this.ownershipChecker = ownershipChecker;
     }
 
     @GetMapping("/style-summary")
     public Result getStyleSummary(@RequestParam Long novelId) {
+        // 校验小说归属，防止读取他人小说的写作风格摘要
+        Result denied = ownershipChecker.checkNovelOwnership(novelId);
+        if (denied != null) return denied;
+
         StyleSummaryResult result = knowledgeService.getStyleSummary(novelId);
 
         Map<String, Object> data = new HashMap<>();
@@ -39,6 +46,10 @@ public class StyleSummaryController {
     @PostMapping("/style-summary/refresh")
     public Result refreshStyleSummary(@RequestBody StyleSummaryRefreshDTO dto) {
         if (dto.getNovelId() == null) return Result.error("小说ID不能为空");
+
+        // 校验小说归属，防止基于他人小说生成风格摘要
+        Result denied = ownershipChecker.checkNovelOwnership(dto.getNovelId());
+        if (denied != null) return denied;
 
         String chapterSamples = dto.getChapterSamples() != null ? dto.getChapterSamples() : "";
         StyleSummaryResult result = knowledgeService.updateStyleSummary(dto.getNovelId(), chapterSamples);
@@ -59,6 +70,10 @@ public class StyleSummaryController {
         if (dto.getStyleText() == null || dto.getStyleText().isBlank()) {
             return Result.error("风格文本不能为空");
         }
+
+        // 校验小说归属，防止篡改他人小说的风格摘要
+        Result denied = ownershipChecker.checkNovelOwnership(dto.getNovelId());
+        if (denied != null) return denied;
 
         // Get existing to preserve last_chapter
         StyleSummaryResult existing = knowledgeService.getStyleSummary(dto.getNovelId());

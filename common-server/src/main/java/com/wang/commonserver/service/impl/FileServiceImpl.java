@@ -3,6 +3,7 @@ package com.wang.commonserver.service.impl;
 import com.wang.common.config.DefaultUrlConfig;
 import com.wang.common.enums.FileUploadTypeEnum;
 import com.wang.common.result.Result;
+import com.wang.common.utils.RoleContextUtil;
 import com.wang.commonserver.config.MinioInfo;
 import com.wang.commonserver.service.FileService;
 import io.minio.*;
@@ -16,6 +17,7 @@ import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -24,6 +26,21 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class FileServiceImpl implements FileService {
+
+    /**
+     * 头像/封面允许的扩展名白名单（小写，含点）：仅图片，禁止html/svg等可被浏览器执行的内容
+     */
+    private static final Set<String> IMAGE_EXTENSIONS = Set.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
+
+    /**
+     * 章节文件允许的扩展名白名单（小写，含点）：仅纯文本
+     */
+    private static final Set<String> CHAPTER_EXTENSIONS = Set.of(".txt", ".md", ".markdown");
+
+    /**
+     * 预签名URL最大有效期（秒）
+     */
+    private static final int MAX_PRESIGNED_EXPIRE_SECONDS = 3600;
 
     private final MinioInfo minioInfo;
     private final MinioClient minioClient;
@@ -35,11 +52,12 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public Result uploadFile(MultipartFile file, Integer code, Long novelId, String oldFileUrl) {
-        String typeName = FileUploadTypeEnum.getMessageByCode(code).name();
-        if (!StringUtils.hasText(typeName)) {
-            log.info("无效的类型:code={}",code);
+        FileUploadTypeEnum uploadType = code != null ? FileUploadTypeEnum.getMessageByCode(code) : null;
+        if (uploadType == null) {
+            log.info("无效的类型:code={}", code);
             return Result.error("上传文件类型错误");
         }
+        String typeName = uploadType.name();
 
         if (novelId != null) {
             typeName = typeName + "/" + novelId;
@@ -51,6 +69,15 @@ public class FileServiceImpl implements FileService {
         if (originalFilename != null && originalFilename.contains(".")) {
             extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         }
+
+        // 扩展名白名单校验：头像/封面仅允许图片，章节仅允许纯文本，防止上传可被浏览器执行的文件造成存储型XSS
+        Set<String> allowedExtensions = uploadType == FileUploadTypeEnum.NOVEL_CHAPTER
+                ? CHAPTER_EXTENSIONS : IMAGE_EXTENSIONS;
+        if (!allowedExtensions.contains(extension.toLowerCase())) {
+            log.warn("文件类型不在白名单内：extension={}, code={}", extension, code);
+            return Result.error("不支持的文件类型");
+        }
+
         String newFileName = typeName + "/" + UUID.randomUUID() + extension;
 
         try {
@@ -217,9 +244,17 @@ public class FileServiceImpl implements FileService {
 
         try {
             String objectName = extractObjectName(fileUrl);
-            
-            // 默认过期时间1小时
-            int expiry = (expireSeconds != null && expireSeconds > 0) ? expireSeconds : 3600;
+
+            // 章节文件属于作者创作内容，未登录用户不允许获取签名URL（头像/封面允许匿名访问）
+            if (objectName.startsWith(FileUploadTypeEnum.NOVEL_CHAPTER.name() + "/")
+                    && RoleContextUtil.getCurrentUser() == null) {
+                log.warn("未登录用户请求章节文件签名URL：{}", fileUrl);
+                return null;
+            }
+
+            // 过期时间上限1小时，防止签发长期有效的URL
+            int expiry = (expireSeconds != null && expireSeconds > 0)
+                    ? Math.min(expireSeconds, MAX_PRESIGNED_EXPIRE_SECONDS) : 3600;
             
             // 生成预签名URL
             String presignedUrl = minioClient.getPresignedObjectUrl(
